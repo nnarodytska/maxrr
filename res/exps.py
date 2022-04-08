@@ -183,7 +183,7 @@ if (gen_run):
                         the_file.write(f'{s}\n')
 
                     if (res[0]):
-                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s maplesat {res[2]}  -vv {filename} > {res_filename}.l2.{res[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s maplesat {res[2]}  -vv {filename} > {res_filename}.{res[3]}.{res[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (res_v1[0]):
