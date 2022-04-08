@@ -132,7 +132,7 @@ resrg  = [False, "resrg",  "", "v0"]
 
 to = [3600]#, 3600*3]
 
-maxhs = [False, "maxhs"]
+maxhs = [True, "maxhs"]
 eva = [False, "eva"]
 
 gen_run = True
