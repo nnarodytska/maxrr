@@ -1022,7 +1022,7 @@ class RC2(object):
             During this core minimization procedure, all SAT calls are
             dropped after obtaining 1000 conflicts.
         """
-        print("min starts")
+        #print("min starts")
         if self.minz and len(self.core) > 1:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
             
@@ -1054,7 +1054,7 @@ class RC2(object):
                     i += 1
                 else:
                     break
-        print("min end")
+        #print("min end")
 
     def exhaust_core(self, tobj):
         """
