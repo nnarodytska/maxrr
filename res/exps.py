@@ -135,8 +135,8 @@ to = [3600]#, 3600*3]
 maxhs = [True, "maxhs"]
 eva = [False, "eva"]
 
-gen_run = True
-process_run = False
+gen_run = False
+process_run = True
 if (gen_run):
     with open('run.txt', 'w') as the_file:
         for tm in to:
@@ -231,10 +231,10 @@ if (gen_run):
 
 
 if (process_run):
-    rc2comp = [True, "rc2comp"]
+    # rc2comp = [True, "rc2comp"]
 
-    maxhs = [True, "maxhs"]
-    resrg  = [True, "resrg",  "", "v0"]
+    # maxhs = [True, "maxhs"]
+    # resrg  = [True, "resrg",  "", "v0"]
 
 
     to = [3600]#, 3600]#, 3600*3]
