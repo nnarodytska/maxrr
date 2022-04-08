@@ -121,7 +121,7 @@ rc2 = [False, "rc2"]
 rc2comp = [True, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res  = [True, "maxres",  "-r mr1a ", "v0"]
+res_v0  = [True, "maxres",  "-r mr1a ", "v0"]
 res_v1 = [True, "maxres", "-r mr1b ", "v1"]
 res_v2 = [True, "maxres", "-r mr2a ",  "v2"]
 res_v3 = [True, "maxres", "-r mr2b",  "v3"] # with closure
@@ -134,6 +134,40 @@ to = [3600]#, 3600*3]
 
 maxhs = [True, "maxhs"]
 eva = [False, "eva"]
+
+def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
+
+    s = f"{res_filename}.{res_v[3]}.{res_v[1]}.{timetag}res"
+    print(s)
+    res = copy.deepcopy(dummy)
+    results_res_v[file_name] = res
+    
+    #s = f"{res_filename}.{res[1]}.res"
+    if not (path.isfile(s)):
+        results_res_v[file_name] = copy.deepcopy(dummy)
+    else:
+        file = open(s, "r")
+        for line in file:
+            if "o " ==  line[:2]:
+                opt = int(line[2:])
+                res[0] = opt
+            f = "c oracle time:"
+            if  f ==  line[:len(f)]:
+                time = float(line[len(f):])
+                res[1] = time
+            f = "c cost:"
+            if  f ==  line[:len(f)]:
+                r  = (line[len(f):]).split(";")[0]
+                #print(r)
+                res[2] = int(r)
+
+    if len(res) == 0:
+        results_res_v[file_name] = copy.deepcopy(dummy)
+    else:
+        results_res_v[file_name] = res                        
+    
+    return results_res_v
+
 
 gen_run = False
 process_run = True
@@ -182,8 +216,8 @@ if (gen_run):
                         s = s + f"timeout {tm}s  /home/nina/workspace/cashmaxsat/bin/cashwmaxsat   -no-bin -no-sat -m -bm  {res_filename_1}.wcnf > {res_filename}.{cashwmaxsat[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
-                    if (res[0]):
-                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s maplesat {res[2]}  -vv {filename} > {res_filename}.{res[3]}.{res[1]}.{timetag}res "
+                    if (res_v0[0]):
+                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s maplesat {res_v0[2]}  -vv {filename} > {res_filename}.{res_v0[3]}.{res_v0[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (res_v1[0]):
@@ -243,9 +277,11 @@ if (process_run):
         results_rc2comp = {}
         results_maxsatcomp = {}
         results_cashwmaxsat = {}
-        results_res = {}    
         results_eva = {}
         results_resrg = {}
+        results_res_v0 = {}            
+        results_res_v1 = {}    
+        results_res_v2 = {}    
         results_res_v3 = {}
         results_res_v4 = {}
         results_res_v5 = {}
@@ -400,36 +436,36 @@ if (process_run):
                             results_resrg[file_name] = copy.deepcopy(dummy)
                         else:
                             results_resrg[file_name] = res
-                    if (res[0]):
+                    # if (res[0]):
                         
-                        s = f"{res_filename}.l2.{res[1]}.{timetag}res"
-                        #s = f"{res_filename}.{res[1]}.res"
-                        res = copy.deepcopy(dummy)
-                        results_res[file_name] = res
+                    #     s = f"{res_filename}.l2.{res[1]}.{timetag}res"
+                    #     #s = f"{res_filename}.{res[1]}.res"
+                    #     res = copy.deepcopy(dummy)
+                    #     results_res[file_name] = res
                         
-                        #s = f"{res_filename}.{res[1]}.res"
-                        if not (path.isfile(s)):
-                            results_res[file_name] = copy.deepcopy(dummy)
-                        else:
-                            file = open(s, "r")
-                            for line in file:
-                                if "o " ==  line[:2]:
-                                    opt = int(line[2:])
-                                    res[0] = opt
-                                f = "c oracle time:"
-                                if  f ==  line[:len(f)]:
-                                    time = float(line[len(f):])
-                                    res[1] = time
-                                f = "c cost:"
-                                if  f ==  line[:len(f)]:
-                                    r  = (line[len(f):]).split(";")[0]
-                                    #print(r)
-                                    res[2] = int(r)
+                    #     #s = f"{res_filename}.{res[1]}.res"
+                    #     if not (path.isfile(s)):
+                    #         results_res[file_name] = copy.deepcopy(dummy)
+                    #     else:
+                    #         file = open(s, "r")
+                    #         for line in file:
+                    #             if "o " ==  line[:2]:
+                    #                 opt = int(line[2:])
+                    #                 res[0] = opt
+                    #             f = "c oracle time:"
+                    #             if  f ==  line[:len(f)]:
+                    #                 time = float(line[len(f):])
+                    #                 res[1] = time
+                    #             f = "c cost:"
+                    #             if  f ==  line[:len(f)]:
+                    #                 r  = (line[len(f):]).split(";")[0]
+                    #                 #print(r)
+                    #                 res[2] = int(r)
 
-                        if len(res) == 0:
-                            results_res[file_name] = copy.deepcopy(dummy)
-                        else:
-                            results_res[file_name] = res
+                    #     if len(res) == 0:
+                    #         results_res[file_name] = copy.deepcopy(dummy)
+                    #     else:
+                    #         results_res[file_name] = res
 
 
                     if (eva[0]):
@@ -465,104 +501,85 @@ if (process_run):
                         else:
                             results_eva[file_name] = res
 
+                    if (res_v0[0]):
+                        results_res_v0 = process_instance(res_filename, res_v0, timetag, dummy, file_name, results_res_v0)  
+                    if (res_v1[0]):
+                        results_res_v1 = process_instance(res_filename, res_v1, timetag, dummy, file_name, results_res_v1)  
+                    if (res_v2[0]):
+                        results_res_v2 = process_instance(res_filename, res_v2, timetag, dummy, file_name, results_res_v2)  
                     if (res_v3[0]):
-     
-                        s = f"{res_filename}.{res_v3[3]}.{res_v3[1]}.{timetag}res"
-                        print(s)
-                        res = copy.deepcopy(dummy)
-                        results_res_v3[file_name] = res
-                        
-                        #s = f"{res_filename}.{res[1]}.res"
-                        if not (path.isfile(s)):
-                            results_res_v3[file_name] = copy.deepcopy(dummy)
-                        else:
-                            file = open(s, "r")
-                            for line in file:
-                                if "o " ==  line[:2]:
-                                    opt = int(line[2:])
-                                    res[0] = opt
-                                f = "c oracle time:"
-                                if  f ==  line[:len(f)]:
-                                    time = float(line[len(f):])
-                                    res[1] = time
-                                f = "c cost:"
-                                if  f ==  line[:len(f)]:
-                                    r  = (line[len(f):]).split(";")[0]
-                                    #print(r)
-                                    res[2] = int(r)
-
-                        if len(res) == 0:
-                            results_res_v3[file_name] = copy.deepcopy(dummy)
-                        else:
-                            results_res_v3[file_name] = res                        
-                  
-
-
+                        results_res_v3 = process_instance(res_filename, res_v3, timetag, dummy, file_name, results_res_v3)
                     if (res_v4[0]):
-                        s = f"{res_filename}.{res_v4[3]}.{res_v4[1]}.{timetag}res"
-                        #s = f"{res_filename}.{res[1]}.res"
-                        res = copy.deepcopy(dummy)
-                        results_res_v4[file_name] = res
-                        
-                        #s = f"{res_filename}.{res[1]}.res"
-                        if not (path.isfile(s)):
-                            results_res_v4[file_name] = copy.deepcopy(dummy)
-                        else:
-                            file = open(s, "r")
-                            for line in file:
-                                if "o " ==  line[:2]:
-                                    opt = int(line[2:])
-                                    res[0] = opt
-                                f = "c oracle time:"
-                                if  f ==  line[:len(f)]:
-                                    time = float(line[len(f):])
-                                    res[1] = time
-                                f = "c cost:"
-                                if  f ==  line[:len(f)]:
-                                    r  = (line[len(f):]).split(";")[0]
-                                    #print(r)
-                                    res[2] = int(r)
-
-                        if len(res) == 0:
-                            results_res_v4[file_name] = copy.deepcopy(dummy)
-                        else:
-                            results_res_v4[file_name] = res   
-
-
+                        results_res_v4 = process_instance(res_filename, res_v4, timetag, dummy, file_name, results_res_v4)                     
                     if (res_v5[0]):
-                        s = f"{res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res"
-                        #s = f"{res_filename}.{res[1]}.res"
-                        res = copy.deepcopy(dummy)
-                        results_res_v5[file_name] = res
-                        
-                        #s = f"{res_filename}.{res[1]}.res"
-                        if not (path.isfile(s)):
-                            results_res_v5[file_name] = copy.deepcopy(dummy)
-                        else:
-                            file = open(s, "r")
-   
-                            for line in file:
-                                if "Exp" ==  line[:3]:
-                                    r = line.split()
-                                    r = r[-2].replace(",","") 
-                                    time = float(r)
-                                    res[1] = time
-                                f = "Best"
-                                #print(line)
-                                if  f ==  line[:4]:
-                                    r = line.split()
-                                    r = r[2].replace(",","")                                    
-                                    if r != "-":
-                                        opt = float(r)
-                                        res[0] = int(opt)
-                                        r = r[4].replace(",","")                                     
-                                        opt = float(r)                             
-                                        res[2] = int(opt)
+                        results_res_v5 = process_instance(res_filename, res_v5, timetag, dummy, file_name, results_res_v5)
 
-                        if len(res) == 0:
-                            results_res_v5[file_name] = copy.deepcopy(dummy)
-                        else:
-                            results_res_v5[file_name] = res   
+
+                    # if (res_v4[0]):
+                    #     s = f"{res_filename}.{res_v4[3]}.{res_v4[1]}.{timetag}res"
+                    #     #s = f"{res_filename}.{res[1]}.res"
+                    #     res = copy.deepcopy(dummy)
+                    #     results_res_v4[file_name] = res
+                        
+                    #     #s = f"{res_filename}.{res[1]}.res"
+                    #     if not (path.isfile(s)):
+                    #         results_res_v4[file_name] = copy.deepcopy(dummy)
+                    #     else:
+                    #         file = open(s, "r")
+                    #         for line in file:
+                    #             if "o " ==  line[:2]:
+                    #                 opt = int(line[2:])
+                    #                 res[0] = opt
+                    #             f = "c oracle time:"
+                    #             if  f ==  line[:len(f)]:
+                    #                 time = float(line[len(f):])
+                    #                 res[1] = time
+                    #             f = "c cost:"
+                    #             if  f ==  line[:len(f)]:
+                    #                 r  = (line[len(f):]).split(";")[0]
+                    #                 #print(r)
+                    #                 res[2] = int(r)
+
+                    #     if len(res) == 0:
+                    #         results_res_v4[file_name] = copy.deepcopy(dummy)
+                    #     else:
+                    #         results_res_v4[file_name] = res   
+
+
+                    # if (res_v5[0]):
+                    #     s = f"{res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res"
+                    #     #s = f"{res_filename}.{res[1]}.res"
+                    #     res = copy.deepcopy(dummy)
+                    #     results_res_v5[file_name] = res
+                        
+                    #     #s = f"{res_filename}.{res[1]}.res"
+                    #     if not (path.isfile(s)):
+                    #         results_res_v5[file_name] = copy.deepcopy(dummy)
+                    #     else:
+                    #         file = open(s, "r")
+   
+                    #         for line in file:
+                    #             if "Exp" ==  line[:3]:
+                    #                 r = line.split()
+                    #                 r = r[-2].replace(",","") 
+                    #                 time = float(r)
+                    #                 res[1] = time
+                    #             f = "Best"
+                    #             #print(line)
+                    #             if  f ==  line[:4]:
+                    #                 r = line.split()
+                    #                 r = r[2].replace(",","")                                    
+                    #                 if r != "-":
+                    #                     opt = float(r)
+                    #                     res[0] = int(opt)
+                    #                     r = r[4].replace(",","")                                     
+                    #                     opt = float(r)                             
+                    #                     res[2] = int(opt)
+
+                    #     if len(res) == 0:
+                    #         results_res_v5[file_name] = copy.deepcopy(dummy)
+                    #     else:
+                    #         results_res_v5[file_name] = res   
 
         #print(results_res_v4.items())
 
@@ -571,16 +588,18 @@ if (process_run):
         lb = "lb"
         ub = "ub"
         with open(f'results.{timetag}txt', 'w') as the_file:
-            h_res = f"{opt:<5}/{lb:<5}  {res[1]:<10} "
             h_eva = f" {opt:<5}/{lb:<5} {eva[1]:<10} "
             h_rc2comp = f"{opt:<5}/{lb:<5}   {rc2comp[1]:<10}"
             h_maxhs = f"{opt:<5}/{lb:<5}/{ub:<5}   {maxhs[1]:<10}"
             h_cashwmaxsat = f"{opt:<10}   {cashwmaxsat[1]:<12}"
             h_resrg = f"{opt:<5}/{lb:<5}  {resrg[1]:<10} "
+            h_res_v0 = f"{opt:<5}/{lb:<5}  {res_v0[1]:<10} "
+            h_res_v1 = f"{opt:<5}/{lb:<5}  {res_v1[1]:<10} "
+            h_res_v2 = f"{opt:<5}/{lb:<5}  {res_v2[1]:<10} "
             h_res_v3 = f"{opt:<5}/{lb:<5}  {res_v3[1]:<10} "
             h_res_v4 = f"{opt:<5}/{lb:<5}  {res_v4[1]:<10} "
             h_res_v5 = f"{opt:<5}/{lb:<5}  {res_v5[1]:<10} "
-            s = f"     {f:<80} {h_resrg} {h_rc2comp} {h_maxhs} {h_res_v3} {h_res_v4}  {h_res_v5}"
+            s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             print(s)
             the_file.write(f'{s}\n')
 
@@ -613,14 +632,24 @@ if (process_run):
                     pref = "+++ "
                 else:
                     pref = "    "
-                
+
                 try:
-                    s_res = f"{results_res[f][0]:<5}/{results_res[f][2]:<5} {results_res[f][1]:<10}"
+                    s_resrg = f"{results_resrg[f][0]:<5}/{results_resrg[f][2]:<5} {results_resrg[f][1]:<10}"
+                except:
+                    pass
+                                
+                try:
+                    s_res_v0 = f"{results_res_v0[f][0]:<5}/{results_res_v0[f][2]:<5} {results_res_v0[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_resrg = f"{results_resrg[f][0]:<5}/{results_resrg[f][2]:<5} {results_resrg[f][1]:<10}"
+                    s_res_v1 = f"{results_res_v1[f][0]:<5}/{results_res_v1[f][2]:<5} {results_res_v1[f][1]:<10}"
+                except:
+                    pass
+
+                try:
+                    s_res_v2 = f"{results_res_v2[f][0]:<5}/{results_res_v2[f][2]:<5} {results_res_v2[f][1]:<10}"
                 except:
                     pass
 
@@ -661,6 +690,6 @@ if (process_run):
 
 
 
-                s = f"{pref} {f:<80} {s_resrg} {s_rc2comp} {s_maxhs} {s_res_v3} {s_res_v4}  {s_res_v5}"
+                s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
                 print(s)
                 the_file.write(f'{s}\n')
