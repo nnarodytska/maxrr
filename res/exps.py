@@ -121,11 +121,11 @@ rc2 = [False, "rc2"]
 rc2comp = [True, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0  = [True, "maxres",  "-r mr1a ", "v0"]
+res_v0  = [False, "maxres",  "-r mr1a ", "v0"]
 res_v1 = [False, "maxres", "-r mr1b ", "v1"]
 res_v2 = [False, "maxres", "-r mr2a ",  "v2"]
 res_v3 = [False, "maxres", "-r mr2b",  "v3"] # with closure
-res_v4 = [False, "maxres", " ",  "v4"] # no closure
+res_v4 = [True, "maxres", "-r mr1c",  "v4"] # no closure
 res_v5 = [False, "maxres", " --ilp=5 ",  "v5"] # gurobi
 
 resrg  = [False, "resrg",  "", "v0"]
@@ -690,6 +690,8 @@ if (process_run):
 
 
 
-                s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
+                #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
+                s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
+
                 print(s)
                 the_file.write(f'{s}\n')
