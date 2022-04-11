@@ -614,8 +614,8 @@ if (process_run):
                 try:
                     if (results_rc2comp[f][0] >  -1) and  (results_res_v4[f][0] > -1):
                         assert(results_rc2comp[f][0] == results_res_v4[f][0])
-                    if (results_resrg[f][0] >  -1) and  (results_res_v4[f][0] > -1):
-                        assert(results_resrg[f][0] == results_res_v4[f][0])
+                    # if (results_resrg[f][0] >  -1) and  (results_res_v4[f][0] > -1):
+                    #     assert(results_resrg[f][0] == results_res_v4[f][0])
                                             
                     # if (cashwmaxsat[0]):                
                     #     if (results_cashwmaxsat[f][0] >  -1) and  (results_maxsatcomp[f][0] > -1):
