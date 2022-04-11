@@ -627,9 +627,9 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = ""
-                if (results_maxsatcomp[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (h_res_v4[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref = "*** "
-                elif (results_maxsatcomp[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (h_res_v4[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = "+++ "
                 else:
                     pref = "    "
