@@ -142,6 +142,7 @@ import sys
 import networkx as nx
 import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import write_dot
+import copy
 # names of BLO strategies
 #==============================================================================
 blomap = {'none': 0, 'basic': 1, 'div': 3, 'cluster': 5, 'full': 7}
@@ -285,6 +286,9 @@ class RC2(object):
 
         # creating a solver object
         #self.clasue
+        self.hard = copy.deepcopy(formula.hard)
+        self.soft = []
+
         self.oracle = Solver(name=self.solver, bootstrap_with=formula.hard,
                 incr=incr, use_timer=True)
 
@@ -302,12 +306,16 @@ class RC2(object):
         for i, cl in enumerate(formula.soft):
             selv = cl[0]  # if clause is unit, selector variable is its literal
 
-            if len(cl) > 1:
+            if len(cl) > 0:
                 selv = self.pool.id()
 
                 self.s2cl[selv] = cl[:]
                 cl.append(-selv)
-                self.oracle.add_clause(cl)
+                self.oracle.add_clause(cl)        
+                self.soft.append(cl)
+            #if len(cl)  == 1:
+            #    print(cl)
+                
 
             if selv not in self.wght:
                 # record selector and its weight
@@ -330,6 +338,31 @@ class RC2(object):
         if self.verbose > 1:
             print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
                 len(formula.hard), len(formula.soft)))
+
+        self.reinit()
+
+    def reinit(self):
+        # creating a solver object
+        #self.clasue
+
+        # clause selectors and mapping from selectors to clause ids
+        #self.sels, self.smap, self.sall, self.s2cl, self.sneg = [], {}, [], {}, set([])
+
+        # other MaxSAT related stuff
+        #self.pool = IDPool(start_from=formula.nv + 1)
+        #self.sums = []  # totalizer sum assumptions
+        #self.cost = 0
+
+        self.oracle = Solver(name=self.solver, bootstrap_with=self.hard,
+                incr=incr, use_timer=True)
+
+        # adding soft clauses to oracle
+        for i, cl in enumerate(self.soft):
+            self.oracle.add_clause(cl)
+
+        if self.verbose > 1:
+            print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
+                len(self.hard), len(self.soft)))       
 
     def add_clause(self, clause, weight=None):
         """
@@ -642,10 +675,11 @@ class RC2(object):
             self.core_sums = list(l for l in iter2 if l not in self.sels_set)
 
     def process_core_maxres_tree(self):
+        debug  = False 
         self.cost += self.minw
        # assumptions to remove
         self.garbage = set()
-        print(self.core)
+        if debug: print(self.core)
         #print(len(self.sels) , len(self.sums))
         if len(self.core_sels) != 1 or len(self.core_sums) > 0:
             while True:
@@ -725,6 +759,7 @@ class RC2(object):
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)
+            self.hard.append([-self.core_sels[0]])
             self.oracle.add_clause([-self.core_sels[0]])
             self.garbage.add(self.core_sels[0])
 
@@ -827,7 +862,8 @@ class RC2(object):
                         self.oracle.add_clause([relv])
         else:
             # unit cores are treated differently
-            # (their negation is added to the hard part)
+            # (their negation is added to the hard part)            
+            self.hard.append([-self.core_sels[0]])
             self.oracle.add_clause([-self.core_sels[0]])
             self.garbage.add(self.core_sels[0])
 
@@ -979,6 +1015,8 @@ class RC2(object):
 
             # adding a new clause
             self.oracle.add_clause([-l for l in self.rels] + [-selv])
+            self.soft.append([-l for l in self.rels] + [-selv])
+
 
             # integrating the new selector
             self.sels.append(selv)
@@ -1027,7 +1065,7 @@ class RC2(object):
             During this core minimization procedure, all SAT calls are
             dropped after obtaining 1000 conflicts.
         """
-        debug  = True
+        debug  = False
         if debug: print(f"min starts {len(self.core)}")
         if self.minz and len(self.core) > 1:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
