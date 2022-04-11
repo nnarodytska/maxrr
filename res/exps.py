@@ -132,7 +132,7 @@ resrg  = [False, "resrg",  "", "v0"]
 
 to = [3600]#, 3600*3]
 
-maxhs = [True, "maxhs"]
+maxhs = [False, "maxhs"]
 eva = [False, "eva"]
 
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
