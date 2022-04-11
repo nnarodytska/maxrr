@@ -131,6 +131,7 @@ import getopt
 import itertools
 from math import copysign
 import os
+from tkinter import S
 from pysat.formula import CNFPlus, WCNFPlus, IDPool, CNF
 from pysat.card import ITotalizer
 from pysat.solvers import Solver, SolverNames
@@ -138,8 +139,9 @@ import re
 import six
 from six.moves import range
 import sys
-
-
+import networkx as nx
+import matplotlib.pyplot as plt
+from networkx.drawing.nx_pydot import write_dot
 # names of BLO strategies
 #==============================================================================
 blomap = {'none': 0, 'basic': 1, 'div': 3, 'cluster': 5, 'full': 7}
@@ -210,6 +212,9 @@ class RC2(object):
         self.minz = minz
         self.trim = trim
         self.relax = relax
+        self.graph =  nx.DiGraph()
+        self.graph_labels = {}
+
       
 
         # clause selectors and mapping from selectors to clause ids
@@ -279,18 +284,19 @@ class RC2(object):
         """
 
         # creating a solver object
+        #self.clasue
         self.oracle = Solver(name=self.solver, bootstrap_with=formula.hard,
                 incr=incr, use_timer=True)
 
-        # adding native cardinality constraints (if any) as hard clauses
-        # this can be done only if the Minicard solver is in use
-        # this cannot be done if RC2 is run from the command line
-        if isinstance(formula, WCNFPlus) and formula.atms:
-            assert self.oracle.supports_atmost(), \
-                    '{0} does not support native cardinality constraints. Make sure you use the right type of formula.'.format(self.solver)
+        # # adding native cardinality constraints (if any) as hard clauses
+        # # this can be done only if the Minicard solver is in use
+        # # this cannot be done if RC2 is run from the command line
+        # if isinstance(formula, WCNFPlus) and formula.atms:
+        #     assert self.oracle.supports_atmost(), \
+        #             '{0} does not support native cardinality constraints. Make sure you use the right type of formula.'.format(self.solver)
 
-            for atm in formula.atms:
-                self.oracle.add_atmost(*atm)
+        #     for atm in formula.atms:
+        #         self.oracle.add_atmost(*atm)
 
         # adding soft clauses to oracle
         for i, cl in enumerate(formula.soft):
@@ -639,7 +645,7 @@ class RC2(object):
         self.cost += self.minw
        # assumptions to remove
         self.garbage = set()
-        #print(self.core)
+        print(self.core)
         #print(len(self.sels) , len(self.sums))
         if len(self.core_sels) != 1 or len(self.core_sums) > 0:
             while True:
@@ -658,7 +664,10 @@ class RC2(object):
                 self.new_sums = []
                 core = self.core
                 formula = CNF()
-                
+                for c in core:
+                    if c in self.sels:
+                        self.graph_labels[str(c)] = str(c)
+                        self.graph.add_node(self.graph_labels[str(c)])
                 while len(core) >= 2:
                     u = self.pool.id()    
                     v = self.pool.id()    
@@ -680,6 +689,15 @@ class RC2(object):
 
                     self.new_sums.append(u)
                     self.wght[u] = self.minw
+                    self.graph_labels[str(v)] = f"{u}"
+                    self.graph_labels[str(u)] = f"{u}"
+
+                    #self.graph.add_node(self.graph_labels[str(v)])
+                    #self.graph.add_edge(self.graph_labels[str(core[0])],self.graph_labels[str(v)])
+                    #self.graph.add_edge(self.graph_labels[str(core[1])], self.graph_labels[str(v)])
+
+    
+                    #exit()
                     if (self.relax in ['mr2a', 'mr2b']):
                         core = core[2:] + [ v ]
                     if (self.relax in ['mr1a', 'mr1b']):
@@ -689,37 +707,21 @@ class RC2(object):
                     #print(cl)
                     self.oracle.add_clause(cl)
                 #print(new_sums)
-                if (self.relax in ['mr1a', 'mr2a']):
-                    self.sums += self.new_sums
+                if (self.relax in ['mr1a', 'mr2a']): 
+                    self.sums = self.new_sums + self.sums
                 if (self.relax in ['mr1b', 'mr2b']):
-                    self.sums += self.new_sums[::-1]
+                    #self.new_sums = self.new_sums[::-1]
+                    self.sums = self.new_sums[::-1] + self.sums
                 
              
                 if self.oracle.solve(assumptions=self.new_sums):
+                    print("exaust done")
                     break 
                 else:
+                    print("exaust continue")
                     self.get_core()
                     self.cost += self.minw
                         
-
-            #print(self.sums)
-
-            # if len(self.rels) > 1:
-            #     # create a new cardunality constraint
-            #     t = self.create_sum()
-
-            #     # apply core exhaustion if required
-            #     b = self.exhaust_core(t) if self.exhaust else 1
-
-            #     if b:
-            #         # save the info about this sum and
-            #         # add its assumption literal
-            #         self.set_bound(t, b)
-            #     else:
-            #         # impossible to satisfy any of these clauses
-            #         # they must become hard
-            #         for relv in self.rels:
-            #             self.oracle.add_clause([relv])
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)
@@ -727,7 +729,10 @@ class RC2(object):
             self.garbage.add(self.core_sels[0])
 
         self.filter_assumps_maxres()
-
+        #pos = nx.nx_agraph.graphviz_layout(self.graph)
+        #nx.draw(self.graph, pos=pos)
+        #plt.savefig("path.png")
+        #write_dot(self.graph, 'file.dot')
         #print(len(self.sels) , len(self.sums))
         # remove unnecessary assumptions
 
@@ -1022,7 +1027,8 @@ class RC2(object):
             During this core minimization procedure, all SAT calls are
             dropped after obtaining 1000 conflicts.
         """
-        #print("min starts")
+        debug  = True
+        if debug: print(f"min starts {len(self.core)}")
         if self.minz and len(self.core) > 1:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
             
@@ -1031,6 +1037,13 @@ class RC2(object):
             keep = []
             core = self.core
 
+            # fixed_true = []
+            # for s in self.sums + self.sels:
+            #     if s in core:
+            #         continue
+            #     fixed_true.append(-s)
+
+            # self.oracle.propagate(assumptions=fixed_true)
             i = 0
             while i < len(core):
                 to_test = core[:i] + core[(i + 1):]
@@ -1041,20 +1054,25 @@ class RC2(object):
                     core = to_test
                     continue
                 self.oracle.prop_budget(100000)
-                if self.oracle.solve_limited(assumptions=to_test+keep) == False:
+                s =  self.oracle.solve_limited(assumptions=to_test+keep)
+                if s == False:
+                    if debug: print(f"{core[i]} s = {s}")
+
                     core = to_test
                     newcore = self.oracle.get_core()
                     if (newcore is None):
                         newcore = []                    
                     proj =  newcore + keep
 
-                elif self.oracle.get_status() == True:
+                elif s == True:
                     keep.append(core[i])
-
+                    if debug: print(f"{core[i]} s = {s}")
                     i += 1
                 else:
-                    break
-        #print("min end")
+                    keep.append(core[i])
+                    if debug: print(f"{core[i]} s = {s}")
+                    i += 1
+        if debug: print("min end")
 
     def exhaust_core(self, tobj):
         """
@@ -1848,6 +1866,7 @@ def parse_options():
             exhaust = True
         elif opt in ('-r', '--relax'):
             relax = str(arg) 
+            assert(relax in ['mr1a', 'mr1b', 'mr2a', 'mr2b', 'rc2'])
         else:
             assert False, 'Unhandled option: {0} {1}'.format(opt, arg)
 
