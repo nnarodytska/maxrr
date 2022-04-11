@@ -288,6 +288,7 @@ class RC2(object):
         #self.clasue
         self.hard = copy.deepcopy(formula.hard)
         self.soft = []
+        self.upperlevel = {}
 
         self.oracle = Solver(name=self.solver, bootstrap_with=formula.hard,
                 incr=incr, use_timer=True)
@@ -339,7 +340,7 @@ class RC2(object):
             print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
                 len(formula.hard), len(formula.soft)))
 
-        self.reinit()
+        # self.reinit()
 
     def reinit(self):
         # creating a solver object
@@ -630,7 +631,7 @@ class RC2(object):
             if  self.relax=='rc2': 
                 self.process_core()
             #print(self.relax)
-            if  self.relax in ['mr2a','mr2b', 'mr1a', 'mr1b']: 
+            if  self.relax in ['mr2a','mr2b', 'mr2c', 'mr1a', 'mr1b', 'mr1c']: 
                 self.process_core_maxres_tree()
 
             if self.verbose > 1:
@@ -674,6 +675,179 @@ class RC2(object):
             self.core_sels = list(l for l in iter1 if l in self.sels_set)
             self.core_sums = list(l for l in iter2 if l not in self.sels_set)
 
+
+    def seq_counters_open(self, constraint, n, topv, last_layer = [], tight = True):
+        
+        #print(">>>>>>>>>>>>>>>>>>> SQ <<<<<<<<<<<<<<<<<<<")
+        #print("input variables:")
+        #print(vars_ids)
+        card_formula = CNF()
+        # sum_i=0^n-1 l_i >= C
+        
+        
+        x = constraint["literals"]
+        k = int(constraint["rhs_constant_max"])
+            
+        #print(f"literals {len(x)} max_bound {k}" )
+                    
+        if (k > n):
+            print("max bound {k} >  len {n}")
+            assert(False)            
+        if (k <= 0):
+            print("max bound {k} = 0")
+            assert(False)            
+        
+        if (n == 1):
+            print("n ({k}) = 1 (unit cores should be treated separatly ")
+            s = [[-1] * (2) for i in range(n+1)]
+            topv += 1
+            s[1][1] = topv        
+            # x[1] == s[1][1]
+            card_formula.append([-x[1], s[1][1]])
+            card_formula.append([x[1], -s[1][1]])
+            return card_formula, s
+        
+        
+
+        s = [[-1] * (k+1) for i in range(n+1)]
+        # note that seq counters assume that we have variables from 1..n
+        for  i in  range(1,n+1):
+            if (i == n) and len(last_layer) >0:
+                for  j in  range(1, k+1):            
+                    s[i][j] = last_layer[j]        
+                continue
+            for  j in  range(1, k+1):
+                topv += 1
+                s[i][j] = topv
+        ################################################################
+        # s[1][1] <=>  x[1]
+        # (not x[1] V  s[1][1])
+        # (x[1] V  not s[1][1])     
+                    
+        # (not x[1] V  s[1][1])        
+        card_formula.append([-x[1], s[1][1]])
+        # (x[1] V  not s[1][1])     
+        card_formula.append([x[1], -s[1][1]])
+
+        # 1 < j <=k
+        for j in range(2, k+1):
+            #(not s[1][j])
+            card_formula.append([-s[1][j]])
+            
+        #print(card_formula.clauses)
+
+        #print("after first block s = ", s)
+        # 1 < i <= n    
+        for i in range(2, n+1):         
+            #s[i][1] <=> x[i] \/ s[i-1][1]
+            #s[i][1] \/ not x[i] 
+            #s[i][1] \/ not s[i-1][1]
+            #not s[i][1] \/ x[i] \/ s[i-1][1]
+                
+            # (s[i][1] \/ not x[i] )     
+            #print(i, -x[i])
+            #print(i, s[i][1])
+            card_formula.append([-x[i], s[i][1]])
+        
+            # (s[i][1] \/ not s[i-1][1] )                
+            card_formula.append([-s[i-1][1], s[i][1]])
+                
+            # not s[i][1] \/ x[i] \/ s[i-1][1]     
+            card_formula.append([-s[i][1], x[i], s[i-1][1]])
+            
+        for j in range(2, k+1):
+            for i in range(j, n+1): 
+                #print(i,j)
+            # 1 < j <=k
+                
+                if (i == j):
+                    # corner case, e.g. we are at s_3,3 and look s_2,3 which must be false 
+                    card_formula.append([-s[i-1][j]])
+                    
+            
+                #s[i][j] <=> (x[i] /\ s[i-1][j-1]) \/ s[i-1][j]
+        
+                ##############################################
+                #s[i][j] <= x[i] /\ s[i-1][j-1] \/ s[i-1][j]
+                ###############################################
+                #not s[i][j] \/(x[i] /\ s[i-1][j-1] \/ s[i-1][j])
+
+                #s[i][j] \/ not x[i] \/ not s[i-1][j-1] 
+                #s[i][j] \/ not s[i-1][j]
+        
+                #s[i][j] => x[i] /\ s[i-1][j-1] \/ s[i-1][j]
+                # not s[i][j] \/ x[i]  \/ s[i-1][j]
+                # not s[i][j] \/ s[i-1][j-1] \/ s[i-1][j]
+                
+                
+                
+                #s[i][j] \/ not x[i] \/ not s[i-1][j-1]                
+                card_formula.append([s[i][j], -x[i], -s[i-1][j-1]])
+                
+                #s[i][j] \/ not s[i-1][j]                
+                #print(i-1,j, s[i-1][j])
+                card_formula.append([s[i][j], -s[i-1][j]])
+        
+                #not s[i][j] \/ x[i]  \/ s[i-1][j]   
+                card_formula.append([- s[i][j], x[i],  s[i-1][j]])
+        
+                #not s[i][j] \/ s[i-1][j-1] \/ s[i-1][j]
+                card_formula.append([-s[i][j], s[i-1][j-1],  s[i-1][j]])
+
+        
+        
+        if (tight):
+            tight_light = True
+            if (tight_light):
+                for i in range(2, n+1): 
+                    #v[i] <=> (x[i] /\ s[i-1][k])
+                    #-v[i] \/ x[i]
+                    #card_formula.append([-v[i],x[i]])        
+                    #-v[i] \/ s[i-1][k]
+                    #card_formula.append([-v[i], s[i-1][k]])                
+                    #v[i] \/ -x[i] \/ -s[i-1][k]
+                    card_formula.append([-x[i],-s[i-1][k]])            
+
+            else:
+                v = [-1 for i in range(n+1)]
+                for  i in  range(1,n+1):
+                    topv += 1
+                    v[i] = topv
+            
+                for i in range(2, n+1): 
+
+                    #v[i] <=> (x[i] /\ s[i-1][k])
+                    #-v[i] \/ x[i]
+                    card_formula.append([-v[i],x[i]])        
+                    #-v[i] \/ s[i-1][k]
+                    card_formula.append([-v[i], s[i-1][k]])                
+                    #v[i] \/ -x[i] \/ -s[i-1][k]
+                    card_formula.append([v[i], -x[i],-s[i-1][k]])
+                    
+                    card_formula.append([-v[i]])
+                
+        #print(card_formula.clauses)
+        # seal cardinality
+        return card_formula, s, topv
+
+    def add_upperlevel(self, lits):
+        debug = False
+        if (len(lits) == 1):
+            return lits[0]
+        c = self.pool.id()    
+        self.wght[c] = self.minw
+    
+        self.upperlevel[c] = {}
+        self.upperlevel[c]["base"] = lits
+        if debug: print(f"new {c} base {len(lits)}")
+        formula = CNF()
+        for u in lits:
+            formula.append([-c, u])
+        for cl in formula:
+            #print(cl)
+            self.soft.append(cl)
+            self.oracle.add_clause(cl)   
+        return c     
     def process_core_maxres_tree(self):
         debug  = False 
         self.cost += self.minw
@@ -696,12 +870,37 @@ class RC2(object):
 
                 
                 self.new_sums = []
-                core = self.core
+                core            = []
                 formula = CNF()
-                for c in core:
-                    if c in self.sels:
-                        self.graph_labels[str(c)] = str(c)
-                        self.graph.add_node(self.graph_labels[str(c)])
+
+                if debug: print("core:", self.core)
+                for c in self.core:
+                    if c in self.upperlevel:
+                        core = core + self.upperlevel[c]["base"]
+                        if debug: print(f"{c} -- {len(self.upperlevel[c]['base'])}")
+                        self.soft.append([-c])
+                        self.oracle.add_clause([-c])                        
+                    else:
+                        core.append(c)
+                
+                if (self.relax in ['mr1c', 'mr2c']): 
+                    remainig_core = []
+                    #assert(self.oracle.solve(assumptions=core) == False)
+                    ##self.core = core
+                    # print(f"[{len(self.core)}]: {len(core)} -- > ", end = " ")                
+                    #self.minimize_core(copy.deepcopy(core))
+                    #assert(self.oracle.solve(assumptions=self.core) == False)
+                    #remainig_core = list(set(core) - set(self.core))
+                    #core = self.core
+                
+                
+                #print("----------------> ", core, remainig_core)
+                
+
+                # for c in core:
+                #     if c in self.sels:
+                #         self.graph_labels[str(c)] = str(c)
+                #         self.graph.add_node(self.graph_labels[str(c)])
                 while len(core) >= 2:
                     u = self.pool.id()    
                     v = self.pool.id()    
@@ -732,37 +931,68 @@ class RC2(object):
 
     
                     #exit()
-                    if (self.relax in ['mr2a', 'mr2b']):
+                    if (self.relax in ['mr2a', 'mr2b', 'mr1b']):
                         core = core[2:] + [ v ]
-                    if (self.relax in ['mr1a', 'mr1b']):
+                    if (self.relax in ['mr1a', 'mr1b', 'mr1c']):
                         core = [v] + core[2:] 
                     #print(core)
                 for cl in formula:
                     #print(cl)
+                    self.soft.append(cl)
                     self.oracle.add_clause(cl)
                 #print(new_sums)
+
                 if (self.relax in ['mr1a', 'mr2a']): 
-                    self.sums = self.new_sums + self.sums
+                    self.sums = self.sums  + self.new_sums 
                 if (self.relax in ['mr1b', 'mr2b']):
                     #self.new_sums = self.new_sums[::-1]
-                    self.sums = self.new_sums[::-1] + self.sums
-                
-             
+                    self.sums = self.sums + self.new_sums[::-1]
+
+                if (self.relax in ['mr1c', 'mr2c']): 
+                    lits = copy.deepcopy(self.new_sums)
+                    c = self.add_upperlevel(lits)
+                    if debug: print(f" add_upperlevel {self.new_sums} {c}")
+
+                    self.sums = self.sums + [c]
+                    self.new_sums = [c]
+                    assert(len(remainig_core) ==0)
+                    if (len(remainig_core) !=0): 
+                        # #r = self.add_upperlevel(remainig_core)
+                        # for u in
+                        self.sums = self.sums + remainig_core
+                        if debug: print(f" remainig_core {remainig_core} /{self.new_sums}")
+
+
+
+                #     # constraint = {}                
+                #     # constraint["literals"] = [-1] + [-s for s in self.new_sums]
+                #     # constraint["rhs_constant_max"] = 1
+                #     # n = len(self.new_sums)
+                #     # card_formula, s, topv = self.seq_counters_open(constraint, n = n, topv =  self.pool.top, tight = False)       
+                #     # self.pool.top = topv
+                #     # print(self.new_sums)
+                #     # for c in card_formula:
+                #     #     print(c)
+                #     # print(s)
+
+                # #self.reinit()
+
                 if self.oracle.solve(assumptions=self.new_sums):
-                    print("exaust done")
+                    if debug: print("exaust done")
                     break 
                 else:
-                    print("exaust continue")
+                    if debug: print("exaust continue")
                     self.get_core()
                     self.cost += self.minw
-                        
+
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)
+            #print("unit---")
             self.hard.append([-self.core_sels[0]])
-            self.oracle.add_clause([-self.core_sels[0]])
+            self.oracle.add_clause([-self.core_sels[0]])                               
             self.garbage.add(self.core_sels[0])
-
+        if debug: print("filter_assumps_maxres")
         self.filter_assumps_maxres()
         #pos = nx.nx_agraph.graphviz_layout(self.graph)
         #nx.draw(self.graph, pos=pos)
@@ -1026,21 +1256,23 @@ class RC2(object):
         # removing unnecessary assumptions
         self.filter_assumps()
 
-    def trim_core(self):
+    def trim_core(self, core = None):
         """
             This method trims a previously extracted unsatisfiable
             core at most a given number of times. If a fixed point is
             reached before that, the method returns.
         """
-
+        if core is None:
+            core2trim = self.core
+        else:
+            core2trim = core
         for i in range(self.trim):
             # call solver with core assumption only
             # it must return 'unsatisfiable'
-            self.oracle.solve(assumptions=self.core)
+            self.oracle.solve(assumptions=core2trim)
 
             # extract a new core
             new_core = self.oracle.get_core()
-
             if len(new_core) == len(self.core):
                 # stop if new core is not better than the previous one
                 break
@@ -1048,7 +1280,7 @@ class RC2(object):
             # otherwise, update core
             self.core = new_core
 
-    def minimize_core(self):
+    def minimize_core(self, core = None):
         """
             Reduce a previously extracted core and compute an
             over-approximation of an MUS. This is done using the
@@ -1065,8 +1297,8 @@ class RC2(object):
             During this core minimization procedure, all SAT calls are
             dropped after obtaining 1000 conflicts.
         """
-        debug  = False
-        if debug: print(f"min starts {len(self.core)}")
+        if not (core is None):
+            self.core = core
         if self.minz and len(self.core) > 1:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
             
@@ -1074,14 +1306,8 @@ class RC2(object):
             proj = self.core
             keep = []
             core = self.core
-
-            # fixed_true = []
-            # for s in self.sums + self.sels:
-            #     if s in core:
-            #         continue
-            #     fixed_true.append(-s)
-
-            # self.oracle.propagate(assumptions=fixed_true)
+            bestcore = [] 
+            
             i = 0
             while i < len(core):
                 to_test = core[:i] + core[(i + 1):]
@@ -1092,25 +1318,25 @@ class RC2(object):
                     core = to_test
                     continue
                 self.oracle.prop_budget(100000)
-                s =  self.oracle.solve_limited(assumptions=to_test+keep)
-                if s == False:
-                    if debug: print(f"{core[i]} s = {s}")
-
+                if self.oracle.solve_limited(assumptions=to_test+keep) == False:
                     core = to_test
                     newcore = self.oracle.get_core()
                     if (newcore is None):
                         newcore = []                    
                     proj =  newcore + keep
 
-                elif s == True:
+                elif self.oracle.get_status() == True:
                     keep.append(core[i])
-                    if debug: print(f"{core[i]} s = {s}")
+                    bestcore.append(core[i])
                     i += 1
                 else:
                     keep.append(core[i])
-                    if debug: print(f"{core[i]} s = {s}")
+                    bestcore.append(core[i])
                     i += 1
-        if debug: print("min end")
+
+                    #break
+            self.core =  keep
+            #assert(self.oracle.solve_limited(assumptions=self.core) == False)
 
     def exhaust_core(self, tobj):
         """
@@ -1904,7 +2130,7 @@ def parse_options():
             exhaust = True
         elif opt in ('-r', '--relax'):
             relax = str(arg) 
-            assert(relax in ['mr1a', 'mr1b', 'mr2a', 'mr2b', 'rc2'])
+            assert(relax in ['mr1a', 'mr1b', 'mr1c', 'mr2a', 'mr2b',  'mr2c', 'rc2'])
         else:
             assert False, 'Unhandled option: {0} {1}'.format(opt, arg)
 

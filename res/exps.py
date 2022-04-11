@@ -122,9 +122,9 @@ rc2comp = [True, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
 res_v0  = [True, "maxres",  "-r mr1a ", "v0"]
-res_v1 = [True, "maxres", "-r mr1b ", "v1"]
-res_v2 = [True, "maxres", "-r mr2a ",  "v2"]
-res_v3 = [True, "maxres", "-r mr2b",  "v3"] # with closure
+res_v1 = [False, "maxres", "-r mr1b ", "v1"]
+res_v2 = [False, "maxres", "-r mr2a ",  "v2"]
+res_v3 = [False, "maxres", "-r mr2b",  "v3"] # with closure
 res_v4 = [False, "maxres", " ",  "v4"] # no closure
 res_v5 = [False, "maxres", " --ilp=5 ",  "v5"] # gurobi
 
@@ -169,7 +169,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open('run.txt', 'w') as the_file:
