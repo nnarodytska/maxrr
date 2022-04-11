@@ -125,7 +125,7 @@ res_v0  = [False, "maxres",  "-r mr1a ", "v0"]
 res_v1 = [False, "maxres", "-r mr1b ", "v1"]
 res_v2 = [False, "maxres", "-r mr2a ",  "v2"]
 res_v3 = [False, "maxres", "-r mr2b",  "v3"] # with closure
-res_v4 = [True, "maxres", "-r mr1c",  "v4"] # no closure
+res_v4 = [True, "maxres",  "-r -mr1c",  "v4"] # 
 res_v5 = [False, "maxres", " --ilp=5 ",  "v5"] # gurobi
 
 resrg  = [False, "resrg",  "", "v0"]
