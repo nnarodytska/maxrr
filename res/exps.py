@@ -169,7 +169,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = True
+gen_run = False
 process_run = True
 if (gen_run):
     with open('run.txt', 'w') as the_file:
@@ -599,7 +599,8 @@ if (process_run):
             h_res_v3 = f"{opt:<5}/{lb:<5}  {res_v3[1]:<10} "
             h_res_v4 = f"{opt:<5}/{lb:<5}  {res_v4[1]:<10} "
             h_res_v5 = f"{opt:<5}/{lb:<5}  {res_v5[1]:<10} "
-            s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
+            #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
+            s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
             print(s)
             the_file.write(f'{s}\n')
 
