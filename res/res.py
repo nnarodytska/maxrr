@@ -286,8 +286,8 @@ class RC2(object):
 
         # creating a solver object
         #self.clasue
-        self.hard = copy.deepcopy(formula.hard)
-        self.soft = []
+        #self.hard = copy.deepcopy(formula.hard)
+        #self.soft = []
         self.upperlevel = {}
 
         self.oracle = Solver(name=self.solver, bootstrap_with=formula.hard,
@@ -313,7 +313,7 @@ class RC2(object):
                 self.s2cl[selv] = cl[:]
                 cl.append(-selv)
                 self.oracle.add_clause(cl)        
-                self.soft.append(cl)
+                #self.soft.append(cl)
             #if len(cl)  == 1:
             #    print(cl)
                 
@@ -342,28 +342,28 @@ class RC2(object):
 
         # self.reinit()
 
-    def reinit(self):
-        # creating a solver object
-        #self.clasue
+    # def reinit(self):
+    #     # creating a solver object
+    #     #self.clasue
 
-        # clause selectors and mapping from selectors to clause ids
-        #self.sels, self.smap, self.sall, self.s2cl, self.sneg = [], {}, [], {}, set([])
+    #     # clause selectors and mapping from selectors to clause ids
+    #     #self.sels, self.smap, self.sall, self.s2cl, self.sneg = [], {}, [], {}, set([])
 
-        # other MaxSAT related stuff
-        #self.pool = IDPool(start_from=formula.nv + 1)
-        #self.sums = []  # totalizer sum assumptions
-        #self.cost = 0
+    #     # other MaxSAT related stuff
+    #     #self.pool = IDPool(start_from=formula.nv + 1)
+    #     #self.sums = []  # totalizer sum assumptions
+    #     #self.cost = 0
 
-        self.oracle = Solver(name=self.solver, bootstrap_with=self.hard,
-                incr=incr, use_timer=True)
+    #     self.oracle = Solver(name=self.solver, bootstrap_with=self.hard,
+    #             incr=incr, use_timer=True)
 
-        # adding soft clauses to oracle
-        for i, cl in enumerate(self.soft):
-            self.oracle.add_clause(cl)
+    #     # adding soft clauses to oracle
+    #     for i, cl in enumerate(self.soft):
+    #         self.oracle.add_clause(cl)
 
-        if self.verbose > 1:
-            print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
-                len(self.hard), len(self.soft)))       
+    #     if self.verbose > 1:
+    #         print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
+    #             len(self.hard), len(self.soft)))       
 
     def add_clause(self, clause, weight=None):
         """
@@ -845,7 +845,7 @@ class RC2(object):
             formula.append([-c, u])
         for cl in formula:
             #print(cl)
-            self.soft.append(cl)
+            #self.soft.append(cl)
             self.oracle.add_clause(cl)   
         return c     
     def process_core_maxres_tree(self):
@@ -853,6 +853,8 @@ class RC2(object):
         self.cost += self.minw
        # assumptions to remove
         self.garbage = set()
+        remainig_core = []
+        promising  = True
         if debug: print(self.core)
         #print(len(self.sels) , len(self.sums))
         if len(self.core_sels) != 1 or len(self.core_sums) > 0:
@@ -874,27 +876,31 @@ class RC2(object):
                 formula = CNF()
 
                 if debug: print("core:", self.core)
+                has_upperlevel =  False
+                min_core  =[]
+                keep_core = []
                 for c in self.core:
                     if c in self.upperlevel:
                         core = core + self.upperlevel[c]["base"]
                         if debug: print(f"{c} -- {len(self.upperlevel[c]['base'])}")
-                        self.soft.append([-c])
-                        self.oracle.add_clause([-c])                        
+                        #self.soft.append([-c])
+                        self.oracle.add_clause([-c])
+                        has_upperlevel = True
+                        min_core = min_core + self.upperlevel[c]["base"]
                     else:
                         core.append(c)
+                        keep_core = keep_core + [c]
                 
-                if (self.relax in ['mr1c', 'mr2c']): 
-                    remainig_core = []
-                    #assert(self.oracle.solve(assumptions=core) == False)
-                    ##self.core = core
-                    # print(f"[{len(self.core)}]: {len(core)} -- > ", end = " ")                
-                    #self.minimize_core(copy.deepcopy(core))
-                    #assert(self.oracle.solve(assumptions=self.core) == False)
-                    #remainig_core = list(set(core) - set(self.core))
-                    #core = self.core
-                
-                
-                #print("----------------> ", core, remainig_core)
+                if (self.relax in ['mr1c', 'mr2c']):                     
+                    if debug: print(f"[{len(self.core)}]: {len(min_core)}/{len(keep_core)} -- > ", end = " ")                
+                    if (promising) and (has_upperlevel):
+                        self.minimize_core(copy.deepcopy(min_core), copy.deepcopy(keep_core))                
+                        diff = list(set(core) - set(self.core))
+                        remainig_core = remainig_core + diff
+                        core = self.core
+                        if debug: print(len(core), len(remainig_core))
+                        if len(diff) <= 1:
+                            promising = False
                 
 
                 # for c in core:
@@ -931,14 +937,14 @@ class RC2(object):
 
     
                     #exit()
-                    if (self.relax in ['mr2a', 'mr2b', 'mr1b']):
+                    if (self.relax in ['mr2a', 'mr2b', 'mr2c']):
                         core = core[2:] + [ v ]
                     if (self.relax in ['mr1a', 'mr1b', 'mr1c']):
                         core = [v] + core[2:] 
-                    #print(core)
+                    
                 for cl in formula:
                     #print(cl)
-                    self.soft.append(cl)
+                    #self.soft.append(cl)
                     self.oracle.add_clause(cl)
                 #print(new_sums)
 
@@ -951,34 +957,26 @@ class RC2(object):
                 if (self.relax in ['mr1c', 'mr2c']): 
                     lits = copy.deepcopy(self.new_sums)
                     c = self.add_upperlevel(lits)
-                    if debug: print(f" add_upperlevel {self.new_sums} {c}")
+                    #if debug: print(f" add_upperlevel {self.new_sums} {c}")
 
                     self.sums = self.sums + [c]
                     self.new_sums = [c]
-                    assert(len(remainig_core) ==0)
-                    if (len(remainig_core) !=0): 
-                        # #r = self.add_upperlevel(remainig_core)
-                        # for u in
-                        self.sums = self.sums + remainig_core
-                        if debug: print(f" remainig_core {remainig_core} /{self.new_sums}")
+                    #assert(len(remainig_core) ==0)
 
 
 
-                #     # constraint = {}                
-                #     # constraint["literals"] = [-1] + [-s for s in self.new_sums]
-                #     # constraint["rhs_constant_max"] = 1
-                #     # n = len(self.new_sums)
-                #     # card_formula, s, topv = self.seq_counters_open(constraint, n = n, topv =  self.pool.top, tight = False)       
-                #     # self.pool.top = topv
-                #     # print(self.new_sums)
-                #     # for c in card_formula:
-                #     #     print(c)
-                #     # print(s)
-
-                # #self.reinit()
 
                 if self.oracle.solve(assumptions=self.new_sums):
                     if debug: print("exaust done")
+
+                    if (len(remainig_core) !=0): 
+                        if (len(remainig_core) > 50):
+                            r = self.add_upperlevel(remainig_core)
+                            self.sums = self.sums + [r]
+                        else:                       
+                            self.sums = self.sums + remainig_core
+                            self.garbage = set(set(self.garbage) - set(remainig_core))
+                        #if debug: print(f" remainig_core {remainig_core} /{self.new_sums}")
                     break 
                 else:
                     if debug: print("exaust continue")
@@ -989,7 +987,7 @@ class RC2(object):
             # unit cores are treated differently
             # (their negation is added to the hard part)
             #print("unit---")
-            self.hard.append([-self.core_sels[0]])
+            #self.hard.append([-self.core_sels[0]])
             self.oracle.add_clause([-self.core_sels[0]])                               
             self.garbage.add(self.core_sels[0])
         if debug: print("filter_assumps_maxres")
@@ -1093,7 +1091,7 @@ class RC2(object):
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)            
-            self.hard.append([-self.core_sels[0]])
+            #self.hard.append([-self.core_sels[0]])
             self.oracle.add_clause([-self.core_sels[0]])
             self.garbage.add(self.core_sels[0])
 
@@ -1245,7 +1243,7 @@ class RC2(object):
 
             # adding a new clause
             self.oracle.add_clause([-l for l in self.rels] + [-selv])
-            self.soft.append([-l for l in self.rels] + [-selv])
+            #self.soft.append([-l for l in self.rels] + [-selv])
 
 
             # integrating the new selector
@@ -1280,7 +1278,7 @@ class RC2(object):
             # otherwise, update core
             self.core = new_core
 
-    def minimize_core(self, core = None):
+    def minimize_core(self, core = None, keep_def = []):
         """
             Reduce a previously extracted core and compute an
             over-approximation of an MUS. This is done using the
@@ -1305,9 +1303,12 @@ class RC2(object):
 
             proj = self.core
             keep = []
+            if  (len(keep_def) > 0):
+                keep  = keep_def
             core = self.core
-            bestcore = [] 
-            
+            debug = True
+            if debug:  print(f"min start {len(core)}/{len(keep)}")
+
             i = 0
             while i < len(core):
                 to_test = core[:i] + core[(i + 1):]
@@ -1327,17 +1328,18 @@ class RC2(object):
 
                 elif self.oracle.get_status() == True:
                     keep.append(core[i])
-                    bestcore.append(core[i])
                     i += 1
+
                 else:
                     keep.append(core[i])
-                    bestcore.append(core[i])
                     i += 1
 
                     #break
+                #if debug: print(f"{self.oracle.get_status() }")
+
             self.core =  keep
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
-
+            if debug: print(f"min end {len(core)}")
     def exhaust_core(self, tobj):
         """
             Exhaust core by increasing its bound as much as possible.
