@@ -133,7 +133,7 @@ resrg  = [False, "resrg",  "", "v0"]
 
 to = [3600]#, 3600*3]
 
-maxhs = [False, "maxhs"]
+maxhs = [True, "maxhs"]
 eva = [False, "eva"]
 
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
@@ -631,7 +631,7 @@ if (process_run):
                 
                 try:
                     if (results_rc2comp[f][0] >  -1) and  (results_res_v4[f][0] > -1):
-                        assert(results_rc2comp[f][0] == results_res_v4[f][0])
+                        assert(results_rc2comp[f][0] == results_res_v0[f][0])
                     # if (results_resrg[f][0] >  -1) and  (results_res_v4[f][0] > -1):
                     #     assert(results_resrg[f][0] == results_res_v4[f][0])
                                             
@@ -645,9 +645,9 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_res_v4[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_res_v0[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =gs_pref + "*** "
-                elif (results_res_v4[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_res_v0[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = gs_pref + "+++ "
                 else:
                     pref = gs_pref+ "    "
