@@ -272,7 +272,7 @@ if (gen_run):
 if (process_run):
     # rc2comp = [True, "rc2comp"]
 
-    # maxhs = [True, "maxhs"]
+    maxhs = [True, "maxhs"]
     # resrg  = [True, "resrg",  "", "v0"]
 
 
@@ -298,296 +298,298 @@ if (process_run):
         if (tm > 3601):
             timetag = str(tm) + "."
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
-                if(os.path.isfile(filename)):
-                    if (filename in known):
-                        continue
-                    #print (filename)
-                    
+                for rep in ["mse21_unwt_results", "mse21_unwt_results_no_min"]:
 
-                    known.append(filename)
-                    res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
-                    res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
-                    file_name = (res_filename.split("/"))[-1]
-                    file_name = file_name[0:80]
-                    #print(res_filename, file_name)
-                    #print(dummy)
-                    if (rc2[0]):
-                        s = f"{res_filename}.{rc2[1]}.{timetag}res"
-                        assert(path.isfile(s))
-                    if (rc2comp[0]):
-                        s = f"{res_filename}.{rc2comp[1]}.{timetag}res"
-                        res = copy.deepcopy(dummy)
-                        results_rc2comp[file_name] = res
-
-                        if not (path.isfile(s)):
-                            results_rc2comp[file_name] = copy.deepcopy(dummy)
-                        else:
-
-                            file = open(s, "r")
-
-                            for line in file:
-                                if "o " ==  line[:2]:
-                                    opt = int(line[2:])
-                                    res[0] = opt
-                                f = "c oracle time:"
-                                if  f ==  line[:len(f)]:
-                                    time = float(line[len(f):])
-                                    res[1] = time
-                                f = "c cost:"
-                                if  f ==  line[:len(f)]:
-                                    r  = (line[len(f):]).split(";")[0]
-                                    #print(r)
-                                    res[2] = int(r)
-                        if len(res) == 0:
-                            results_rc2comp[file_name] = copy.deepcopy(dummy)
-                        else:
-                            results_rc2comp[file_name] = res
+                    if(os.path.isfile(filename)):
+                        if (filename in known):
+                            continue
+                        #print (filename)
                         
 
-                    if (maxhs[0]):
-                        res =  copy.deepcopy(dummy)
-                        results_maxsatcomp[file_name] = res                        
+                        known.append(filename)
+                        res_filename = filename.replace("mse21_complete_unwt", rep)
+                        #res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
+                        file_name = (res_filename.split("/"))[-1]
+                        file_name = file_name[0:80]
+                        #print(res_filename, file_name)
+                        #print(dummy)
+                        if (rc2[0]):
+                            s = f"{res_filename}.{rc2[1]}.{timetag}res"
+                            assert(path.isfile(s))
+                        if (rc2comp[0]):
+                            s = f"{res_filename}.{rc2comp[1]}.{timetag}res"
+                            res = copy.deepcopy(dummy)
+                            results_rc2comp[file_name] = res
 
-                        s = f"{res_filename}.{maxhs[1]}.{timetag}res"
-                        #print(s)
-                        if not (path.isfile(s)):
-                            results_rc2comp[file_name] = copy.deepcopy(dummy)
-                        else:
-                            file = open(s, "r")
-                    
-                            for line in file:
-                                if "o " ==  line[:2]:
-                                    opt = int(line[2:])
-                                    res[0] = opt
-                                f = "c CPU:"
-                                if  f ==  line[:len(f)]:
-                                    time = float(line[len(f):])
-                                    res[1] = time
-                                f = "c Best LB Found:"
-                                if  f ==  line[:len(f)]:
-                                    res[2] = int(line[len(f):])
-                                f = "c Best UB Found:"
-                                if  f ==  line[:len(f)]:
-                                    res[3] = int(line[len(f):])
-                                    results_maxsatcomp[file_name]  =  copy.deepcopy(dummy)
-                                    results_maxsatcomp[file_name][2] = res[2]
-                                    results_maxsatcomp[file_name][3] = res[3]
+                            if not (path.isfile(s)):
+                                results_rc2comp[file_name] = copy.deepcopy(dummy)
+                            else:
 
-                                    break
-                                # f = "c unsolved"
-                                # if  f ==  line[:len(f)]:
-                                #     results_maxsatcomp[file_name]  =  copy.deepcopy(dummy)
-                                #     results_maxsatcomp[file_name][2] = res[2]
-                                #     results_maxsatcomp[file_name][3] = res[3]
-                                    
-                        if len(res) == 0:
-                            results_maxsatcomp[file_name] =  copy.deepcopy(dummy)
-                        else:
+                                file = open(s, "r")
+
+                                for line in file:
+                                    if "o " ==  line[:2]:
+                                        opt = int(line[2:])
+                                        res[0] = opt
+                                    f = "c oracle time:"
+                                    if  f ==  line[:len(f)]:
+                                        time = float(line[len(f):])
+                                        res[1] = time
+                                    f = "c cost:"
+                                    if  f ==  line[:len(f)]:
+                                        r  = (line[len(f):]).split(";")[0]
+                                        #print(r)
+                                        res[2] = int(r)
+                            if len(res) == 0:
+                                results_rc2comp[file_name] = copy.deepcopy(dummy)
+                            else:
+                                results_rc2comp[file_name] = res
+                            
+
+                        if (maxhs[0]):
+                            res =  copy.deepcopy(dummy)
                             results_maxsatcomp[file_name] = res                        
 
+                            s = f"{res_filename}.{maxhs[1]}.{timetag}res"
+                            #print(s)
+                            if not (path.isfile(s)):
+                                results_rc2comp[file_name] = copy.deepcopy(dummy)
+                            else:
+                                file = open(s, "r")
+                        
+                                for line in file:
+                                    if "o " ==  line[:2]:
+                                        opt = int(line[2:])
+                                        res[0] = opt
+                                    f = "c CPU:"
+                                    if  f ==  line[:len(f)]:
+                                        time = float(line[len(f):])
+                                        res[1] = time
+                                    f = "c Best LB Found:"
+                                    if  f ==  line[:len(f)]:
+                                        res[2] = int(line[len(f):])
+                                    f = "c Best UB Found:"
+                                    if  f ==  line[:len(f)]:
+                                        res[3] = int(line[len(f):])
+                                        results_maxsatcomp[file_name]  =  copy.deepcopy(dummy)
+                                        results_maxsatcomp[file_name][2] = res[2]
+                                        results_maxsatcomp[file_name][3] = res[3]
 
-                    if (cashwmaxsat[0]):
-                        res =  copy.deepcopy(dummy)
-                        results_cashwmaxsat[file_name] = res    
-                        maxhs[0]
-                        s = f"{res_filename}.{cashwmaxsat[1]}.{timetag}res"
-                        #print(s)
-                        if not (path.isfile(s)):
-                            results_cashwmaxsat[file_name] =  copy.deepcopy(dummy)
-                        else:
-                            file = open(s, "r")
-                            for line in file:
-                                #print(s)
-                                if "o " ==  line[:2] and len(line) < 10:
-                                    opt = int(line[2:])
-                                    res[0] = opt
-                                f = "c CPU time               : "
-                                if  f ==  line[:len(f)]:
-                                    r = line[len(f):]
-                                    r = (r.split(" "))[0]
-                                    time = float(r)
-                                    res[1] = time
+                                        break
+                                    # f = "c unsolved"
+                                    # if  f ==  line[:len(f)]:
+                                    #     results_maxsatcomp[file_name]  =  copy.deepcopy(dummy)
+                                    #     results_maxsatcomp[file_name][2] = res[2]
+                                    #     results_maxsatcomp[file_name][3] = res[3]
+                                        
+                            if len(res) == 0:
+                                results_maxsatcomp[file_name] =  copy.deepcopy(dummy)
+                            else:
+                                results_maxsatcomp[file_name] = res                        
 
-                        if len(res) == 0:
-                            results_cashwmaxsat[file_name] =  copy.deepcopy(dummy)
-                        else:
+
+                        if (cashwmaxsat[0]):
+                            res =  copy.deepcopy(dummy)
                             results_cashwmaxsat[file_name] = res    
-                    if (resrg[0]):
-                        
-                        s = f"{res_filename}.{resrg[3]}.{resrg[1]}.{timetag}res"
-                        #s = f"{res_filename}.{res[1]}.res"
-                        res = copy.deepcopy(dummy)
-                        results_resrg[file_name] = res
-                        
-                        #s = f"{res_filename}.{res[1]}.res"
-                        if not (path.isfile(s)):
-                            results_resrg[file_name] = copy.deepcopy(dummy)
-                        else:
-                            file = open(s, "r")
-                            for line in file:
-                                if "o " ==  line[:2]:
-                                    opt = int(line[2:])
-                                    res[0] = opt
-                                f = "c oracle time:"
-                                if  f ==  line[:len(f)]:
-                                    time = float(line[len(f):])
-                                    res[1] = time
-                                f = "c cost:"
-                                if  f ==  line[:len(f)]:
-                                    r  = (line[len(f):]).split(";")[0]
-                                    #print(r)
-                                    res[2] = int(r)
+                            maxhs[0]
+                            s = f"{res_filename}.{cashwmaxsat[1]}.{timetag}res"
+                            #print(s)
+                            if not (path.isfile(s)):
+                                results_cashwmaxsat[file_name] =  copy.deepcopy(dummy)
+                            else:
+                                file = open(s, "r")
+                                for line in file:
+                                    #print(s)
+                                    if "o " ==  line[:2] and len(line) < 10:
+                                        opt = int(line[2:])
+                                        res[0] = opt
+                                    f = "c CPU time               : "
+                                    if  f ==  line[:len(f)]:
+                                        r = line[len(f):]
+                                        r = (r.split(" "))[0]
+                                        time = float(r)
+                                        res[1] = time
 
-                        if len(res) == 0:
-                            results_resrg[file_name] = copy.deepcopy(dummy)
-                        else:
+                            if len(res) == 0:
+                                results_cashwmaxsat[file_name] =  copy.deepcopy(dummy)
+                            else:
+                                results_cashwmaxsat[file_name] = res    
+                        if (resrg[0]):
+                            
+                            s = f"{res_filename}.{resrg[3]}.{resrg[1]}.{timetag}res"
+                            #s = f"{res_filename}.{res[1]}.res"
+                            res = copy.deepcopy(dummy)
                             results_resrg[file_name] = res
-                    # if (res[0]):
-                        
-                    #     s = f"{res_filename}.l2.{res[1]}.{timetag}res"
-                    #     #s = f"{res_filename}.{res[1]}.res"
-                    #     res = copy.deepcopy(dummy)
-                    #     results_res[file_name] = res
-                        
-                    #     #s = f"{res_filename}.{res[1]}.res"
-                    #     if not (path.isfile(s)):
-                    #         results_res[file_name] = copy.deepcopy(dummy)
-                    #     else:
-                    #         file = open(s, "r")
-                    #         for line in file:
-                    #             if "o " ==  line[:2]:
-                    #                 opt = int(line[2:])
-                    #                 res[0] = opt
-                    #             f = "c oracle time:"
-                    #             if  f ==  line[:len(f)]:
-                    #                 time = float(line[len(f):])
-                    #                 res[1] = time
-                    #             f = "c cost:"
-                    #             if  f ==  line[:len(f)]:
-                    #                 r  = (line[len(f):]).split(";")[0]
-                    #                 #print(r)
-                    #                 res[2] = int(r)
+                            
+                            #s = f"{res_filename}.{res[1]}.res"
+                            if not (path.isfile(s)):
+                                results_resrg[file_name] = copy.deepcopy(dummy)
+                            else:
+                                file = open(s, "r")
+                                for line in file:
+                                    if "o " ==  line[:2]:
+                                        opt = int(line[2:])
+                                        res[0] = opt
+                                    f = "c oracle time:"
+                                    if  f ==  line[:len(f)]:
+                                        time = float(line[len(f):])
+                                        res[1] = time
+                                    f = "c cost:"
+                                    if  f ==  line[:len(f)]:
+                                        r  = (line[len(f):]).split(";")[0]
+                                        #print(r)
+                                        res[2] = int(r)
 
-                    #     if len(res) == 0:
-                    #         results_res[file_name] = copy.deepcopy(dummy)
-                    #     else:
-                    #         results_res[file_name] = res
+                            if len(res) == 0:
+                                results_resrg[file_name] = copy.deepcopy(dummy)
+                            else:
+                                results_resrg[file_name] = res
+                        # if (res[0]):
+                            
+                        #     s = f"{res_filename}.l2.{res[1]}.{timetag}res"
+                        #     #s = f"{res_filename}.{res[1]}.res"
+                        #     res = copy.deepcopy(dummy)
+                        #     results_res[file_name] = res
+                            
+                        #     #s = f"{res_filename}.{res[1]}.res"
+                        #     if not (path.isfile(s)):
+                        #         results_res[file_name] = copy.deepcopy(dummy)
+                        #     else:
+                        #         file = open(s, "r")
+                        #         for line in file:
+                        #             if "o " ==  line[:2]:
+                        #                 opt = int(line[2:])
+                        #                 res[0] = opt
+                        #             f = "c oracle time:"
+                        #             if  f ==  line[:len(f)]:
+                        #                 time = float(line[len(f):])
+                        #                 res[1] = time
+                        #             f = "c cost:"
+                        #             if  f ==  line[:len(f)]:
+                        #                 r  = (line[len(f):]).split(";")[0]
+                        #                 #print(r)
+                        #                 res[2] = int(r)
+
+                        #     if len(res) == 0:
+                        #         results_res[file_name] = copy.deepcopy(dummy)
+                        #     else:
+                        #         results_res[file_name] = res
 
 
-                    if (eva[0]):
-                        
-                        s = f"{res_filename}.{eva[1]}.{timetag}res"
-                        res = copy.deepcopy(dummy)
-                        results_eva[file_name] = res
-
-                        if not (path.isfile(s)):
-                            results_eva[file_name] = copy.deepcopy(dummy)
-                        else:
-
-                            file = open(s, "r")
-                            for line in file:
-                                if "o " ==  line[:2]:
-                                    opt = int(line[2:])
-                                    res[2] = opt
-                                f = "c UNSAT LB:"
-                                if  f ==  line[:len(f)]:                        
-                                    r  = (line[len(f):]).split(",")[1]
-                                    #print(r, line)
-                                    r  = r.split(":")[1]
-                                    time = float(r)
-                                    res[1] = time
-                                f = "s OPTIMUM FOUND"
-                                if  f ==  line[:len(f)]:
-                                    r  = (line[len(f):]).split(";")[0]
-                                    #print(r)
-                                    res[0] = res[2]
-
-                        if len(res) == 0:
-                            results_eva[file_name] = copy.deepcopy(dummy)
-                        else:
+                        if (eva[0]):
+                            
+                            s = f"{res_filename}.{eva[1]}.{timetag}res"
+                            res = copy.deepcopy(dummy)
                             results_eva[file_name] = res
 
-                    if (res_v0[0]):
-                        results_res_v0 = process_instance(res_filename, res_v0, timetag, dummy, file_name, results_res_v0)  
-                    if (res_v1[0]):
-                        results_res_v1 = process_instance(res_filename, res_v1, timetag, dummy, file_name, results_res_v1)  
-                    if (res_v2[0]):
-                        results_res_v2 = process_instance(res_filename, res_v2, timetag, dummy, file_name, results_res_v2)  
-                    if (res_v3[0]):
-                        results_res_v3 = process_instance(res_filename, res_v3, timetag, dummy, file_name, results_res_v3)
-                    if (res_v4[0]):
-                        results_res_v4 = process_instance(res_filename, res_v4, timetag, dummy, file_name, results_res_v4)                     
-                    if (res_v5[0]):
-                        results_res_v5 = process_instance(res_filename, res_v5, timetag, dummy, file_name, results_res_v5)
+                            if not (path.isfile(s)):
+                                results_eva[file_name] = copy.deepcopy(dummy)
+                            else:
+
+                                file = open(s, "r")
+                                for line in file:
+                                    if "o " ==  line[:2]:
+                                        opt = int(line[2:])
+                                        res[2] = opt
+                                    f = "c UNSAT LB:"
+                                    if  f ==  line[:len(f)]:                        
+                                        r  = (line[len(f):]).split(",")[1]
+                                        #print(r, line)
+                                        r  = r.split(":")[1]
+                                        time = float(r)
+                                        res[1] = time
+                                    f = "s OPTIMUM FOUND"
+                                    if  f ==  line[:len(f)]:
+                                        r  = (line[len(f):]).split(";")[0]
+                                        #print(r)
+                                        res[0] = res[2]
+
+                            if len(res) == 0:
+                                results_eva[file_name] = copy.deepcopy(dummy)
+                            else:
+                                results_eva[file_name] = res
+
+                        if (res_v0[0]):
+                            results_res_v0 = process_instance(res_filename, res_v0, timetag, dummy, file_name, results_res_v0)  
+                        if (res_v1[0]):
+                            results_res_v1 = process_instance(res_filename, res_v1, timetag, dummy, file_name, results_res_v1)  
+                        if (res_v2[0]):
+                            results_res_v2 = process_instance(res_filename, res_v2, timetag, dummy, file_name, results_res_v2)  
+                        if (res_v3[0]):
+                            results_res_v3 = process_instance(res_filename, res_v3, timetag, dummy, file_name, results_res_v3)
+                        if (res_v4[0]):
+                            results_res_v4 = process_instance(res_filename, res_v4, timetag, dummy, file_name, results_res_v4)                     
+                        if (res_v5[0]):
+                            results_res_v5 = process_instance(res_filename, res_v5, timetag, dummy, file_name, results_res_v5)
 
 
-                    # if (res_v4[0]):
-                    #     s = f"{res_filename}.{res_v4[3]}.{res_v4[1]}.{timetag}res"
-                    #     #s = f"{res_filename}.{res[1]}.res"
-                    #     res = copy.deepcopy(dummy)
-                    #     results_res_v4[file_name] = res
-                        
-                    #     #s = f"{res_filename}.{res[1]}.res"
-                    #     if not (path.isfile(s)):
-                    #         results_res_v4[file_name] = copy.deepcopy(dummy)
-                    #     else:
-                    #         file = open(s, "r")
-                    #         for line in file:
-                    #             if "o " ==  line[:2]:
-                    #                 opt = int(line[2:])
-                    #                 res[0] = opt
-                    #             f = "c oracle time:"
-                    #             if  f ==  line[:len(f)]:
-                    #                 time = float(line[len(f):])
-                    #                 res[1] = time
-                    #             f = "c cost:"
-                    #             if  f ==  line[:len(f)]:
-                    #                 r  = (line[len(f):]).split(";")[0]
-                    #                 #print(r)
-                    #                 res[2] = int(r)
+                        # if (res_v4[0]):
+                        #     s = f"{res_filename}.{res_v4[3]}.{res_v4[1]}.{timetag}res"
+                        #     #s = f"{res_filename}.{res[1]}.res"
+                        #     res = copy.deepcopy(dummy)
+                        #     results_res_v4[file_name] = res
+                            
+                        #     #s = f"{res_filename}.{res[1]}.res"
+                        #     if not (path.isfile(s)):
+                        #         results_res_v4[file_name] = copy.deepcopy(dummy)
+                        #     else:
+                        #         file = open(s, "r")
+                        #         for line in file:
+                        #             if "o " ==  line[:2]:
+                        #                 opt = int(line[2:])
+                        #                 res[0] = opt
+                        #             f = "c oracle time:"
+                        #             if  f ==  line[:len(f)]:
+                        #                 time = float(line[len(f):])
+                        #                 res[1] = time
+                        #             f = "c cost:"
+                        #             if  f ==  line[:len(f)]:
+                        #                 r  = (line[len(f):]).split(";")[0]
+                        #                 #print(r)
+                        #                 res[2] = int(r)
 
-                    #     if len(res) == 0:
-                    #         results_res_v4[file_name] = copy.deepcopy(dummy)
-                    #     else:
-                    #         results_res_v4[file_name] = res   
+                        #     if len(res) == 0:
+                        #         results_res_v4[file_name] = copy.deepcopy(dummy)
+                        #     else:
+                        #         results_res_v4[file_name] = res   
 
 
-                    # if (res_v5[0]):
-                    #     s = f"{res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res"
-                    #     #s = f"{res_filename}.{res[1]}.res"
-                    #     res = copy.deepcopy(dummy)
-                    #     results_res_v5[file_name] = res
-                        
-                    #     #s = f"{res_filename}.{res[1]}.res"
-                    #     if not (path.isfile(s)):
-                    #         results_res_v5[file_name] = copy.deepcopy(dummy)
-                    #     else:
-                    #         file = open(s, "r")
-   
-                    #         for line in file:
-                    #             if "Exp" ==  line[:3]:
-                    #                 r = line.split()
-                    #                 r = r[-2].replace(",","") 
-                    #                 time = float(r)
-                    #                 res[1] = time
-                    #             f = "Best"
-                    #             #print(line)
-                    #             if  f ==  line[:4]:
-                    #                 r = line.split()
-                    #                 r = r[2].replace(",","")                                    
-                    #                 if r != "-":
-                    #                     opt = float(r)
-                    #                     res[0] = int(opt)
-                    #                     r = r[4].replace(",","")                                     
-                    #                     opt = float(r)                             
-                    #                     res[2] = int(opt)
+                        # if (res_v5[0]):
+                        #     s = f"{res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res"
+                        #     #s = f"{res_filename}.{res[1]}.res"
+                        #     res = copy.deepcopy(dummy)
+                        #     results_res_v5[file_name] = res
+                            
+                        #     #s = f"{res_filename}.{res[1]}.res"
+                        #     if not (path.isfile(s)):
+                        #         results_res_v5[file_name] = copy.deepcopy(dummy)
+                        #     else:
+                        #         file = open(s, "r")
+    
+                        #         for line in file:
+                        #             if "Exp" ==  line[:3]:
+                        #                 r = line.split()
+                        #                 r = r[-2].replace(",","") 
+                        #                 time = float(r)
+                        #                 res[1] = time
+                        #             f = "Best"
+                        #             #print(line)
+                        #             if  f ==  line[:4]:
+                        #                 r = line.split()
+                        #                 r = r[2].replace(",","")                                    
+                        #                 if r != "-":
+                        #                     opt = float(r)
+                        #                     res[0] = int(opt)
+                        #                     r = r[4].replace(",","")                                     
+                        #                     opt = float(r)                             
+                        #                     res[2] = int(opt)
 
-                    #     if len(res) == 0:
-                    #         results_res_v5[file_name] = copy.deepcopy(dummy)
-                    #     else:
-                    #         results_res_v5[file_name] = res   
+                        #     if len(res) == 0:
+                        #         results_res_v5[file_name] = copy.deepcopy(dummy)
+                        #     else:
+                        #         results_res_v5[file_name] = res   
 
-        #print(results_res_v4.items())
+            #print(results_res_v4.items())
 
         #exit()
         opt = "opt"
