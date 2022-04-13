@@ -303,7 +303,7 @@ if (process_run):
                     if(os.path.isfile(filename)):
                         if (filename in known):
                             continue
-                        #print (filename)
+                        print (filename)
                         
 
                         known.append(filename)
