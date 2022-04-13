@@ -98,6 +98,7 @@ import glob
 import os
 import copy
 
+from solved_guropy import solved_gurobi
 from os import path
 from posixpath import split
 root_dir = "/home/nina/workspace/data/mse21_complete_unwt/"
@@ -180,7 +181,11 @@ if (gen_run):
                 if(os.path.isfile(filename)):
                     if (filename in known):
                         continue
-                    #print (filename)
+                    # 
+                    # for gs in solved_gurobi:
+                        # if (filename.find(gs)):
+                            # print ("---", filename)
+                    
                     desktop = "maxrr" # pysat
                     local_desktop = "pysat" # 
 
@@ -297,6 +302,7 @@ if (process_run):
                     if (filename in known):
                         continue
                     #print (filename)
+                    
 
                     known.append(filename)
                     res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
@@ -606,6 +612,13 @@ if (process_run):
             the_file.write(f'{s}\n')
 
             for f,v in results_rc2comp.items():
+                print(f)
+                gs_pref = " "
+                for gs in solved_gurobi:
+                    if (filename.find(gs)):
+                        gs_pref = "^"
+                            
+
                 #print(results_rc2comp[f])
                 #print(results_maxsatcomp[f])
                 #print(results_cashwmaxsat[f])
@@ -627,13 +640,13 @@ if (process_run):
                     #     assert(results_res[f][0] == results_rc2comp[f][0])
                 except:
                     print("*********check results")
-                pref = ""
+                pref = gs_pref
                 if (results_res_v4[f][0] > -1) and results_rc2comp[f][0] == -1:
-                    pref = "*** "
+                    pref =gs_pref + "*** "
                 elif (results_res_v4[f][0] == -1) and results_rc2comp[f][0] > -1:
-                    pref = "+++ "
+                    pref = gs_pref + "+++ "
                 else:
-                    pref = "    "
+                    pref = gs_pref+ "    "
 
                 try:
                     s_resrg = f"{results_resrg[f][0]:<5}/{results_resrg[f][2]:<5} {results_resrg[f][1]:<10}"
