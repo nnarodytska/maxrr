@@ -346,14 +346,14 @@ if (process_run):
                             
 
                         if (maxhs[0]):
-                            print("maxhsmaxhsmaxhsmaxhs")
+                            #print("maxhsmaxhsmaxhsmaxhs")
                             res_filename_maxhs = res_filename.replace("mse21_unwt_results", "mse21_unwt_results_no_min")
                             res =  copy.deepcopy(dummy)
                             results_maxsatcomp[file_name] = res                        
 
                             s = f"{res_filename_maxhs}.{maxhs[1]}.{timetag}res"
-                            print("---",s)
-                            exit()
+                            # print("---",s)
+                            # exit()
                             if not (path.isfile(s)):
                                 results_rc2comp[file_name] = copy.deepcopy(dummy)
                             else:
