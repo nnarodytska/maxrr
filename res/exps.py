@@ -298,12 +298,13 @@ if (process_run):
         if (tm > 3601):
             timetag = str(tm) + "."
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
-                for rep in ["mse21_unwt_results", "mse21_unwt_results_no_min"]:
+                for rep in ["mse21_unwt_results"]:
                     print(rep)
+                    print (filename)
+
                     if(os.path.isfile(filename)):
                         if (filename in known):
                             continue
-                        print (filename)
                         
 
                         known.append(filename)
