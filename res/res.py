@@ -631,7 +631,7 @@ class RC2(object):
             if  self.relax=='rc2': 
                 self.process_core()
             #print(self.relax)
-            if  self.relax in ['mr2a','mr2b', 'mr2c', 'mr1a', 'mr1b', 'mr1c']: 
+            if  self.relax in ['mr2a','mr2b', 'mr2c', 'mr1a', 'mr1b', 'mr1c', 'mr1d', 'mr2d']: 
                 self.process_core_maxres_tree()
 
             if self.verbose > 1:
@@ -879,29 +879,39 @@ class RC2(object):
                 has_upperlevel =  False
                 min_core  =[]
                 keep_core = []
+                unfolding ={}
+                core_unfolding = []
+                hard_clauses = []
                 for c in self.core:
                     if c in self.upperlevel:
                         core = core + self.upperlevel[c]["base"]
                         if debug: print(f"{c} -- {len(self.upperlevel[c]['base'])}")
                         #self.soft.append([-c])
-                        self.oracle.add_clause([-c])
+                        hard_clauses.append([-c])
                         has_upperlevel = True
                         min_core = min_core + self.upperlevel[c]["base"]
+                        unfolding[c] = self.upperlevel[c]["base"]
+                        core_unfolding.append(c)
                     else:
                         core.append(c)
                         keep_core = keep_core + [c]
                 
-                if (self.relax in ['mr1c', 'mr2c']):                     
+                if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']):                     
                     if debug: print(f"[{len(self.core)}]: {len(min_core)}/{len(keep_core)} -- > ", end = " ")                
                     if (promising) and (has_upperlevel):
-                        self.minimize_core(copy.deepcopy(min_core), copy.deepcopy(keep_core))                
+                        if (self.relax in ['mr1c', 'mr2c']):                     
+                            self.minimize_core(copy.deepcopy(min_core),  copy.deepcopy(keep_core))
+                        if (self.relax in ['mr1d', 'mr2d']):                                                 
+                            self.minimize_core_unfolding (copy.deepcopy(core_unfolding), copy.deepcopy(unfolding), copy.deepcopy(keep_core))                
                         diff = list(set(core) - set(self.core))
                         remainig_core = remainig_core + diff
                         core = self.core
                         if debug: print(len(core), len(remainig_core))
                         if len(diff) <= 1:
                             promising = False
-                
+                        #exit()
+                for c in hard_clauses:
+                    self.oracle.add_clause(c)
 
                 # for c in core:
                 #     if c in self.sels:
@@ -937,9 +947,9 @@ class RC2(object):
 
     
                     #exit()
-                    if (self.relax in ['mr2a', 'mr2b', 'mr2c']):
+                    if (self.relax in ['mr2a', 'mr2b', 'mr2c', 'mr2d']):
                         core = core[2:] + [ v ]
-                    if (self.relax in ['mr1a', 'mr1b', 'mr1c']):
+                    if (self.relax in ['mr1a', 'mr1b', 'mr1c', 'mr1d']):
                         core = [v] + core[2:] 
                     
                 for cl in formula:
@@ -954,7 +964,7 @@ class RC2(object):
                     #self.new_sums = self.new_sums[::-1]
                     self.sums = self.sums + self.new_sums[::-1]
 
-                if (self.relax in ['mr1c', 'mr2c']): 
+                if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']): 
                     lits = copy.deepcopy(self.new_sums)
                     c = self.add_upperlevel(lits)
                     #if debug: print(f" add_upperlevel {self.new_sums} {c}")
@@ -1295,51 +1305,164 @@ class RC2(object):
             During this core minimization procedure, all SAT calls are
             dropped after obtaining 1000 conflicts.
         """
+
         if not (core is None):
             self.core = core
-        if self.minz and len(self.core) > 1:
+        if self.minz and len(self.core +keep_def ) > 1:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
             
 
-            proj = self.core
+            
+            keep = []
+            if  (len(keep_def) > 0):
+                keep  = keep_def
+            #print(core, keep)
+            core = self.core
+            proj = core + keep
+
+            debug = False
+            if debug:  print(f"min start {len(core)}/{len(keep)}")
+
+            i = 0
+            while len(core) > 0:
+                to_test =  core[1:]
+                #print(f"core {core} keep {keep} proj {proj}")
+
+                if not (core[0] in proj):
+                    #i = i+ 1
+                    to_test = core[1:]
+                    core = core[1:]
+                    #print("continue")
+                    continue
+
+                keep = [c for c in keep if c in proj]
+
+                self.oracle.prop_budget(100000)
+                if self.oracle.solve_limited(assumptions=keep + to_test) == False:
+                    newcore = self.oracle.get_core()
+                    if (newcore is None):
+                        newcore = []                    
+                    proj =  newcore
+                    # res, fixed = self.oracle.propagate(assumptions=newcore)
+                    # print(res, fixed, newcore)                    
+                elif self.oracle.get_status() == True:
+                    keep.append(core[0])
+
+                else:
+                    keep.append(core[0])
+                if debug: print(f"{self.oracle.get_status()} {core[0]}")
+                core = core[1:]
+                    #break
+                
+
+            self.core =  keep
+            #print(f"final {keep}")
+            #assert(self.oracle.solve_limited(assumptions=self.core) == False)
+            if debug: print(f"min end {len(self.core)}")
+    def minimize_core_unfolding (self, core, unfolding, keep_def = []):
+        """
+            Reduce a previously extracted core and compute an
+            over-approximation of an MUS. This is done using the
+            simple deletion-based MUS extraction algorithm.
+
+            The idea is to try to deactivate soft clauses of the
+            unsatisfiable core one by one while checking if the
+            remaining soft clauses together with the hard part of the
+            formula are unsatisfiable. Clauses that are necessary for
+            preserving unsatisfiability comprise an MUS of the input
+            formula (it is contained in the given unsatisfiable core)
+            and are reported as a result of the procedure.
+
+            During this core minimization procedure, all SAT calls are
+            dropped after obtaining 1000 conflicts.
+        """
+        if not (core is None):
+            self.core = core
+        
+        total_soft  =[]
+        for k,v in unfolding.items():
+            #print(k,v)
+            total_soft = total_soft +  v
+        #print(f"keep {keep_def} total_soft {total_soft}")
+
+        if self.minz and len(total_soft+keep_def) > 1:
+            self.core = sorted(self.core, key=lambda l: self.wght[l])
+            
+
             keep = []
             if  (len(keep_def) > 0):
                 keep  = keep_def
             core = self.core
-            debug = True
+            proj = core + keep
+            #print(f"proj {proj}")  
+
+            debug = False
             if debug:  print(f"min start {len(core)}/{len(keep)}")
 
-            i = 0
-            while i < len(core):
-                to_test = core[:i] + core[(i + 1):]
+            while len(core) > 0:
+                #print(f"{0}: core {core}, {core[0]}, proj {proj}")
+                #print(core + keep)
+                #assert(self.oracle.solve_limited(assumptions=core + keep) == False)
+                #print("OK1")
+                if core[0] in unfolding:
+                    #print("~~", proj, core[0])
+                    if not(core[0] in proj):
+                        core = core[1:]
+                        continue
+                    j = proj.index(core[0])
+                    proj = proj[:j]+ unfolding[core[0]] + proj[(j+1):] 
+                    #print(f"core + keep {core + keep}")
+                    #assert(self.oracle.solve_limited(assumptions=core + keep) == False)
+                    #print("OK11")
+                    core = unfolding[core[0]] + core[1:]                    
+                    #print(f"core + keep {core + keep}")
 
-                if not (core[i] in proj):
+                    #assert(self.oracle.solve_limited(assumptions=core + keep) == False)
+                    #print(f" OK2")
+
+                #print(f"{0}: core {core}, {core[0]}, proj {proj}")     
+                #print(core + keep)                                               
+                #print(f"core {core}")
+                to_test = core[1:]
+                keep = [c for c in keep if c in proj]
+                        
+
+                if not (core[0] in proj):
                     #i = i+ 1
-                    to_test = core[:i] + core[(i + 1):]
-                    core = to_test
+                    #print(f"continue {core[0] }")
+
+                    to_test = core[1:]
+                    core = core[1:]
                     continue
+                #print("starting")
                 self.oracle.prop_budget(100000)
-                if self.oracle.solve_limited(assumptions=to_test+keep) == False:
-                    core = to_test
+                #print(to_test+keep)
+   
+                if self.oracle.solve_limited(assumptions= keep + to_test) == False:
                     newcore = self.oracle.get_core()
                     if (newcore is None):
                         newcore = []                    
-                    proj =  newcore + keep
+                    proj =  newcore
+                    #assert(self.oracle.solve_limited(assumptions=proj) == False)
+
 
                 elif self.oracle.get_status() == True:
-                    keep.append(core[i])
-                    i += 1
-
+                    keep.append(core[0])
                 else:
-                    keep.append(core[i])
-                    i += 1
+                    keep.append(core[0])
+                #assert(self.oracle.solve_limited(assumptions=core + keep) == False)
+
+                core = core[1:]
 
                     #break
-                #if debug: print(f"{self.oracle.get_status() }")
+                if debug: print(f"{self.oracle.get_status() }")
+                #assert(self.oracle.solve_limited(assumptions=core + keep) == False)
 
             self.core =  keep
+            #print(keep)
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
-            if debug: print(f"min end {len(core)}")
+            if debug: print(f"min end {len(self.core)}")
+
     def exhaust_core(self, tobj):
         """
             Exhaust core by increasing its bound as much as possible.
@@ -2132,7 +2255,7 @@ def parse_options():
             exhaust = True
         elif opt in ('-r', '--relax'):
             relax = str(arg) 
-            assert(relax in ['mr1a', 'mr1b', 'mr1c', 'mr2a', 'mr2b',  'mr2c', 'rc2'])
+            assert(relax in ['mr1a', 'mr1b', 'mr1c', 'mr2a', 'mr2b',  'mr2c', 'mr1d', 'mr2d', 'rc2'])
         else:
             assert False, 'Unhandled option: {0} {1}'.format(opt, arg)
 
@@ -2192,7 +2315,7 @@ if __name__ == '__main__':
         # enabling the competition mode
         if cmode:
             assert cmode in ('a', 'b'), 'Wrong MSE18 mode chosen: {0}'.format(cmode)
-            adapt, blo, exhaust, solver, verbose = True, 'div', True, 'g3', 3
+            adapt, blo, solver, exhaust, verbose = True, 'div', 'g4',  True,  3
 
             if cmode == 'a':
                 trim = 5 if max(formula.wght) > min(formula.wght) else 0
