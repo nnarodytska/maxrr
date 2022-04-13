@@ -351,7 +351,7 @@ if (process_run):
                             results_maxsatcomp[file_name] = res                        
 
                             s = f"{res_filename}.{maxhs[1]}.{timetag}res"
-                            #print(s)
+                            print(s)
                             if not (path.isfile(s)):
                                 results_rc2comp[file_name] = copy.deepcopy(dummy)
                             else:
