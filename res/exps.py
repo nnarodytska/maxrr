@@ -615,7 +615,7 @@ if (process_run):
                 print(f)
                 gs_pref = " "
                 for gs in solved_gurobi:
-                    if (filename.find(gs)):
+                    if (filename.find(gs)!= -1):
                         gs_pref = "^"
                             
 
