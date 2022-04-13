@@ -299,7 +299,7 @@ if (process_run):
             timetag = str(tm) + "."
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
                 for rep in ["mse21_unwt_results", "mse21_unwt_results_no_min"]:
-
+                    print(rep)
                     if(os.path.isfile(filename)):
                         if (filename in known):
                             continue
