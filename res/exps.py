@@ -615,9 +615,9 @@ if (process_run):
                 print(f)
                 gs_pref = " "
                 for gs in solved_gurobi:
-                    if (f.find(gs)!= -1):
+                    if (gs.find(f)!= -1):
                         gs_pref = "^"
-                            
+                #exit()
 
                 #print(results_rc2comp[f])
                 #print(results_maxsatcomp[f])
