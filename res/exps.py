@@ -348,6 +348,7 @@ if (process_run):
                             
 
                         if (maxhs[0]):
+                            file_name_maxres = file_name.replace("mse21_complete_unwt", "mse21_complete_unwt_no_min")
                             res =  copy.deepcopy(dummy)
                             results_maxsatcomp[file_name] = res                        
 
