@@ -630,8 +630,8 @@ if (process_run):
                 #print(results_eva[f])
                 
                 try:
-                    if (results_rc2comp[f][0] >  -1) and  (results_res_v1[f][0] > -1):
-                        assert(results_rc2comp[f][0] == results_res_v1[f][0])
+                    if (results_rc2comp[f][0] >  -1) and  (results_res_v3[f][0] > -1):
+                        assert(results_rc2comp[f][0] == results_res_v3[f][0])
                     # if (results_resrg[f][0] >  -1) and  (results_res_v4[f][0] > -1):
                     #     assert(results_resrg[f][0] == results_res_v4[f][0])
                                             
@@ -645,9 +645,9 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_res_v1[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_res_v3[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =gs_pref + "*** "
-                elif (results_res_v1[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_res_v3[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = gs_pref + "+++ "
                 else:
                     pref = gs_pref+ "    "
