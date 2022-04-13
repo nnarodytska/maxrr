@@ -693,7 +693,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {f:<80} {h_rc2comp}  {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}  {h_res_v4}"
+                s = f"{pref} {f:<80} {s_rc2comp}  {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
