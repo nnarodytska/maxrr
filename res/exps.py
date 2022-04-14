@@ -98,7 +98,7 @@ import glob
 import os
 import copy
 
-from solved_guropy import solved_gurobi
+from solved_guropy import solved_gurobi, unsolved
 from os import path
 from posixpath import split
 root_dir = "/home/nina/workspace/data/mse21_complete_unwt/"
@@ -182,10 +182,17 @@ if (gen_run):
                     if (filename in known):
                         continue
                     # 
-                    # for gs in solved_gurobi:
-                        # if (filename.find(gs)):
+                    flag = False
+                    for gs in unsolved:
+                        print(gs, filename)
+                        if (filename.find(gs) != -1):
                             # print ("---", filename)
-                    
+                            # exit()       
+                            flag = True
+                    if (flag):
+                        continue
+                    known.append(filename)
+
                     desktop = "maxrr" # pysat
                     local_desktop = "pysat" # 
 
@@ -303,9 +310,21 @@ if (process_run):
                     if(os.path.isfile(filename)):
                         if (filename in known):
                             continue
-                        
+                    
+                        flag = False
+                        for gs in unsolved:
+                            print(gs, filename)
+                            if (filename.find(gs) != -1):
+                                # print ("---", filename)
+                                # exit()       
+                                flag = True
+                        if (flag):
+                            continue
+                                
 
                         known.append(filename)
+
+
                         res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
                         #res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
                         file_name = (res_filename.split("/"))[-1]
@@ -611,7 +630,7 @@ if (process_run):
             h_res_v5 = f"{opt:<5}/{lb:<5}  {res_v5[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {f:<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}  {h_res_v4}"
+            s = f"     {f:<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2} " # {h_res_v3}  {h_res_v4}"
             print(s)
             the_file.write(f'{s}\n')
 
@@ -630,8 +649,8 @@ if (process_run):
                 #print(results_eva[f])
                 
                 try:
-                    if (results_rc2comp[f][0] >  -1) and  (results_res_v3[f][0] > -1):
-                        assert(results_rc2comp[f][0] == results_res_v3[f][0])
+                    if (results_rc2comp[f][0] >  -1) and  (results_res_v0[f][0] > -1):
+                        assert(results_rc2comp[f][0] == results_res_v0[f][0])
                     # if (results_resrg[f][0] >  -1) and  (results_res_v4[f][0] > -1):
                     #     assert(results_resrg[f][0] == results_res_v4[f][0])
                                             
@@ -645,9 +664,9 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_res_v3[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_res_v0[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =gs_pref + "*** "
-                elif (results_res_v3[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_res_v0[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = gs_pref + "+++ "
                 else:
                     pref = gs_pref+ "    "
@@ -710,7 +729,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {f:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}"
+                s = f"{pref} {f:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}"#  {s_res_v2}   {s_res_v3}  {s_res_v4}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
