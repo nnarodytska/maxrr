@@ -124,9 +124,9 @@ cashwmaxsat = [False, "cashwmaxsat"]
 
 res_v0  = [True, "maxres",  "-r mr1c ", "v0"]
 res_v1 = [True, "maxres", "-r mr1d ", "v1"]
-res_v2 = [False, "maxres", "-r mr2c ",  "v2"]
-res_v3 = [False, "maxres", "-r mr2d",  "v3"] # with closure
-res_v4 = [False, "maxres",  "-r mr1a",  "v4"] # 
+res_v2 = [True, "maxres", "-r mr2c ",  "v2"]
+res_v3 = [True, "maxres", "-r mr2d",  "v3"] # with closure
+res_v4 = [True, "maxres",  "-r mr1a",  "v4"] # 
 res_v5 = [False, "maxres", " --ilp=5 ",  "v5"] # gurobi
 
 resrg  = [False, "resrg",  "", "v0"]
@@ -630,7 +630,7 @@ if (process_run):
             h_res_v5 = f"{opt:<5}/{lb:<5}  {res_v5[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {f:<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2} " # {h_res_v3}  {h_res_v4}"
+            s = f"     {f:<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3}  {h_res_v4}"
             print(s)
             the_file.write(f'{s}\n')
 
@@ -729,7 +729,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {f:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}"#  {s_res_v2}   {s_res_v3}  {s_res_v4}"
+                s = f"{pref} {f:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
