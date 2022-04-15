@@ -849,7 +849,7 @@ class RC2(object):
             self.oracle.add_clause(cl)   
         return c     
     def process_core_maxres_tree(self):
-        debug  = False 
+        debug  = True 
         self.cost += self.minw
        # assumptions to remove
         self.garbage = set()
@@ -897,8 +897,9 @@ class RC2(object):
                         keep_core = keep_core + [c]
                 
                 if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']):                     
-                    if debug: print(f"[{len(self.core)}]: {len(min_core)}/{len(keep_core)} -- > ", end = " ")                
                     if (promising) and (has_upperlevel):
+
+                        if debug: print(f"-- minimization [{len(self.core)}]: {len(min_core)}/{len(keep_core)} -- > ", end = " ")                
                         if (self.relax in ['mr1c', 'mr2c']):                     
                             for c in hard_clauses:
                                 self.oracle.add_clause(c)
@@ -912,7 +913,8 @@ class RC2(object):
                         if debug: print(len(core), len(remainig_core))
                         if len(diff) <= 1:
                             promising = False
-                        #exit()
+                        if debug: print(f"diff {diff}")
+                             #exit()
                 for c in hard_clauses:
                     self.oracle.add_clause(c)
 
@@ -1321,9 +1323,9 @@ class RC2(object):
                 keep  = keep_def
             #print(core, keep)
             core = self.core
-            proj = core + keep
+            proj = keep + core 
 
-            debug = False
+            debug = True
             if debug:  print(f"min start {len(core)}/{len(keep)}")
 
             i = 0
@@ -1340,8 +1342,11 @@ class RC2(object):
 
                 keep = [c for c in keep if c in proj]
 
-                self.oracle.prop_budget(100000)
-                if self.oracle.solve_limited(assumptions=keep + to_test) == False:
+                
+                
+                self.oracle.prop_budget(10000000)
+                #print(prop)
+                if self.oracle.solve_limited(assumptions= keep + to_test) == False:
                     newcore = self.oracle.get_core()
                     if (newcore is None):
                         newcore = []                    
