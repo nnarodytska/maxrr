@@ -900,7 +900,10 @@ class RC2(object):
                     if debug: print(f"[{len(self.core)}]: {len(min_core)}/{len(keep_core)} -- > ", end = " ")                
                     if (promising) and (has_upperlevel):
                         if (self.relax in ['mr1c', 'mr2c']):                     
+                            for c in hard_clauses:
+                                self.oracle.add_clause(c)
                             self.minimize_core(copy.deepcopy(min_core),  copy.deepcopy(keep_core))
+
                         if (self.relax in ['mr1d', 'mr2d']):                                                 
                             self.minimize_core_unfolding (copy.deepcopy(core_unfolding), copy.deepcopy(unfolding), copy.deepcopy(keep_core))                
                         diff = list(set(core) - set(self.core))
