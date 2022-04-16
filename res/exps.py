@@ -253,17 +253,17 @@ if (gen_run):
                         the_file.write(f'{s}\n')
 
                     if (res_v5[0]):
-                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{local_desktop}/res/res.py -c b -s  g4 {res_v5[2]} -vv {filename} > {res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s  g4 {res_v5[2]} -vv {filename} > {res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
                     if (res_v6[0]):
-                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{local_desktop}/res/res.py -c b -s  g4 {res_v6[2]} -vv {filename} > {res_filename}.{res_v6[3]}.{res_v6[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s  g4 {res_v6[2]} -vv {filename} > {res_filename}.{res_v6[3]}.{res_v6[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
                     if (res_v7[0]):
-                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{local_desktop}/res/res.py -c b -s  g4 {res_v7[2]} -vv {filename} > {res_filename}.{res_v7[3]}.{res_v7[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s  g4 {res_v7[2]} -vv {filename} > {res_filename}.{res_v7[3]}.{res_v7[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
