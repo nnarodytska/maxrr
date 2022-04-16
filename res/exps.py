@@ -323,7 +323,7 @@ if (process_run):
         if (tm > 3601):
             timetag = str(tm) + "."
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
-                    print (filename)
+                    #print (filename)
 
                     if(os.path.isfile(filename)):
                         if (filename in known):
@@ -355,6 +355,7 @@ if (process_run):
                         if (rc2comp[0]):
                             s = f"{res_filename}.{rc2comp[1]}.{timetag}res"
                             s = s.replace("mse21_unwt_results", "mse21_unwt_results_g4_rc2_many_mrs")
+                            print(s)
                             res = copy.deepcopy(dummy)
                             results_rc2comp[file_name] = res
 
