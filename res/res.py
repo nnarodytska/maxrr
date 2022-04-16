@@ -1037,7 +1037,7 @@ class RC2(object):
                         keep_core = keep_core + [c]
                 if debug: print(f"self.core {self.core}")
                 if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']):                     
-                    if (promising) and (has_upperlevel):
+                    if (promising) and (has_upperlevel) and not flag_continue:
                         if debug: print(f"-- minimization [{len(self.core)}]: {len(min_core)}/{len(keep_core)} -- > ", end = " ")                
                         if (self.relax in ['mr1c', 'mr2c']):                     
                             for c in hard_clauses:
@@ -1058,7 +1058,7 @@ class RC2(object):
                 for c in hard_clauses:
                     self.oracle.add_clause(c)
 
-                
+                exhaust_core = False
                 
                 ratio = float(self.non_minimal_count)/len(core)
                 print(f"promising------------ {ratio} {self.non_minimal_count} {len(core)}")
@@ -1107,7 +1107,7 @@ class RC2(object):
                         for relv in self.rels:
                             self.oracle.add_clause([relv])
                     #print(f"exaust b ={b}")
-
+                    exhaust_core = True
                     self.new_sums = [c]
                     #print("---")
                     # if debug: print(f"self.core {self.core}")
@@ -1117,7 +1117,7 @@ class RC2(object):
 
 
 
-                if self.oracle.solve(assumptions=self.new_sums):
+                if (not exhaust_core) and  self.oracle.solve(assumptions=self.new_sums):
                     if debug: print("exaust done")
                     #print("exaust done")
                     if (len(remainig_core) !=0): 
