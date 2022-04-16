@@ -331,7 +331,7 @@ if (process_run):
                     
                         flag = False
                         for gs in unsolved:
-                            print(gs, filename)
+                            #print(gs, filename)
                             if (filename.find(gs) != -1):
                                 # print ("---", filename)
                                 # exit()       
