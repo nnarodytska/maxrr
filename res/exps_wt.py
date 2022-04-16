@@ -524,12 +524,7 @@ if (process_run):
                         if (res_v0[0]):
                             results_res_v0 = process_instance(res_filename, res_v0, timetag, dummy, file_name, results_res_v0)  
                         if (res_v1[0]):
-                            results_res_v1 = process_instance(res_filename, res_v1, timetag, dummy, file_name, results_res_v1)  
-                        if (res_v2[0]):
-                            results_res_v2 = process_instance(res_filename, res_v2, timetag, dummy, file_name, results_res_v2)  
-                        if (res_v3[0]):
-                            results_res_v3 = process_instance(res_filename, res_v3, timetag, dummy, file_name, results_res_v3)
-                        if (res_v4[0]):
+                            results_res_v1 =results_maxsatcomp
                             results_res_v4 = process_instance(res_filename, res_v4, timetag, dummy, file_name, results_res_v4)                     
                         if (res_v5[0]):
                             results_res_v5 = process_instance(res_filename, res_v5, timetag, dummy, file_name, results_res_v5)
@@ -646,8 +641,8 @@ if (process_run):
                 #print(results_eva[f])
                 
                 try:
-                    if (results_rc2comp[f][0] >  -1) and  (results_res_v0[f][0] > -1):
-                        assert(results_rc2comp[f][0] == results_res_v0[f][0])
+                    if (results_rc2comp[f][0] >  -1) and  (results_maxsatcomp[f][0] > -1):
+                        assert(results_rc2comp[f][0] == results_maxsatcomp[f][0])
                     # if (results_resrg[f][0] >  -1) and  (results_res_v4[f][0] > -1):
                     #     assert(results_resrg[f][0] == results_res_v4[f][0])
                                             
@@ -661,9 +656,9 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_res_v0[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_maxsatcomp[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =gs_pref + "*** "
-                elif (results_res_v0[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_maxsatcomp[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = gs_pref + "+++ "
                 else:
                     pref = gs_pref+ "    "
