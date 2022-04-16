@@ -292,6 +292,7 @@ class RC2(object):
         #self.hard = copy.deepcopy(formula.hard)
         #self.soft = []
         self.upperlevel = {}
+        self.maxreslevel = {}
         #self.ilp = 120
         # if self.ilp > 0 or True:
         #     self.solve_gurobi(formula)
@@ -993,10 +994,11 @@ class RC2(object):
         remainig_core = []
         promising  = True
         flag_continue = False
-        # if debug: print(f"self.core {self.core}")
-        # if debug: print(f"self.upperlevel {self.upperlevel}")
-        # if debug: print(f"self.sums {self.sums }")
-        # if debug: print(f"self.sels {self.sels }")
+        if debug: print(f"self.core {self.core}")
+        if debug: print(f"self.upperlevel {self.upperlevel}")
+        if debug: print(f"self.sums {self.sums }")
+        if debug: print(f"self.sels {self.sels }")
+        if debug: print(f"end: self.tobj {self.tobj }")
 
         #print(len(self.sels) , len(self.sums))
         if len(self.core_sels) != 1 or len(self.core_sums) > 0:
@@ -1068,9 +1070,15 @@ class RC2(object):
 
                     if (self.relax in ['mr1a', 'mr2a']): 
                         self.sums = self.sums  + self.new_sums 
+                        for s in self.new_sums:
+                            self.maxreslevel[s] = {}
+                            self.maxreslevel[s]["base"] = [s]                            
                     if (self.relax in ['mr1b', 'mr2b']):
                         #self.new_sums = self.new_sums[::-1]
                         self.sums = self.sums + self.new_sums[::-1]
+                        for s in self.new_sums:
+                            self.maxreslevel[s] = {}
+                            self.maxreslevel[s]["base"] = [s]                          
 
                     if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']): 
                         lits = copy.deepcopy(self.new_sums)
@@ -1148,10 +1156,11 @@ class RC2(object):
         if debug: print("filter_assumps_maxres")
 
         self.filter_assumps()
-        # if debug: print(f"self.core {self.core}")
-        # if debug: print(f"self.upperlevel {self.upperlevel}")
-        # if debug: print(f"self.sums {self.sums }")
-        # if debug: print(f"self.sels {self.sels }")
+        if debug: print(f"end: self.core {self.core}")
+        if debug: print(f"end: self.upperlevel {self.upperlevel}")
+        if debug: print(f"end: self.sums {self.sums }")
+        if debug: print(f"end: self.sels {self.sels }")
+        if debug: print(f"end: self.tobj {self.tobj }")
 
         #pos = nx.nx_agraph.graphviz_layout(self.graph)
         #nx.draw(self.graph, pos=pos)
@@ -1723,7 +1732,8 @@ class RC2(object):
         """
 
         for l in self.core_sums:
-            if (l in self.upperlevel):            
+            #print(f"l {l}")
+            if (l in self.upperlevel) or (l in self.maxreslevel):            
                 if self.wght[l] == self.minw:
                     # marking variable as being a part of the core
                     # so that next time it is not used as an assump
@@ -1733,7 +1743,7 @@ class RC2(object):
                     # since it has a remaining non-zero weight
                     self.wght[l] -= self.minw
 
-                self.rels.append(-l)            
+                self.rels.append(-l)             
             else:
                 self.process_sums_one_lit(l)
 
