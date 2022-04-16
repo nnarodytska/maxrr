@@ -119,7 +119,7 @@ focus =[]
 # "kbtree9_7_3_5_30_5.wcsp.wcnf.gz"]
 
 rc2 = [False, "rc2"]
-rc2comp = [True, "rc2comp"]
+rc2comp = [False, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
 res_v0  = [True, "maxres",  "-r mr1c ", "v0"]
@@ -127,7 +127,11 @@ res_v1 = [True, "maxres", "-r mr1d ", "v1"]
 res_v2 = [True, "maxres", "-r mr2c ",  "v2"]
 res_v3 = [True, "maxres", "-r mr2d",  "v3"] # with closure
 res_v4 = [True, "maxres",  "-r mr1a",  "v4"] # 
-res_v5 = [False, "maxres", " --ilp=5 ",  "v5"] # gurobi
+res_v5 = [True, "maxres", "-r mr1b ",  "v5"] 
+res_v6 = [True, "maxres", "-r mr2b ",  "v6"] 
+res_v7 = [True, "maxres", "-r mr2b ",  "v7"] 
+
+# gurobi
 
 resrg  = [False, "resrg",  "", "v0"]
 
@@ -252,6 +256,17 @@ if (gen_run):
                         s = f"timeout {tm}s python3 -u /home/nina/workspace/{local_desktop}/res/res.py -c b -s  g4 {res_v5[2]} -vv {filename} > {res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
+
+                    if (res_v6[0]):
+                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{local_desktop}/res/res.py -c b -s  g4 {res_v6[2]} -vv {filename} > {res_filename}.{res_v6[3]}.{res_v6[1]}.{timetag}res "
+                        the_file.write(f'{s}\n')
+
+
+                    if (res_v7[0]):
+                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{local_desktop}/res/res.py -c b -s  g4 {res_v7[2]} -vv {filename} > {res_filename}.{res_v7[3]}.{res_v7[1]}.{timetag}res "
+                        the_file.write(f'{s}\n')
+
+
                     if (resrg[0]):
                         s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s g4 {resrg[2]}  -vv {filename} > {res_filename}.{resrg[3]}.{resrg[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
@@ -280,6 +295,7 @@ if (process_run):
     # rc2comp = [True, "rc2comp"]
 
     maxhs = [True, "maxhs"]
+    maxhs = [True, "rc2comp"]
     # resrg  = [True, "resrg",  "", "v0"]
 
 
@@ -297,6 +313,8 @@ if (process_run):
         results_res_v3 = {}
         results_res_v4 = {}
         results_res_v5 = {}
+        results_res_v6 = {}
+        results_res_v7 = {}                
 
         known = []
         
@@ -465,37 +483,7 @@ if (process_run):
                                 results_resrg[file_name] = copy.deepcopy(dummy)
                             else:
                                 results_resrg[file_name] = res
-                        # if (res[0]):
-                            
-                        #     s = f"{res_filename}.l2.{res[1]}.{timetag}res"
-                        #     #s = f"{res_filename}.{res[1]}.res"
-                        #     res = copy.deepcopy(dummy)
-                        #     results_res[file_name] = res
-                            
-                        #     #s = f"{res_filename}.{res[1]}.res"
-                        #     if not (path.isfile(s)):
-                        #         results_res[file_name] = copy.deepcopy(dummy)
-                        #     else:
-                        #         file = open(s, "r")
-                        #         for line in file:
-                        #             if "o " ==  line[:2]:
-                        #                 opt = int(line[2:])
-                        #                 res[0] = opt
-                        #             f = "c oracle time:"
-                        #             if  f ==  line[:len(f)]:
-                        #                 time = float(line[len(f):])
-                        #                 res[1] = time
-                        #             f = "c cost:"
-                        #             if  f ==  line[:len(f)]:
-                        #                 r  = (line[len(f):]).split(";")[0]
-                        #                 #print(r)
-                        #                 res[2] = int(r)
-
-                        #     if len(res) == 0:
-                        #         results_res[file_name] = copy.deepcopy(dummy)
-                        #     else:
-                        #         results_res[file_name] = res
-
+               
 
                         if (eva[0]):
                             
@@ -542,6 +530,10 @@ if (process_run):
                             results_res_v4 = process_instance(res_filename, res_v4, timetag, dummy, file_name, results_res_v4)                     
                         if (res_v5[0]):
                             results_res_v5 = process_instance(res_filename, res_v5, timetag, dummy, file_name, results_res_v5)
+                        if (res_v6[0]):
+                            results_res_v5 = process_instance(res_filename, res_v6, timetag, dummy, file_name, results_res_v6)
+                        if (res_v7[0]):
+                            results_res_v7 = process_instance(res_filename, res_v7, timetag, dummy, file_name, results_res_v7)
 
 
                         # if (res_v4[0]):
@@ -628,9 +620,11 @@ if (process_run):
             h_res_v3 = f"{opt:<5}/{lb:<5}  {res_v3[1]:<10} "
             h_res_v4 = f"{opt:<5}/{lb:<5}  {res_v4[1]:<10} "
             h_res_v5 = f"{opt:<5}/{lb:<5}  {res_v5[1]:<10} "
+            h_res_v6 = f"{opt:<5}/{lb:<5}  {res_v6[1]:<10} "
+            h_res_v7 = f"{opt:<5}/{lb:<5}  {res_v7[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {f:<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3}  {h_res_v4}"
+            s = f"     {f:<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3}  {h_res_v4}  {h_res_v5}  {h_res_v6}  {h_res_v7}"
             print(s)
             the_file.write(f'{s}\n')
 
@@ -709,6 +703,18 @@ if (process_run):
                     s_res_v5= f"{0:<5}/{0:<5} {0:<10}"
                     pass
 
+                try:
+                    s_res_v6 = f"{results_res_v6[f][0]:<5}/{results_res_v6[f][2]:<5} {results_res_v6[f][1]:<10}"
+                except:
+                    s_res_v6= f"{0:<5}/{0:<5} {0:<10}"
+                    pass
+
+                try:
+                    s_res_v7 = f"{results_res_v7[f][0]:<5}/{results_res_v7[f][2]:<5} {results_res_v7[f][1]:<10}"
+                except:
+                    s_res_v7= f"{0:<5}/{0:<5} {0:<10}"
+                    pass
+
 
                 try:
                     s_eva = f"{results_eva[f][0]:<5}/{results_eva[f][2]:<5} {results_eva[f][1]:<10}"
@@ -729,7 +735,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {f:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}"
+                s = f"{pref} {f:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}  {s_res_v5}   {s_res_v6}  {s_res_v7}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
