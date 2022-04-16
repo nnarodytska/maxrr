@@ -669,7 +669,7 @@ class RC2(object):
 
             # and by heuristic minimization
             self.non_minimal_count = self.minimize_core()
-            print( self.non_minimal_count)
+            #print( self.non_minimal_count)
 
             # the core may be empty after core minimization
             if not self.core:
