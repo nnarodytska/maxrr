@@ -128,7 +128,7 @@ res_v2 = [True, "maxres", "-r mr2c ",  "v2"]
 res_v3 = [True, "maxres", "-r mr2d",  "v3"] # with closure
 res_v4 = [True, "maxres",  "-r mr1a",  "v4"] # 
 res_v5 = [True, "maxres", "-r mr1b ",  "v5"] 
-res_v6 = [True, "maxres", "-r mr2b ",  "v6"] 
+res_v6 = [True, "maxres", "-r mr2a ",  "v6"] 
 res_v7 = [True, "maxres", "-r mr2b ",  "v7"] 
 
 # gurobi
@@ -174,7 +174,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open('run.txt', 'w') as the_file:
