@@ -143,7 +143,7 @@ eva = [False, "eva"]
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
 
     s = f"{res_filename}.{res_v[3]}.{res_v[1]}.{timetag}res"
-    print(s)
+    #print(s)
     res = copy.deepcopy(dummy)
     results_res_v[file_name] = res
     
