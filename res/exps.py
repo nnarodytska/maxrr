@@ -606,7 +606,7 @@ if (process_run):
 
             #print(results_res_v4.items())
 
-        exit()
+        #exit()
         opt = "opt"
         lb = "lb"
         ub = "ub"
