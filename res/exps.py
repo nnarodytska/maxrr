@@ -295,7 +295,7 @@ if (process_run):
     # rc2comp = [True, "rc2comp"]
 
     maxhs = [True, "maxhs"]
-    maxhs = [True, "rc2comp"]
+    rc2comp = [True, "rc2comp"]
     # resrg  = [True, "resrg",  "", "v0"]
 
 
