@@ -669,7 +669,7 @@ class RC2(object):
 
             # and by heuristic minimization
             self.non_minimal_count = self.minimize_core()
-            #print( self.non_minimal_count)
+            #print( "---", self.non_minimal_count)
 
             # the core may be empty after core minimization
             if not self.core:
@@ -1490,7 +1490,7 @@ class RC2(object):
             #print(f"final {keep}")
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
             if debug: print(f"min end {len(self.core)}")
-            return is_minimal
+        return is_minimal
     def minimize_core_unfolding (self, core, unfolding, keep_def = []):
         """
             Reduce a previously extracted core and compute an
@@ -1583,7 +1583,7 @@ class RC2(object):
             #print(keep)
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
             if debug: print(f"min end {len(self.core)}")
-            return is_minimal
+        return is_minimal
 
     def exhaust_core(self, tobj):
         """
