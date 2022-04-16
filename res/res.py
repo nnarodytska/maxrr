@@ -143,6 +143,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import write_dot
 import copy
+import gurobipy as gp
+from gurobipy import GRB
+import random
 # names of BLO strategies
 #==============================================================================
 blomap = {'none': 0, 'basic': 1, 'div': 3, 'cluster': 5, 'full': 7}
@@ -289,6 +292,10 @@ class RC2(object):
         #self.hard = copy.deepcopy(formula.hard)
         #self.soft = []
         self.upperlevel = {}
+        #self.ilp = 120
+        # if self.ilp > 0 or True:
+        #     self.solve_gurobi(formula)
+        #     exit()        
 
         self.oracle = Solver(name=self.solver, bootstrap_with=formula.hard,
                 incr=incr, use_timer=True)
@@ -661,7 +668,8 @@ class RC2(object):
             self.trim_core()
 
             # and by heuristic minimization
-            self.minimize_core()
+            self.non_minimal_count = self.minimize_core()
+            print( self.non_minimal_count)
 
             # the core may be empty after core minimization
             if not self.core:
@@ -830,10 +838,96 @@ class RC2(object):
         # seal cardinality
         return card_formula, s, topv
 
+    
+    def solve_gurobi(self,formula):
+        with gp.Env(empty=True) as env:
+            #env.setParam('OutputFlag', 0)
+            env.setParam('TimeLimit', self.ilp)
+            env.setParam('Threads', 1)
+            env.setParam('MIPFocus', 1)
+        
+            
+            env.start()
+            ##########################################
+            self.gurobi_model = gp.Model("whole", env=env)
+            max_id = self.pool.id()
+
+            self.gurobi_vars = {}
+            for c in range(max_id):
+                b = self.gurobi_model.addVar(vtype=GRB.BINARY, name= f"{c}")
+                self.gurobi_vars[c] = b
+            
+            #print(gurobi_vars)
+
+            for j, cl in enumerate(formula.hard):
+                con_vars = []
+                rhs =  1
+                
+                #print(cl, max_id)
+                for c in cl:
+                    if (c > 0):
+                        con_vars.append(self.gurobi_vars[abs(c)])
+                    else:
+                        con_vars.append(-self.gurobi_vars[abs(c)])
+                        rhs = rhs -1
+                        
+                self.gurobi_model.addConstr(gp.quicksum(con_vars) >= rhs, f" clause {j}")       
+
+            self.gurobi_soft_vars = {}   
+            ops = []
+            for j, cl in enumerate(formula.soft):
+                con_vars = []
+                rhs =  1
+
+                b = self.gurobi_model.addVar(vtype=GRB.INTEGER, name= f"s{j}", lb =0)
+                self.gurobi_soft_vars[j] = b
+                ops.append(self.gurobi_soft_vars[j])
+
+                con_vars.append(self.gurobi_soft_vars[j])
+
+                for c in cl:
+                    if (c > 0):
+                        con_vars.append(self.gurobi_vars[abs(c)])
+                    else:
+                        con_vars.append(-self.gurobi_vars[abs(c)])
+                        rhs = rhs -1
+                
+                        
+                self.gurobi_model.addConstr(gp.quicksum(con_vars) >= rhs, f"soft clause {j}")  
+
+            self.gurobi_model.addConstr(gp.quicksum(ops) <= 29)  
+            self.gurobi_model.params.Method=1
+            self.gurobi_model.params.TuneTimeLimit=60
+            self.gurobi_model.tune()            
+
+            self.gurobi_model.setObjective(gp.quicksum(ops), GRB.MINIMIZE)
+            # try:
+            #     self.gurobi_model.write("test.lp")
+
+            #     presolved_m=self.gurobi_model.presolve()
+            #     presolved_m.printStats() 
+            #     presolved_m.write("pre-test.lp")
+            # except Exception as e:
+            #     print(e)
+            #     pass
+            # exit()             
+            
+            self.gurobi_model.optimize()
+            obj = None
+            solution_vars = []
+            sols = []
+            if self.gurobi_model.status == GRB.OPTIMAL:
+                obj = self.gurobi_model.objVal 
+                best_obj = int(obj)                
+            else:
+                obj = -1
+                best_obj = self.gurobi_model.objVal      
+            print(best_obj)
+    
     def add_upperlevel(self, lits):
         debug = False
-        if (len(lits) == 1):
-            return lits[0]
+        # if (len(lits) == 1):
+        #     return lits[0]
         c = self.pool.id()    
         self.wght[c] = self.minw
     
@@ -848,14 +942,62 @@ class RC2(object):
             #self.soft.append(cl)
             self.oracle.add_clause(cl)   
         return c     
+
+
+    def resolution(self, core):
+        new_sums =  []
+        formula = CNF()
+
+        while len(core) >= 2:
+            u = self.pool.id()    
+            v = self.pool.id()    
+            #v <-> core[0] /\ core[1]
+            #v \/ not core[0] \/ not core[1]
+            #not v  \/ core[0] 
+            #not v  \/  core[1]
+            if (len(core) > 2):
+                #formula.append([v, -core[0], -core[1]])
+                formula.append([-v, core[0]])
+                formula.append([-v, core[1]])
+            #u <-> core[0] \/ core[1]
+            #-u \/ core[0] \/ core[1]
+            #u \/ -core[0] 
+            #u \/ -core[1]
+            formula.append([-u, core[0], core[1]])
+            #formula.append([u, -core[0]])
+            #formula.append([u, -core[1]])
+
+            new_sums.append(u)
+            self.wght[u] = self.minw
+            self.graph_labels[str(v)] = f"{u}"
+            self.graph_labels[str(u)] = f"{u}"
+
+
+        
+            #exit()
+            if (self.relax in ['mr2a', 'mr2b', 'mr2c', 'mr2d']):
+                core = core[2:] + [ v ]
+            if (self.relax in ['mr1a', 'mr1b', 'mr1c', 'mr1d']):
+                core = [v] + core[2:] 
+            
+        for cl in formula:
+            #print(cl)
+            #self.soft.append(cl)
+            self.oracle.add_clause(cl)        
+        return new_sums
     def process_core_maxres_tree(self):
-        debug  = True 
+        debug  = False 
         self.cost += self.minw
        # assumptions to remove
         self.garbage = set()
         remainig_core = []
         promising  = True
-        if debug: print(self.core)
+        flag_continue = False
+        # if debug: print(f"self.core {self.core}")
+        # if debug: print(f"self.upperlevel {self.upperlevel}")
+        # if debug: print(f"self.sums {self.sums }")
+        # if debug: print(f"self.sels {self.sels }")
+
         #print(len(self.sels) , len(self.sums))
         if len(self.core_sels) != 1 or len(self.core_sums) > 0:
             while True:
@@ -864,17 +1006,15 @@ class RC2(object):
                 #print(f"after  process_sels {len(self.garbage)}")
 
                 # process previously introducded sums in the core
-                self.process_sums_maxres()
+                self.process_sums()
                 #print(f"after  process_sums_maxres {self.garbage}")
                 
-
                 prefix = True
 
                 
                 self.new_sums = []
                 core            = []
-                formula = CNF()
-
+                self.core = [-l for l in self.rels]
                 if debug: print("core:", self.core)
                 has_upperlevel =  False
                 min_core  =[]
@@ -895,106 +1035,106 @@ class RC2(object):
                     else:
                         core.append(c)
                         keep_core = keep_core + [c]
-                
+                if debug: print(f"self.core {self.core}")
                 if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']):                     
                     if (promising) and (has_upperlevel):
-
                         if debug: print(f"-- minimization [{len(self.core)}]: {len(min_core)}/{len(keep_core)} -- > ", end = " ")                
                         if (self.relax in ['mr1c', 'mr2c']):                     
                             for c in hard_clauses:
                                 self.oracle.add_clause(c)
-                            self.minimize_core(copy.deepcopy(min_core),  copy.deepcopy(keep_core))
+                            self.non_minimal_count = self.minimize_core(copy.deepcopy(min_core),  copy.deepcopy(keep_core))
 
                         if (self.relax in ['mr1d', 'mr2d']):                                                 
-                            self.minimize_core_unfolding (copy.deepcopy(core_unfolding), copy.deepcopy(unfolding), copy.deepcopy(keep_core))                
+                            self.non_minimal_count = self.minimize_core_unfolding (copy.deepcopy(core_unfolding), copy.deepcopy(unfolding), copy.deepcopy(keep_core))                
                         diff = list(set(core) - set(self.core))
                         remainig_core = remainig_core + diff
                         core = self.core
-                        if debug: print(len(core), len(remainig_core))
+                        if debug or True: print(len(core), len(remainig_core))
                         if len(diff) <= 1:
                             promising = False
+                            #exit()
                         if debug: print(f"diff {diff}")
                              #exit()
                 for c in hard_clauses:
                     self.oracle.add_clause(c)
 
-                # for c in core:
-                #     if c in self.sels:
-                #         self.graph_labels[str(c)] = str(c)
-                #         self.graph.add_node(self.graph_labels[str(c)])
-                while len(core) >= 2:
-                    u = self.pool.id()    
-                    v = self.pool.id()    
-                    #v <-> core[0] /\ core[1]
-                    #v \/ not core[0] \/ not core[1]
-                    #not v  \/ core[0] 
-                    #not v  \/  core[1]
-                    if (len(core) > 2):
-                        #formula.append([v, -core[0], -core[1]])
-                        formula.append([-v, core[0]])
-                        formula.append([-v, core[1]])
-                    #u <-> core[0] \/ core[1]
-                    #-u \/ core[0] \/ core[1]
-                    #u \/ -core[0] 
-                    #u \/ -core[1]
-                    formula.append([-u, core[0], core[1]])
-                    #formula.append([u, -core[0]])
-                    #formula.append([u, -core[1]])
+                
+                
+                ratio = float(self.non_minimal_count)/len(core)
+                print(f"promising------------ {ratio} {self.non_minimal_count} {len(core)}")
+                if ratio > 0.1:
+                    self.new_sums = self.resolution(core)
+                    #print(new_sums)
 
-                    self.new_sums.append(u)
-                    self.wght[u] = self.minw
-                    self.graph_labels[str(v)] = f"{u}"
-                    self.graph_labels[str(u)] = f"{u}"
+                    if (self.relax in ['mr1a', 'mr2a']): 
+                        self.sums = self.sums  + self.new_sums 
+                    if (self.relax in ['mr1b', 'mr2b']):
+                        #self.new_sums = self.new_sums[::-1]
+                        self.sums = self.sums + self.new_sums[::-1]
 
-                    #self.graph.add_node(self.graph_labels[str(v)])
-                    #self.graph.add_edge(self.graph_labels[str(core[0])],self.graph_labels[str(v)])
-                    #self.graph.add_edge(self.graph_labels[str(core[1])], self.graph_labels[str(v)])
+                    if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']): 
+                        lits = copy.deepcopy(self.new_sums)
+                        c = self.add_upperlevel(lits)
+                        #if debug: print(f" add_upperlevel {self.new_sums} {c}")
+                        self.sums = self.sums + [c]
+                        self.new_sums = [c]
+                        #assert(len(remainig_core) ==0)
+                    print("mr")
 
-    
-                    #exit()
-                    if (self.relax in ['mr2a', 'mr2b', 'mr2c', 'mr2d']):
-                        core = core[2:] + [ v ]
-                    if (self.relax in ['mr1a', 'mr1b', 'mr1c', 'mr1d']):
-                        core = [v] + core[2:] 
+
+                else:
+                    print("rc2")
+                    #print(self.core)
+                    #print(core)
+                    self.core = core
+                    assert(self.oracle.solve(assumptions= core) == False)
                     
-                for cl in formula:
-                    #print(cl)
-                    #self.soft.append(cl)
-                    self.oracle.add_clause(cl)
-                #print(new_sums)
+                    self.rels = [-l for l in core]
+                    t = self.create_sum()
+                    #c = self.set_bound(t, 1)
+                    
+                    
 
-                if (self.relax in ['mr1a', 'mr2a']): 
-                    self.sums = self.sums  + self.new_sums 
-                if (self.relax in ['mr1b', 'mr2b']):
-                    #self.new_sums = self.new_sums[::-1]
-                    self.sums = self.sums + self.new_sums[::-1]
+                    # # # apply core exhaustion if required
+                    b = self.exhaust_core(t) if self.exhaust else 1
+                    if b:
+                        # save the info about this sum and
+                        # add its assumption literal
+                        c = self.set_bound(t, b)
+                    else:
+                        # impossible to satisfy any of these clauses
+                        # they must become hard
+                        for relv in self.rels:
+                            self.oracle.add_clause([relv])
+                    #print(f"exaust b ={b}")
 
-                if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']): 
-                    lits = copy.deepcopy(self.new_sums)
-                    c = self.add_upperlevel(lits)
-                    #if debug: print(f" add_upperlevel {self.new_sums} {c}")
-
-                    self.sums = self.sums + [c]
                     self.new_sums = [c]
-                    #assert(len(remainig_core) ==0)
-
+                    #print("---")
+                    # if debug: print(f"self.core {self.core}")
+                    # if debug: print(f"self.upperlevel {self.upperlevel}")
+                    # if debug: print(f"self.sums {self.sums }")
+                    # if debug: print(f"self.sels {self.sels }")
 
 
 
                 if self.oracle.solve(assumptions=self.new_sums):
                     if debug: print("exaust done")
-
+                    #print("exaust done")
                     if (len(remainig_core) !=0): 
-                        if (len(remainig_core) > 50):
-                            r = self.add_upperlevel(remainig_core)
-                            self.sums = self.sums + [r]
-                        else:                       
-                            self.sums = self.sums + remainig_core
-                            self.garbage = set(set(self.garbage) - set(remainig_core))
+                        #if (len(remainig_core) > 50):
+                        r = self.add_upperlevel(remainig_core)
+                        self.sums = self.sums + [r]
+                        # else:                       
+                        #     self.sels = self.sels + remainig_core
+
+                        #     self.garbage = set(set(self.garbage) - set(remainig_core))
+
                         #if debug: print(f" remainig_core {remainig_core} /{self.new_sums}")
                     break 
                 else:
                     if debug: print("exaust continue")
+                    #print("exaust continue")
+                    flag_continue = True
                     self.get_core()
                     self.cost += self.minw
 
@@ -1006,7 +1146,13 @@ class RC2(object):
             self.oracle.add_clause([-self.core_sels[0]])                               
             self.garbage.add(self.core_sels[0])
         if debug: print("filter_assumps_maxres")
-        self.filter_assumps_maxres()
+
+        self.filter_assumps()
+        # if debug: print(f"self.core {self.core}")
+        # if debug: print(f"self.upperlevel {self.upperlevel}")
+        # if debug: print(f"self.sums {self.sums }")
+        # if debug: print(f"self.sels {self.sels }")
+
         #pos = nx.nx_agraph.graphviz_layout(self.graph)
         #nx.draw(self.graph, pos=pos)
         #plt.savefig("path.png")
@@ -1016,49 +1162,25 @@ class RC2(object):
 
         return
 
-    def process_sums_maxres(self):
-        """
-            Process cardinality sums participating in a new core.
-            Whenever necessary, some of the sum assumptions are
-            removed or split (depending on the value of
-            ``self.minw``). Deleted sums are marked as garbage and are
-            dealt with in :func:`filter_assumps`.
 
-            In some cases, the process involves updating the
-            right-hand sides of the existing cardinality sums (see the
-            call to :func:`update_sum`). The overall procedure is
-            detailed in [1]_.
-        """
 
-        for l in self.core_sums:
-            if self.wght[l] == self.minw:
-                # marking variable as being a part of the core
-                # so that next time it is not used as an assump
-                self.garbage.add(l)
-            else:
-                # do not remove this variable from assumps
-                # since it has a remaining non-zero weight
-                self.wght[l] -= self.minw
+    # def filter_assumps_maxres(self):
+    #     """
+    #         Filter out unnecessary selectors and sums from the list of
+    #         assumption literals. The corresponding values are also
+    #         removed from the dictionaries of bounds and weights.
 
-            self.rels.append(-l)
+    #         Note that assumptions marked as garbage are collected in
+    #         the core processing methods, i.e. in :func:`process_core`,
+    #         :func:`process_sels`, and :func:`process_sums`.
+    #     """
 
-    def filter_assumps_maxres(self):
-        """
-            Filter out unnecessary selectors and sums from the list of
-            assumption literals. The corresponding values are also
-            removed from the dictionaries of bounds and weights.
+    #     self.sels = list(filter(lambda x: x not in self.garbage, self.sels))
+    #     self.sums = list(filter(lambda x: x not in self.garbage, self.sums))
 
-            Note that assumptions marked as garbage are collected in
-            the core processing methods, i.e. in :func:`process_core`,
-            :func:`process_sels`, and :func:`process_sums`.
-        """
+    #     self.sels_set.difference_update(set(self.garbage))
 
-        self.sels = list(filter(lambda x: x not in self.garbage, self.sels))
-        self.sums = list(filter(lambda x: x not in self.garbage, self.sums))
-
-        self.sels_set.difference_update(set(self.garbage))
-
-        self.garbage.clear()
+    #     self.garbage.clear()
 
     def process_core(self):
         """
@@ -1310,7 +1432,7 @@ class RC2(object):
             During this core minimization procedure, all SAT calls are
             dropped after obtaining 1000 conflicts.
         """
-
+        is_minimal = 0
         if not (core is None):
             self.core = core
         if self.minz and len(self.core +keep_def ) > 1:
@@ -1325,7 +1447,7 @@ class RC2(object):
             core = self.core
             proj = keep + core 
 
-            debug = True
+            debug = False
             if debug:  print(f"min start {len(core)}/{len(keep)}")
 
             i = 0
@@ -1344,7 +1466,7 @@ class RC2(object):
 
                 
                 
-                self.oracle.prop_budget(10000000)
+                self.oracle.prop_budget(100000)
                 #print(prop)
                 if self.oracle.solve_limited(assumptions= keep + to_test) == False:
                     newcore = self.oracle.get_core()
@@ -1358,6 +1480,7 @@ class RC2(object):
 
                 else:
                     keep.append(core[0])
+                    is_minimal += 1
                 if debug: print(f"{self.oracle.get_status()} {core[0]}")
                 core = core[1:]
                     #break
@@ -1367,6 +1490,7 @@ class RC2(object):
             #print(f"final {keep}")
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
             if debug: print(f"min end {len(self.core)}")
+            return is_minimal
     def minimize_core_unfolding (self, core, unfolding, keep_def = []):
         """
             Reduce a previously extracted core and compute an
@@ -1386,7 +1510,7 @@ class RC2(object):
         """
         if not (core is None):
             self.core = core
-        
+        is_minimal = 0
         total_soft  =[]
         for k,v in unfolding.items():
             #print(k,v)
@@ -1409,9 +1533,7 @@ class RC2(object):
 
             while len(core) > 0:
                 #print(f"{0}: core {core}, {core[0]}, proj {proj}")
-                #print(core + keep)
                 #assert(self.oracle.solve_limited(assumptions=core + keep) == False)
-                #print("OK1")
                 if core[0] in unfolding:
                     #print("~~", proj, core[0])
                     if not(core[0] in proj):
@@ -1419,18 +1541,8 @@ class RC2(object):
                         continue
                     j = proj.index(core[0])
                     proj = proj[:j]+ unfolding[core[0]] + proj[(j+1):] 
-                    #print(f"core + keep {core + keep}")
-                    #assert(self.oracle.solve_limited(assumptions=core + keep) == False)
-                    #print("OK11")
                     core = unfolding[core[0]] + core[1:]                    
-                    #print(f"core + keep {core + keep}")
 
-                    #assert(self.oracle.solve_limited(assumptions=core + keep) == False)
-                    #print(f" OK2")
-
-                #print(f"{0}: core {core}, {core[0]}, proj {proj}")     
-                #print(core + keep)                                               
-                #print(f"core {core}")
                 to_test = core[1:]
                 keep = [c for c in keep if c in proj]
                         
@@ -1458,6 +1570,7 @@ class RC2(object):
                     keep.append(core[0])
                 else:
                     keep.append(core[0])
+                    is_minimal += 1
                 #assert(self.oracle.solve_limited(assumptions=core + keep) == False)
 
                 core = core[1:]
@@ -1470,6 +1583,7 @@ class RC2(object):
             #print(keep)
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
             if debug: print(f"min end {len(self.core)}")
+            return is_minimal
 
     def exhaust_core(self, tobj):
         """
@@ -1551,6 +1665,49 @@ class RC2(object):
             # reuse assumption variable as relaxation
             self.rels.append(-l)
 
+
+    def process_sums_one_lit(self, l):
+        """
+            Process cardinality sums participating in a new core.
+            Whenever necessary, some of the sum assumptions are
+            removed or split (depending on the value of
+            ``self.minw``). Deleted sums are marked as garbage and are
+            dealt with in :func:`filter_assumps`.
+
+            In some cases, the process involves updating the
+            right-hand sides of the existing cardinality sums (see the
+            call to :func:`update_sum`). The overall procedure is
+            detailed in [1]_.
+        """
+
+        if self.wght[l] == self.minw:
+            # marking variable as being a part of the core
+            # so that next time it is not used as an assump
+            self.garbage.add(l)
+        else:
+            # do not remove this variable from assumps
+            # since it has a remaining non-zero weight
+            self.wght[l] -= self.minw
+
+        # increase bound for the sum
+        t, b = self.update_sum(l)
+
+        # updating bounds and weights
+        if b < len(t.rhs):
+            lnew = -t.rhs[b]
+            if lnew in self.garbage:
+                self.garbage.remove(lnew)
+                self.wght[lnew] = 0
+
+            if lnew not in self.wght:
+                self.set_bound(t, b)
+            else:
+                self.wght[lnew] += self.minw
+
+        # put this assumption to relaxation vars
+        self.rels.append(-l)
+
+
     def process_sums(self):
         """
             Process cardinality sums participating in a new core.
@@ -1566,32 +1723,19 @@ class RC2(object):
         """
 
         for l in self.core_sums:
-            if self.wght[l] == self.minw:
-                # marking variable as being a part of the core
-                # so that next time it is not used as an assump
-                self.garbage.add(l)
-            else:
-                # do not remove this variable from assumps
-                # since it has a remaining non-zero weight
-                self.wght[l] -= self.minw
-
-            # increase bound for the sum
-            t, b = self.update_sum(l)
-
-            # updating bounds and weights
-            if b < len(t.rhs):
-                lnew = -t.rhs[b]
-                if lnew in self.garbage:
-                    self.garbage.remove(lnew)
-                    self.wght[lnew] = 0
-
-                if lnew not in self.wght:
-                    self.set_bound(t, b)
+            if (l in self.upperlevel):            
+                if self.wght[l] == self.minw:
+                    # marking variable as being a part of the core
+                    # so that next time it is not used as an assump
+                    self.garbage.add(l)
                 else:
-                    self.wght[lnew] += self.minw
+                    # do not remove this variable from assumps
+                    # since it has a remaining non-zero weight
+                    self.wght[l] -= self.minw
 
-            # put this assumption to relaxation vars
-            self.rels.append(-l)
+                self.rels.append(-l)            
+            else:
+                self.process_sums_one_lit(l)
 
     def create_sum(self, bound=1):
         """
@@ -1624,6 +1768,7 @@ class RC2(object):
             for cl in t.cnf.clauses:
                 self.oracle.add_clause(cl)
         else:
+            assert(False)
             # for minicard, use native cardinality constraints instead of the
             # standard totalizer, i.e. create a new (empty) totalizer sum and
             # fill it with the necessary data supported by minicard
@@ -1723,6 +1868,7 @@ class RC2(object):
 
         # adding a new assumption to force the sum to be at most rhs
         self.sums.append(-tobj.rhs[rhs])
+        return -tobj.rhs[rhs]
 
     def filter_assumps(self):
         """
@@ -1744,6 +1890,7 @@ class RC2(object):
         self.sels_set.difference_update(set(self.garbage))
 
         self.garbage.clear()
+
 
     def oracle_time(self):
         """
