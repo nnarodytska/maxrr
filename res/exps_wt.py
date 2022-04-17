@@ -130,7 +130,7 @@ res_v3 = [False, "maxres", "-r mr2d",  "v3"] # with closure
 res_v4 = [False, "maxres",  "-r mr1a",  "v4"] # 
 res_v5 = [False, "maxres", "-r mr1b ",  "v5"] 
 res_v6 = [False, "maxres", "-r mr2a ",  "v6"] 
-res_v7 = [True, "maxres", "-r mr2b ",  "v7"] 
+res_v7 = [False, "maxres", "-r mr2b ",  "v7"] 
 
 # gurobi
 
