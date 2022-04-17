@@ -662,12 +662,20 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_res_v1[f][0] > -1) and results_rc2comp[f][0] == -1:
-                    pref =gs_pref + "*** "
-                elif (results_res_v1[f][0] == -1) and results_rc2comp[f][0] > -1:
-                    pref = gs_pref + "+++ "
+                if (results_maxsatcomp[f][0] > -1) and results_rc2comp[f][0] == -1:
+                    pref =pref + "!!! "
+                elif (results_maxsatcomp[f][0] == -1) and results_rc2comp[f][0] > -1:
+                    pref = pref + "~~~ "
                 else:
-                    pref = gs_pref+ "    "
+                    pref = pref+ "    "
+
+
+                if (results_res_v1[f][0] > -1) and results_rc2comp[f][0] == -1:
+                    pref =pref + "*** "
+                elif (results_res_v1[f][0] == -1) and results_rc2comp[f][0] > -1:
+                    pref = pref + "+++ "
+                else:
+                    pref = pref+ "    "
 
                 try:
                     s_resrg = f"{results_resrg[f][0]:<5}/{results_resrg[f][2]:<5} {results_resrg[f][1]:<10}"
