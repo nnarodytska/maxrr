@@ -319,11 +319,12 @@ if (process_run):
 
         known = []
         
-        dummy =  [-1, tm, -1, -1]
+        dummy_init =  [-1, tm, -1, -1]
         timetag = ""
         if (tm > 3601):
             timetag = str(tm) + "."
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
+                    dummy = copy.deepcopy(dummy_init)
                     #print (filename)
 
                     if(os.path.isfile(filename)):
@@ -343,11 +344,12 @@ if (process_run):
 
                         known.append(filename)
 
-
                         res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
                         #res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
-                        file_name = (res_filename.split("/"))[-1]
+                        file_name_clean = (res_filename.split("/"))[-1]
                         file_name = res_filename[-80:]
+                        dummy.append(file_name_clean)
+
                         #print(res_filename, file_name)
                         #exit()
                         #print(dummy)
