@@ -350,7 +350,7 @@ if (process_run):
                         file_name_clean = (res_filename.split("/"))[-1]
                         file_name = res_filename[-80:]
                         dummy.append(file_name_clean[:80])
-                        all_files.append(file_name)
+                        all_files.append([file_name,file_name_clean[:80]])
 
                         #print(res_filename, file_name)
                         #exit()
@@ -638,7 +638,7 @@ if (process_run):
 
             for f in all_files:
                 print(f)
-                file_name  = f
+                file_name  = f[1]
                 gs_pref = " "
                 for gs in solved_gurobi:
                     if (gs.find(file_name)!= -1):
