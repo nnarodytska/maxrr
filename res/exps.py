@@ -636,9 +636,10 @@ if (process_run):
             print(s)
             the_file.write(f'{s}\n')
 
-            for f in all_files:
+            for fls in all_files:
+                f = fls[0]
                 print(f)
-                file_name  = f[1]
+                file_name  = fls[1]
                 gs_pref = " "
                 for gs in solved_gurobi:
                     if (gs.find(file_name)!= -1):
