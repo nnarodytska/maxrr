@@ -347,7 +347,7 @@ if (process_run):
                         res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
                         #res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
                         file_name = (res_filename.split("/"))[-1]
-                        file_name = res_filename[0:80]
+                        file_name = res_filename[-80:-1]
                         #print(res_filename, file_name)
                         #exit()
                         #print(dummy)
