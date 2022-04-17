@@ -202,7 +202,7 @@ class RC2(object):
         :type verbose: int
     """
 
-    def __init__(self, formula, solver='g3', adapt=False, exhaust=False,
+    def __init__(self, formula, solver='g3', adapt=False, exhaust=False, hybrid =False,
             incr=False, minz=False, trim=0, relax='rc2', verbose=0):
         """
             Constructor.
@@ -211,6 +211,7 @@ class RC2(object):
         # saving verbosity level and other options
         self.verbose = verbose
         self.exhaust = exhaust
+        self.hybrid = hybrid
         self.solver = solver
         self.adapt = adapt
         self.minz = minz
@@ -1064,7 +1065,7 @@ class RC2(object):
                 
                 ratio = float(self.non_minimal_count)/len(core)
                 print(f"promising------------ {ratio} {self.non_minimal_count} {len(core)}")
-                if ratio > 0.1:
+                if ratio > 0.1 or not(self.hybrid):
                     self.new_sums = self.resolution(core)
                     #print(new_sums)
 
@@ -1973,7 +1974,7 @@ class RC2Stratified(RC2, object):
     """
 
     def __init__(self, formula, solver='g3', adapt=False, blo='div',
-            exhaust=False, incr=False, minz=False, nohard=False, trim=0,
+            exhaust=False, hybrid = False, incr=False, minz=False, nohard=False, trim=0,
             relax='rc2', verbose=0):
         """
             Constructor.
@@ -1981,7 +1982,7 @@ class RC2Stratified(RC2, object):
 
         # calling the constructor for the basic version
         super(RC2Stratified, self).__init__(formula, solver=solver,
-                adapt=adapt, exhaust=exhaust, incr=incr, minz=minz, trim=trim,
+                adapt=adapt, exhaust=exhaust, hybrid = hybrid, incr=incr, minz=minz, trim=trim,
                 verbose=verbose)
 
         self.levl = 0    # initial optimization level
@@ -2385,6 +2386,7 @@ def parse_options():
     relax='rc2'
     verbose = 1
     vnew = False
+    hybrid = False
 
     for opt, arg in opts:
         if opt in ('-a', '--adapt'):
@@ -2418,6 +2420,8 @@ def parse_options():
             vnew = True
         elif opt in ('-x', '--exhaust'):
             exhaust = True
+        elif opt in ('-y', '--hybrid'):
+            hybrid = True
         elif opt in ('-r', '--relax'):
             relax = str(arg) 
             assert(relax in ['mr1a', 'mr1b', 'mr1c', 'mr2a', 'mr2b',  'mr2c', 'mr1d', 'mr2d', 'rc2'])
@@ -2430,7 +2434,7 @@ def parse_options():
     assert block in bmap, 'Unknown solution blocking'
     block = bmap[block]
 
-    return adapt, blo, block, cmode, to_enum, exhaust, incr, minz, \
+    return adapt, blo, block, cmode, to_enum, exhaust, hybrid, incr, minz, \
             solver, trim, relax, verbose, vnew, args
 
 
@@ -2462,12 +2466,13 @@ def usage():
     print('        -v, --verbose            Be verbose')
     print('        --vnew                   Print v-line in the new format')
     print('        -x, --exhaust            Exhaust new unsatisfiable cores')
+    print('        -y, --hybrid             Hybrid on')
 
 
 #
 #==============================================================================
 if __name__ == '__main__':
-    adapt, blo, block, cmode, to_enum, exhaust, incr, minz, solver, trim, \
+    adapt, blo, block, cmode, to_enum, exhaust, hybrid, incr, minz, solver, trim, \
             relax, verbose, vnew, files = parse_options()
 
     if files:
@@ -2499,7 +2504,7 @@ if __name__ == '__main__':
             MXS = RC2
 
         # starting the solver
-        with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust,
+        with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust, hybrid = hybrid,
                 incr=incr, minz=minz, trim=trim, relax=relax, verbose=verbose) as rc2:
 
             if isinstance(rc2, RC2Stratified):
