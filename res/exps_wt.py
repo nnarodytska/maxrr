@@ -175,7 +175,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open('run_wt.txt', 'w') as the_file:
@@ -277,8 +277,8 @@ if (gen_run):
                     #the_file.write(f'{s}\n')
 
                 else:
-                    filename1 = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
-                    filename2 = filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
+                    filename1 = filename.replace("mse21_complete_wt", "mse21_uwt_results")
+                    filename2 = filename.replace("mse21_complete_wt", "mse21_complete_wt_unzip")
                     print(filename1)
                     print(filename2)
 
