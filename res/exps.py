@@ -639,7 +639,7 @@ if (process_run):
                 file_name  = v[4]
                 gs_pref = " "
                 for gs in solved_gurobi:
-                    if (gs.find(f)!= -1):
+                    if (gs.find(file_name)!= -1):
                         gs_pref = "^"
                 #exit()
 
