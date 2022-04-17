@@ -120,7 +120,7 @@ focus =[]
 # "kbtree9_7_3_5_30_5.wcsp.wcnf.gz"]
 
 rc2 = [False, "rc2"]
-rc2comp = [False, "rc2comp"]
+rc2comp = [True, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
 res_v0  = [False, "maxres",  "-r mr1c ", "v0"]
@@ -130,7 +130,7 @@ res_v3 = [False, "maxres", "-r mr2d",  "v3"] # with closure
 res_v4 = [False, "maxres",  "-r mr1a",  "v4"] # 
 res_v5 = [False, "maxres", "-r mr1b ",  "v5"] 
 res_v6 = [False, "maxres", "-r mr2a ",  "v6"] 
-res_v7 = [False, "maxres", "-r mr2b ",  "v7"] 
+res_v7 = [True, "maxres", "-r mr2b ",  "v7"] 
 
 # gurobi
 
@@ -138,7 +138,7 @@ resrg  = [False, "resrg",  "", "v0"]
 
 to = [3600]#, 3600*3]
 
-maxhs = [True, "maxhs"]
+maxhs = [False, "maxhs"]
 eva = [False, "eva"]
 
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
@@ -175,7 +175,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = True
+gen_run = False
 process_run = True
 if (gen_run):
     with open('run_wt.txt', 'w') as the_file:
@@ -277,8 +277,8 @@ if (gen_run):
                     #the_file.write(f'{s}\n')
 
                 else:
-                    filename1 = filename.replace("mse21_complete_wt", "mse21_wt_results")
-                    filename2 = filename.replace("mse21_complete_wt", "mse21_complete_wt_unzip")
+                    filename1 = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
+                    filename2 = filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
                     print(filename1)
                     print(filename2)
 
@@ -306,8 +306,6 @@ if (process_run):
         results_rc2comp = {}
         results_maxsatcomp = {}
         results_cashwmaxsat = {}
-        results_eva = {}
-        results_resrg = {}
         results_res_v0 = {}            
         results_res_v1 = {}    
         results_res_v2 = {}    
@@ -319,11 +317,13 @@ if (process_run):
 
         known = []
         
-        dummy =  [-1, tm, -1, -1]
+        dummy_init =  [-1, tm, -1, -1]
         timetag = ""
         if (tm > 3601):
             timetag = str(tm) + "."
+        all_files = [] 
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
+                    dummy = copy.deepcopy(dummy_init)
                     #print (filename)
 
                     if(os.path.isfile(filename)):
@@ -343,19 +343,22 @@ if (process_run):
 
                         known.append(filename)
 
-
                         res_filename = filename.replace("mse21_complete_wt", "mse21_wt_results")
                         #res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
-                        file_name = (res_filename.split("/"))[-1]
-                        file_name = file_name[0:80]
+                        file_name_clean = (res_filename.split("/"))[-1]
+                        file_name = res_filename[-80:]
+                        dummy.append(file_name_clean[:80])
+                        all_files.append([file_name,file_name_clean[:80]])
+
                         #print(res_filename, file_name)
+                        #exit()
                         #print(dummy)
                         if (rc2[0]):
                             s = f"{res_filename}.{rc2[1]}.{timetag}res"
                             assert(path.isfile(s))
                         if (rc2comp[0]):
                             s = f"{res_filename}.{rc2comp[1]}.{timetag}res"
-                            #s = s.replace("mse21_unwt_results", "mse21_unwt_results_g4_rc2_many_mrs")
+                            s = s.replace("mse21_wt_results", "mse21_wt_results_g4_rc2_many_mrs")#"mse21_unwt_results_back")#
                             print(s)
                             res = copy.deepcopy(dummy)
                             results_rc2comp[file_name] = res
@@ -387,7 +390,7 @@ if (process_run):
 
                         if (maxhs[0]):
                             #print("maxhsmaxhsmaxhsmaxhs")
-                            res_filename_maxhs = res_filename#.replace("mse21_unwt_results", "mse21_unwt_results_no_min")
+                            res_filename_maxhs = res_filename.replace("mse21_wt_results", "mse21_wt_results_no_min")
                             res =  copy.deepcopy(dummy)
                             results_maxsatcomp[file_name] = res                        
 
@@ -524,12 +527,17 @@ if (process_run):
                         if (res_v0[0]):
                             results_res_v0 = process_instance(res_filename, res_v0, timetag, dummy, file_name, results_res_v0)  
                         if (res_v1[0]):
-                            results_res_v1 =results_maxsatcomp
+                            results_res_v1 = process_instance(res_filename, res_v1, timetag, dummy, file_name, results_res_v1)  
+                        if (res_v2[0]):
+                            results_res_v2 = process_instance(res_filename, res_v2, timetag, dummy, file_name, results_res_v2)  
+                        if (res_v3[0]):
+                            results_res_v3 = process_instance(res_filename, res_v3, timetag, dummy, file_name, results_res_v3)
+                        if (res_v4[0]):
                             results_res_v4 = process_instance(res_filename, res_v4, timetag, dummy, file_name, results_res_v4)                     
                         if (res_v5[0]):
                             results_res_v5 = process_instance(res_filename, res_v5, timetag, dummy, file_name, results_res_v5)
                         if (res_v6[0]):
-                            results_res_v5 = process_instance(res_filename, res_v6, timetag, dummy, file_name, results_res_v6)
+                            results_res_v6 = process_instance(res_filename, res_v6, timetag, dummy, file_name, results_res_v6)
                         if (res_v7[0]):
                             results_res_v7 = process_instance(res_filename, res_v7, timetag, dummy, file_name, results_res_v7)
 
@@ -622,15 +630,17 @@ if (process_run):
             h_res_v7 = f"{opt:<5}/{lb:<5}  {res_v7[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {f:<80}  {h_rc2comp} {h_maxhs}  "#{h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3}  {h_res_v4}  {h_res_v5}  {h_res_v6}  {h_res_v7}"
+            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3}  {h_res_v4}  {h_res_v5}  {h_res_v6}  {h_res_v7}"
             print(s)
             the_file.write(f'{s}\n')
 
-            for f,v in results_rc2comp.items():
+            for fls in all_files:
+                f = fls[0]
                 print(f)
+                file_name  = fls[1]
                 gs_pref = " "
                 for gs in solved_gurobi:
-                    if (gs.find(f)!= -1):
+                    if (gs.find(file_name)!= -1):
                         gs_pref = "^"
                 #exit()
 
@@ -641,8 +651,8 @@ if (process_run):
                 #print(results_eva[f])
                 
                 try:
-                    if (results_rc2comp[f][0] >  -1) and  (results_maxsatcomp[f][0] > -1):
-                        assert(results_rc2comp[f][0] == results_maxsatcomp[f][0])
+                    if (results_rc2comp[f][0] >  -1) and  (results_res_v1[f][0] > -1):
+                        assert(results_rc2comp[f][0] == results_res_v1[f][0])
                     # if (results_resrg[f][0] >  -1) and  (results_res_v4[f][0] > -1):
                     #     assert(results_resrg[f][0] == results_res_v4[f][0])
                                             
@@ -656,12 +666,30 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_maxsatcomp[f][0] > -1) and results_rc2comp[f][0] == -1:
-                    pref =gs_pref + "*** "
-                elif (results_maxsatcomp[f][0] == -1) and results_rc2comp[f][0] > -1:
-                    pref = gs_pref + "+++ "
+                if (results_res_v1[f][0] > -1) and results_rc2comp[f][0] == -1:
+                    pref =pref + "**"
+                elif (results_res_v1[f][0] == -1) and results_rc2comp[f][0] > -1:
+                    pref = pref + "~~"
                 else:
-                    pref = gs_pref+ "    "
+                    pref = pref+  "  "
+
+
+                if (results_res_v1[f][0] > -1) and results_maxsatcomp[f][0] == -1:
+                    pref =pref + "**"
+                elif (results_res_v1[f][0] == -1) and results_maxsatcomp[f][0] > -1:
+                    pref = pref + "++"
+                else:
+                    pref = pref+  "  "
+
+
+
+                if (results_res_v3[f][0] > -1) and results_maxsatcomp[f][0] == -1:
+                    pref =pref + "**"
+                elif (results_res_v3[f][0] == -1) and results_maxsatcomp[f][0] > -1:
+                    pref = pref + "^^"
+                else:
+                    pref = pref+  "  "
+
 
                 try:
                     s_resrg = f"{results_resrg[f][0]:<5}/{results_resrg[f][2]:<5} {results_resrg[f][1]:<10}"
@@ -733,7 +761,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {f:<80} {s_rc2comp}  {s_maxhs} "# {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}  {s_res_v5}   {s_res_v6}  {s_res_v7}"
+                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}  {s_res_v5}   {s_res_v6}  {s_res_v7}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
