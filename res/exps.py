@@ -638,7 +638,7 @@ if (process_run):
 
             for f in all_files:
                 print(f)
-                file_name  = all_files
+                file_name  = f
                 gs_pref = " "
                 for gs in solved_gurobi:
                     if (gs.find(file_name)!= -1):
