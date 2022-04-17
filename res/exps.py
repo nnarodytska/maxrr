@@ -348,7 +348,7 @@ if (process_run):
                         #res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
                         file_name_clean = (res_filename.split("/"))[-1]
                         file_name = res_filename[-80:]
-                        dummy.append(file_name_clean)
+                        dummy.append(file_name_clean[:80])
 
                         #print(res_filename, file_name)
                         #exit()
@@ -630,12 +630,13 @@ if (process_run):
             h_res_v7 = f"{opt:<5}/{lb:<5}  {res_v7[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {f:<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3}  {h_res_v4}  {h_res_v5}  {h_res_v6}  {h_res_v7}"
+            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3}  {h_res_v4}  {h_res_v5}  {h_res_v6}  {h_res_v7}"
             print(s)
             the_file.write(f'{s}\n')
 
             for f,v in results_rc2comp.items():
                 print(f)
+                file_name  = v[4]
                 gs_pref = " "
                 for gs in solved_gurobi:
                     if (gs.find(f)!= -1):
@@ -749,7 +750,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {f:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}  {s_res_v5}   {s_res_v6}  {s_res_v7}"
+                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}  {s_res_v5}   {s_res_v6}  {s_res_v7}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
