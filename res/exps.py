@@ -534,7 +534,7 @@ if (process_run):
                         if (res_v5[0]):
                             results_res_v5 = process_instance(res_filename, res_v5, timetag, dummy, file_name, results_res_v5)
                         if (res_v6[0]):
-                            results_res_v5 = process_instance(res_filename, res_v6, timetag, dummy, file_name, results_res_v6)
+                            results_res_v6 = process_instance(res_filename, res_v6, timetag, dummy, file_name, results_res_v6)
                         if (res_v7[0]):
                             results_res_v7 = process_instance(res_filename, res_v7, timetag, dummy, file_name, results_res_v7)
 
