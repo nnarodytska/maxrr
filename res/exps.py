@@ -323,6 +323,7 @@ if (process_run):
         timetag = ""
         if (tm > 3601):
             timetag = str(tm) + "."
+        all_files = [] 
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
                     dummy = copy.deepcopy(dummy_init)
                     #print (filename)
@@ -349,6 +350,7 @@ if (process_run):
                         file_name_clean = (res_filename.split("/"))[-1]
                         file_name = res_filename[-80:]
                         dummy.append(file_name_clean[:80])
+                        all_files.append(file_name)
 
                         #print(res_filename, file_name)
                         #exit()
@@ -634,9 +636,9 @@ if (process_run):
             print(s)
             the_file.write(f'{s}\n')
 
-            for f,v in results_rc2comp.items():
+            for f in all_files:
                 print(f)
-                file_name  = v[4]
+                file_name  = all_files
                 gs_pref = " "
                 for gs in solved_gurobi:
                     if (gs.find(file_name)!= -1):
