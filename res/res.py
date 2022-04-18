@@ -127,6 +127,7 @@
 #==============================================================================
 from __future__ import print_function
 import collections
+from gc import garbage
 import getopt
 import itertools
 from math import copysign
@@ -926,7 +927,7 @@ class RC2(object):
                 best_obj = self.gurobi_model.objVal      
             print(best_obj)
     
-    def add_upperlevel(self, lits):
+    def add_upperlevel(self, lits, tag = 'base'):
         debug = False
         # if (len(lits) == 1):
         #     return lits[0]
@@ -935,6 +936,7 @@ class RC2(object):
     
         self.upperlevel[c] = {}
         self.upperlevel[c]["base"] = lits
+        self.upperlevel[c]["tag"] = tag
         if debug: print(f"new {c} base {len(lits)}")
         formula = CNF()
         for u in lits:
@@ -973,13 +975,16 @@ class RC2(object):
             self.wght[u] = self.minw
             self.graph_labels[str(v)] = f"{u}"
             self.graph_labels[str(u)] = f"{u}"
+            if (u == 3646):
+                print(f"---------> {self.wght[u]}")
+                #exit()
 
 
         
             #exit()
-            if (self.relax in ['mr2a', 'mr2b', 'mr2c', 'mr2d']):
+            if (self.relax in ['mr2a', 'mr2b', 'mr2d']):
                 core = core[2:] + [ v ]
-            if (self.relax in ['mr1a', 'mr1b', 'mr1c', 'mr1d']):
+            if (self.relax in ['mr1a', 'mr1b',  'mr1d']):
                 core = [v] + core[2:] 
             
         for cl in formula:
@@ -1018,45 +1023,40 @@ class RC2(object):
                 self.new_sums = []
                 core            = []
                 self.core = [-l for l in self.rels]
-                if debug: print("core:", self.core)
+                #if debug: print("core:", self.core)
                 has_upperlevel =  False
-                min_core  =[]
+                #min_core  =[]
                 keep_core = []
                 unfolding ={}
                 core_unfolding = []
                 hard_clauses = []
+                self.non_minimal_count = len(self.core)
                 for c in self.core:
                     if c in self.upperlevel:
                         core = core + self.upperlevel[c]["base"]
-                        if debug: print(f"{c} -- {len(self.upperlevel[c]['base'])}")
+                        #if debug: print(f"{c} -- {len(self.upperlevel[c]['base'])}")
                         #self.soft.append([-c])
-                        hard_clauses.append([-c])
+                        #hard_clauses.append([-c])
                         has_upperlevel = True
-                        min_core = min_core + self.upperlevel[c]["base"]
+                        #min_core = min_core + self.upperlevel[c]["base"]
                         unfolding[c] = self.upperlevel[c]["base"]
                         core_unfolding.append(c)
                     else:
                         core.append(c)
                         keep_core = keep_core + [c]
                 if debug: print(f"self.core {self.core}")
-                if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']):                     
+                if (self.relax in ['mr1d', 'mr2d']):                     
                     if (promising) and (has_upperlevel) and (not flag_continue):
-                        if debug: print(f"-- minimization [{len(self.core)}]: {len(min_core)}/{len(keep_core)} -- > ", end = " ")                
-                        if (self.relax in ['mr1c', 'mr2c']):                     
-                            for c in hard_clauses:
-                                self.oracle.add_clause(c)
-                            self.non_minimal_count = self.minimize_core(copy.deepcopy(min_core),  copy.deepcopy(keep_core))
-
+                        if debug: print(f"-- minimization [{len(self.core)}]: {len(core)}/{len(keep_core)} -- > ", end = " ")                
                         if (self.relax in ['mr1d', 'mr2d']):                                                 
                             self.non_minimal_count = self.minimize_core_unfolding (copy.deepcopy(core_unfolding), copy.deepcopy(unfolding), copy.deepcopy(keep_core))                
                         diff = list(set(core) - set(self.core))
+                        #self.garbage = set(set(self.garbage) - set(diff))
                         remainig_core = remainig_core + diff
                         core = self.core
-                        if debug or True: print(len(core), len(remainig_core))
-                        if len(diff) <= 1:
-                            promising = False
-                            #exit()
                         if debug: print(f"diff {diff}")
+
+                        if debug : print(f" len(core) {len(core)}, len(remainig_core) {len(remainig_core)}")
                              #exit()
                 for c in hard_clauses:
                     self.oracle.add_clause(c)
@@ -1067,7 +1067,7 @@ class RC2(object):
                 print(f"promising------------ {ratio} {self.non_minimal_count} {len(core)}")
                 if ratio > 0.1 or not(self.hybrid):
                     self.new_sums = self.resolution(core)
-                    #print(new_sums)
+                   # print(self.new_sums)
 
                     if (self.relax in ['mr1a', 'mr2a']): 
                         self.sums = self.sums  + self.new_sums 
@@ -1081,7 +1081,7 @@ class RC2(object):
                             self.maxreslevel[s] = {}
                             self.maxreslevel[s]["base"] = [s]                          
 
-                    if (self.relax in ['mr1c', 'mr2c', 'mr1d', 'mr2d']): 
+                    if (self.relax in ['mr1d', 'mr2d']): 
                         lits = copy.deepcopy(self.new_sums)
                         c = self.add_upperlevel(lits)
                         #if debug: print(f" add_upperlevel {self.new_sums} {c}")
@@ -1131,7 +1131,7 @@ class RC2(object):
                     #print("exaust done")
                     if (len(remainig_core) !=0): 
                         #if (len(remainig_core) > 50):
-                        r = self.add_upperlevel(remainig_core)
+                        r = self.add_upperlevel(remainig_core, tag = "remainig_core")
                         self.sums = self.sums + [r]
                         # else:                       
                         #     self.sels = self.sels + remainig_core
@@ -1139,6 +1139,7 @@ class RC2(object):
                         #     self.garbage = set(set(self.garbage) - set(remainig_core))
 
                         #if debug: print(f" remainig_core {remainig_core} /{self.new_sums}")
+                   #exit()
                     break 
                 else:
                     if debug: print("exaust continue")
@@ -1155,6 +1156,8 @@ class RC2(object):
             self.oracle.add_clause([-self.core_sels[0]])                               
             self.garbage.add(self.core_sels[0])
         if debug: print("filter_assumps_maxres")
+
+        if debug: print(f"end: self.garbage {self.garbage }")
 
         self.filter_assumps()
         if debug: print(f"end: self.core {self.core}")
@@ -1735,14 +1738,18 @@ class RC2(object):
         for l in self.core_sums:
             #print(f"l {l}")
             if (l in self.upperlevel) or (l in self.maxreslevel):            
-                if self.wght[l] == self.minw:
-                    # marking variable as being a part of the core
-                    # so that next time it is not used as an assump
-                    self.garbage.add(l)
-                else:
-                    # do not remove this variable from assumps
-                    # since it has a remaining non-zero weight
-                    self.wght[l] -= self.minw
+                base = self.upperlevel[l]["base"]
+                self.garbage.add(l)
+                for r in base:
+                    if self.wght[r] == self.minw:
+                        # marking variable as being a part of the core
+                        # so that next time it is not used as an assump
+                        self.garbage.add(r)
+                        
+                    else:
+                        # do not remove this variable from assumps
+                        # since it has a remaining non-zero weight
+                        self.wght[r] -= self.minw
 
                 self.rels.append(-l)             
             else:
@@ -1895,8 +1902,8 @@ class RC2(object):
         self.sels = list(filter(lambda x: x not in self.garbage, self.sels))
         self.sums = list(filter(lambda x: x not in self.garbage, self.sums))
 
-        self.bnds = {l: b for l, b in six.iteritems(self.bnds) if l not in self.garbage}
-        self.wght = {l: w for l, w in six.iteritems(self.wght) if l not in self.garbage}
+        #self.bnds = {l: b for l, b in six.iteritems(self.bnds) if l not in self.garbage}
+        #self.wght = {l: w for l, w in six.iteritems(self.wght) if l not in self.garbage}
 
         self.sels_set.difference_update(set(self.garbage))
 
@@ -2381,7 +2388,7 @@ def parse_options():
     """
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:ms:tr:vx',
+        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:ms:tr:vxy',
                 ['adapt', 'block=', 'comp=', 'enum=', 'exhaust', 'help',
                     'incr', 'blo=', 'minimize', 'solver=', 'trim=', 'relax=','verbose',
                     'vnew'])
@@ -2502,7 +2509,7 @@ if __name__ == '__main__':
         # enabling the competition mode
         if cmode:
             assert cmode in ('a', 'b'), 'Wrong MSE18 mode chosen: {0}'.format(cmode)
-            adapt, blo, solver, exhaust, verbose = True, 'div', 'g4',  True,  3
+            adapt, blo, solver, exhaust, verbose = True, 'div', 'mpl',  True,  3
 
             if cmode == 'a':
                 trim = 5 if max(formula.wght) > min(formula.wght) else 0
