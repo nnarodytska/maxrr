@@ -639,7 +639,7 @@ class RC2(object):
                 return False
             if  self.relax=='rc2': 
                 self.process_core()
-            #print(self.relax)
+            print(self.relax)
             if  self.relax in ['mr2a','mr2b', 'mr2c', 'mr1a', 'mr1b', 'mr1c', 'mr1d', 'mr2d']: 
                 self.process_core_maxres_tree()
 
@@ -1982,7 +1982,7 @@ class RC2Stratified(RC2, object):
 
         # calling the constructor for the basic version
         super(RC2Stratified, self).__init__(formula, solver=solver,
-                adapt=adapt, exhaust=exhaust, hybrid = hybrid, incr=incr, minz=minz, trim=trim,
+                adapt=adapt, exhaust=exhaust, hybrid = hybrid, incr=incr, minz=minz, trim=trim,relax =relax,
                 verbose=verbose)
 
         self.levl = 0    # initial optimization level
@@ -2319,35 +2319,52 @@ class RC2Stratified(RC2, object):
         to_deactivate = set([])
 
         for l in self.core_sums:
-            if self.wght[l] == self.minw:
-                # marking variable as being a part of the core
-                # so that next time it is not used as an assump
-                self.garbage.add(l)
-            else:
-                # do not remove this variable from assumps
-                # since it has a remaining non-zero weight
-                self.wght[l] -= self.minw
 
-                # deactivate this assumption and put at a lower level
-                # if self.done != -1, i.e. if stratification is disabled
-                if self.done != -1 and self.wght[l] < self.blop[self.levl]:
-                    self.wstr[self.wght[l]].append(l)
-                    to_deactivate.add(l)
 
-            # increase bound for the sum
-            t, b = self.update_sum(l)
-
-            # updating bounds and weights
-            if b < len(t.rhs):
-                lnew = -t.rhs[b]
-                if lnew in self.garbage:
-                    self.garbage.remove(lnew)
-                    self.wght[lnew] = 0
-
-                if lnew not in self.wght:
-                    self.set_bound(t, b)
+            if (l in self.upperlevel) or (l in self.maxreslevel):            
+                if self.wght[l] == self.minw:
+                    # marking variable as being a part of the core
+                    # so that next time it is not used as an assump
+                    self.garbage.add(l)
                 else:
-                    self.wght[lnew] += self.minw
+                    # do not remove this variable from assumps
+                    # since it has a remaining non-zero weight
+                    self.wght[l] -= self.minw
+
+                    if self.done != -1 and self.wght[l] < self.blop[self.levl]:
+                        self.wstr[self.wght[l]].append(l)
+                        to_deactivate.add(l)
+
+            else:
+                if self.wght[l] == self.minw:
+                    # marking variable as being a part of the core
+                    # so that next time it is not used as an assump
+                    self.garbage.add(l)
+                else:
+                    # do not remove this variable from assumps
+                    # since it has a remaining non-zero weight
+                    self.wght[l] -= self.minw
+
+                    # # deactivate this assumption and put at a lower level
+                    # # if self.done != -1, i.e. if stratification is disabled
+                    if self.done != -1 and self.wght[l] < self.blop[self.levl]:
+                        self.wstr[self.wght[l]].append(l)
+                        to_deactivate.add(l)
+
+                # increase bound for the sum
+                t, b = self.update_sum(l)
+
+                # updating bounds and weights
+                if b < len(t.rhs):
+                    lnew = -t.rhs[b]
+                    if lnew in self.garbage:
+                        self.garbage.remove(lnew)
+                        self.wght[lnew] = 0
+
+                    if lnew not in self.wght:
+                        self.set_bound(t, b)
+                    else:
+                        self.wght[lnew] += self.minw
 
             # put this assumption to relaxation vars
             self.rels.append(-l)
