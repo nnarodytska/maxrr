@@ -1063,7 +1063,10 @@ class RC2(object):
 
                 exhaust_core = False
                 
-                ratio = float(self.non_minimal_count)/len(core)
+                if (self.relax in ['mr1a', 'mr2a', 'mr1b', 'mr2b']): 
+                    ratio  = random.random()/5                    
+                else:
+                    ratio = float(self.non_minimal_count)/len(core)
                 print(f"promising------------ {ratio} {self.non_minimal_count} {len(core)}")
                 if ratio > 0.1 or not(self.hybrid):
                     self.new_sums = self.resolution(core)
