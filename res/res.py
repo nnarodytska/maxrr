@@ -1071,12 +1071,10 @@ class RC2(object):
 
                     if (self.relax in ['mr1a', 'mr2a']): 
                         self.sums = self.sums  + self.new_sums 
-                        for s in self.new_sums:
-                            self.maxreslevel[s] = {}
-                            self.maxreslevel[s]["base"] = [s]                            
                     if (self.relax in ['mr1b', 'mr2b']):
-                        #self.new_sums = self.new_sums[::-1]
                         self.sums = self.sums + self.new_sums[::-1]
+
+                    if (self.relax in ['mr1a', 'mr2a', 'mr1b', 'mr2b']): 
                         for s in self.new_sums:
                             self.maxreslevel[s] = {}
                             self.maxreslevel[s]["base"] = [s]                          
@@ -1738,7 +1736,13 @@ class RC2(object):
         for l in self.core_sums:
             #print(f"l {l}")
             if (l in self.upperlevel) or (l in self.maxreslevel):            
-                base = self.upperlevel[l]["base"]
+                if l in self.upperlevel:
+                    base = self.upperlevel[l]["base"]
+                elif l in self.maxreslevel:
+                    base = self.maxreslevel[l]["base"]
+                else:
+                    assert False
+
                 self.garbage.add(l)
                 for r in base:
                     if self.wght[r] == self.minw:
