@@ -103,7 +103,8 @@ from os import path
 from posixpath import split
 root_dir = "/home/nina/workspace/data/mse21_complete_wt/"
 results =  "/home/nina/workspace/data/mse21_wt_results/"
-
+solved_gurobi = []
+unsolved = []tus
 
 focus =[]
 # focus = ["kbtree9_7_3_5_90_2.wcsp.wcnf.gz", 
@@ -138,7 +139,7 @@ resrg  = [False, "resrg",  "", "v0"]
 
 to = [3600]#, 3600*3]
 
-maxhs = [False, "maxhs"]
+maxhs = [True, "maxhs"]
 eva = [False, "eva"]
 
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
