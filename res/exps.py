@@ -175,7 +175,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = True
+gen_run = False
 process_run = True
 if (gen_run):
     with open('run.txt', 'w') as the_file:
@@ -361,7 +361,7 @@ if (process_run):
                             assert(path.isfile(s))
                         if (rc2comp[0]):
                             s = f"{res_filename}.{rc2comp[1]}.{timetag}res"
-                            s = s.replace("mse21_unwt_results", "mse21_unwt_results_g4_rc2_many_mrs")#"mse21_unwt_results_back")#
+                            #s = s.replace("mse21_unwt_results", "mse21_unwt_results_g4_rc2_many_mrs")#"mse21_unwt_results_back")#
                             print(s)
                             res = copy.deepcopy(dummy)
                             results_rc2comp[file_name] = res
