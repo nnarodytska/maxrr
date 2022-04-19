@@ -120,7 +120,7 @@ focus =[]
 # "kbtree9_7_3_5_30_5.wcsp.wcnf.gz"]
 
 rc2 = [False, "rc2"]
-rc2comp = [False, "rc2comp"]
+rc2comp = [True, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
 res_v0  = [True, "maxres",  "-r mr1d -y", "v0"]
@@ -217,7 +217,8 @@ if (gen_run):
                         s = f"timeout -t {tm}s python3 -u ../examples/rc2.py -vv {filename} > {res_filename}.{rc2[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
                     if (rc2comp[0]):
-                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s g4 -v {filename} > {res_filename}.{rc2comp[1]}.{timetag}res "
+                        #s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/res/res.py -c b -s g4 -v {filename} > {res_filename}.{rc2comp[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3 -u /home/nina/workspace/{desktop}/examples/rc2.py -c b -s g4 -v {filename} > {res_filename}.{rc2comp[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (maxhs[0]):

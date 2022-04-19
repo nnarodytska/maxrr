@@ -1737,7 +1737,7 @@ if __name__ == '__main__':
         # enabling the competition mode
         if cmode:
             assert cmode in ('a', 'b'), 'Wrong MSE18 mode chosen: {0}'.format(cmode)
-            adapt, blo, exhaust, solver, verbose = True, 'div', True, 'g3', 3
+            adapt, blo, exhaust, solver, verbose = True, 'div', True, 'g4', 3
 
             if cmode == 'a':
                 trim = 5 if max(formula.wght) > min(formula.wght) else 0
