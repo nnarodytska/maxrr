@@ -693,7 +693,16 @@ if (process_run):
                 else:
                     pref = pref+  "  "
 
-
+                s_rc2comp = ""
+                s_maxhs = ""
+                s_res_v0 = ""
+                s_res_v1 = ""
+                s_res_v2 = ""
+                s_res_v3 = ""
+                s_res_v4 = ""
+                s_res_v5 = ""
+                s_res_v6 = ""
+                s_res_v7 = ""
                 try:
                     s_resrg = f"{results_resrg[f][0]:<5}/{results_resrg[f][2]:<5} {results_resrg[f][1]:<10}"
                 except:
