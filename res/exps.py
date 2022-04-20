@@ -123,14 +123,14 @@ rc2 = [False, "rc2"]
 rc2comp = [True, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0  = [True, "maxres",  "-r mr1d -y", "v0"]
-res_v1 = [True, "maxres", "-r mr1d ", "v1"]
-res_v2 = [True, "maxres", "-r mr2d ",  "v2"]
-res_v3 = [True, "maxres", "-r mr2d -y",  "v3"] # with closure
-res_v4 = [True, "maxres",  "-r mr1b ",  "v4"] # 
-res_v5 = [True, "maxres", "-r mr1b -y",  "v5"] 
-res_v6 = [True, "maxres", "-r mr2a ",  "v6"] 
-res_v7 = [True, "maxres", "-r mr2a -y ",  "v7"] 
+res_v0  = [True, "maxres","-r mr1d -y", "v0"]
+res_v1 = [True, "maxres", "-r mr1d -y -u", "v1"]
+res_v2 = [True, "maxres", "-r mr2d -y",  "v2"]
+res_v3 = [True, "maxres", "-r mr2d -y -u",  "v3"] # with closure
+res_v4 = [True, "maxres", "-r mr1b -y",  "v4"] # 
+res_v5 = [True, "maxres", "-r mr1b -y -u",  "v5"] 
+res_v6 = [True, "maxres", "-r mr2a -y ",  "v6"] 
+res_v7 = [True, "maxres", "-r mr2a -y -u",  "v7"] 
 
 # gurobi
 
@@ -175,7 +175,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open('run.txt', 'w') as the_file:
