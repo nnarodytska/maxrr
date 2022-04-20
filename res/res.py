@@ -203,7 +203,7 @@ class RC2(object):
         :type verbose: int
     """
 
-    def __init__(self, formula, solver='g3', adapt=False, exhaust=False, hybrid =False,
+    def __init__(self, formula, solver='g3', adapt=False, exhaust=False, hybrid =False, closure =False,
             incr=False, minz=False, trim=0, relax='rc2', verbose=0):
         """
             Constructor.
@@ -220,6 +220,7 @@ class RC2(object):
         self.relax = relax
         self.graph =  nx.Graph()
         self.graph_labels = {}
+        self.closure = closure
 
       
 
@@ -647,7 +648,7 @@ class RC2(object):
             #print(self.relax)
             if  self.relax in ['mr2a','mr2b', 'mr2c', 'mr1a', 'mr1b', 'mr1c', 'mr1d', 'mr2d']: 
                 self.process_core_maxres_tree()
-                if False:
+                if self.closure:
                     #write_dot(self.graph, 'file.dot')
                     ls_cc = nx.connected_components(self.graph)    
                     ccs = list(ls_cc)
@@ -664,10 +665,11 @@ class RC2(object):
                                 assert(len(inter) == len(self.core))
                                 focus = []
                                 for s in self.sels + self.sums:
-                                    if s in cc:
+                                    if (s in cc) or (-s in cc):
                                         focus.append(s)
+                                #print(f"focus {focus}  cc {cc} {self.sels + self.sums}")
                                 solve_res = self.oracle.solve(assumptions=focus)
-                            # exit()
+                                
             if (solve_res):
                 solve_res = self.oracle.solve(assumptions=self.sels + self.sums)
             else:
@@ -981,6 +983,12 @@ class RC2(object):
             self.oracle.add_clause(cl)   
         return c     
 
+    def graph_label(self, v, lv = None):
+        if (lv is None):
+            lv = f"{v}"
+        if not (str(v) in self.graph_labels):
+            self.graph_labels[str(v)] = f"{lv}"
+        return self.graph_labels[str(v)]
 
     def resolution(self, core):
         new_sums =  []
@@ -1007,8 +1015,8 @@ class RC2(object):
 
             new_sums.append(u)
             self.wght[u] = self.minw
-            self.graph_labels[str(v)] = f"{u}"
-            self.graph_labels[str(u)] = f"{u}"
+            self.graph_label(v,  f"{u}")
+            self.graph_label(u,  f"{u}")
 
 
 
@@ -1112,10 +1120,11 @@ class RC2(object):
                 if (ratio > 0.1) or not(self.hybrid):
                     self.new_sums = self.resolution(core)
                     #print(self.new_sums, core)
-                    if (False):
+                    if (self.closure):
                         for v1 in core:
                             for v2 in self.new_sums:
-                                self.graph.add_edge(self.graph_labels[str(v1)], self.graph_labels[str(v2)])
+                                self.graph.add_edge(self.graph_label(v1), self.graph_label(v2))
+                                #print(self.graph_label(v1), self.graph_label(v2))
 
 
 
@@ -1130,13 +1139,21 @@ class RC2(object):
                             self.maxreslevel[s]["base"] = [s]                          
 
                     if (self.relax in ['mr1d', 'mr2d']): 
+
                         lits = copy.deepcopy(self.new_sums)
                         c = self.add_upperlevel(lits)
+                        #print(self.new_sums, self.closure)
+                        if (self.closure):
+                            for v1 in self.new_sums:
+                                self.graph.add_edge(self.graph_label(v1), self.graph_label(c))
+                                #print(self.graph_label(v1), self.graph_label(c))
+
                         #if debug: print(f" add_upperlevel {self.new_sums} {c}")
                         self.sums = self.sums + [c]
                         self.new_sums = [c]
                         #assert(len(remainig_core) ==0)
                         
+
 
 
                     print("mr")
@@ -1163,6 +1180,11 @@ class RC2(object):
                         # save the info about this sum and
                         # add its assumption literal
                         c = self.set_bound(t, b)
+                        if (self.closure):
+                            for v1 in core:
+                                self.graph.add_edge(self.graph_label(v1), self.graph_label(c))
+                                #print(self.graph_label(v1), self.graph_label(c))
+
                     else:
                         # impossible to satisfy any of these clauses
                         # they must become hard
@@ -1172,12 +1194,6 @@ class RC2(object):
                     exhaust_core = True
                     self.new_sums = [c]
 
-                    if (False):
-                        self.graph_labels[str(c)] =  f"{c}"
-                        for v1 in core:
-                            if not (str(v1) in self.graph_labels):
-                                self.graph_labels[str(v1)] =  f"{v1}"
-                            self.graph.add_edge(self.graph_labels[str(v1)], self.graph_labels[str(c)])
 
 
                     #print("---")
@@ -1194,8 +1210,12 @@ class RC2(object):
                         #if (len(remainig_core) > 50):
                         r = self.add_upperlevel(remainig_core, tag = "remainig_core")
                         self.sums = self.sums + [r]
-                        if (False):                            
-                            self.graph_labels[str(r)] =  f"{r}"
+                        if (self.closure):                            
+                            for v1 in remainig_core:
+                                self.graph.add_edge(self.graph_label(v1), self.graph_label(r))
+
+
+
                         # else:                       
                         # self.sums = self.sums + remainig_core
 
@@ -2064,7 +2084,7 @@ class RC2Stratified(RC2, object):
     """
 
     def __init__(self, formula, solver='g3', adapt=False, blo='div',
-            exhaust=False, hybrid = False, incr=False, minz=False, nohard=False, trim=0,
+            exhaust=False, hybrid = False, closure = False, incr=False, minz=False, nohard=False, trim=0,
             relax='rc2', verbose=0):
         """
             Constructor.
@@ -2072,7 +2092,7 @@ class RC2Stratified(RC2, object):
 
         # calling the constructor for the basic version
         super(RC2Stratified, self).__init__(formula, solver=solver,
-                adapt=adapt, exhaust=exhaust, hybrid = hybrid, incr=incr, minz=minz, trim=trim,relax =relax,
+                adapt=adapt, exhaust=exhaust, hybrid = hybrid, closure=closure, incr=incr, minz=minz, trim=trim,relax =relax,
                 verbose=verbose)
 
         self.levl = 0    # initial optimization level
@@ -2473,8 +2493,8 @@ def parse_options():
     """
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:ms:tr:vxy',
-                ['adapt', 'block=', 'comp=', 'enum=', 'exhaust', 'help',
+        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:ms:tr:uvxy',
+                ['adapt', 'block=', 'comp=', 'enum=', 'exhaust', 'closure', 'help',
                     'incr', 'blo=', 'minimize', 'solver=', 'trim=', 'relax=','verbose',
                     'vnew'])
     except getopt.GetoptError as err:
@@ -2496,6 +2516,7 @@ def parse_options():
     verbose = 1
     vnew = False
     hybrid = False
+    closure = False
 
     for opt, arg in opts:
         if opt in ('-a', '--adapt'):
@@ -2531,6 +2552,8 @@ def parse_options():
             exhaust = True
         elif opt in ('-y', '--hybrid'):
             hybrid = True
+        elif opt in ('-u', '--closure'):
+            closure = True
         elif opt in ('-r', '--relax'):
             relax = str(arg) 
             assert(relax in ['mr1a', 'mr1b', 'mr1c', 'mr2a', 'mr2b',  'mr2c', 'mr1d', 'mr2d', 'rc2'])
@@ -2543,7 +2566,7 @@ def parse_options():
     assert block in bmap, 'Unknown solution blocking'
     block = bmap[block]
 
-    return adapt, blo, block, cmode, to_enum, exhaust, hybrid, incr, minz, \
+    return adapt, blo, block, cmode, to_enum, exhaust, hybrid, closure, incr, minz, \
             solver, trim, relax, verbose, vnew, args
 
 
@@ -2576,12 +2599,14 @@ def usage():
     print('        --vnew                   Print v-line in the new format')
     print('        -x, --exhaust            Exhaust new unsatisfiable cores')
     print('        -y, --hybrid             Hybrid on')
+    print('        -u, --closure            Closure on')
+    
 
 
 #
 #==============================================================================
 if __name__ == '__main__':
-    adapt, blo, block, cmode, to_enum, exhaust, hybrid, incr, minz, solver, trim, \
+    adapt, blo, block, cmode, to_enum, exhaust, closure, hybrid, incr, minz, solver, trim, \
             relax, verbose, vnew, files = parse_options()
 
     if files:
@@ -2613,7 +2638,7 @@ if __name__ == '__main__':
             MXS = RC2
 
         # starting the solver
-        with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust, hybrid = hybrid,
+        with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust, hybrid = hybrid, closure= closure,
                 incr=incr, minz=minz, trim=trim, relax=relax, verbose=verbose) as rc2:
 
             if isinstance(rc2, RC2Stratified):
