@@ -669,9 +669,9 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_res_v1[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_maxsatcomp[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v1[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_maxsatcomp[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = pref + "~~"
                 else:
                     pref = pref+  "  "
