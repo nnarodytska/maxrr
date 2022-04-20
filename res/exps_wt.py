@@ -98,12 +98,12 @@ import glob
 import os
 import copy
 
-from solved_guropy import solved_gurobi, unsolved
+from solved_guropy import solved_gurobi_wt, unsolved
 from os import path
 from posixpath import split
 root_dir = "/home/nina/workspace/data/mse21_complete_wt/"
 results =  "/home/nina/workspace/data/mse21_wt_results/"
-solved_gurobi = []
+solved_gurobi = solved_gurobi_wt
 unsolved = []
 
 focus =[]
