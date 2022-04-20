@@ -361,7 +361,7 @@ if (process_run):
                             assert(path.isfile(s))
                         if (rc2comp[0]):
                             s = f"{res_filename}.{rc2comp[1]}.{timetag}res"
-                            s = s.replace("mse21_wt_results", "mse21_wt_results_g4_rc2_many_mrs")#"mse21_unwt_results_back")#
+                            #s = s.replace("mse21_wt_results", "mse21_wt_results_g4_rc2_many_mrs")#"mse21_unwt_results_back")#
                             print(s)
                             res = copy.deepcopy(dummy)
                             results_rc2comp[file_name] = res
@@ -393,7 +393,7 @@ if (process_run):
 
                         if (maxhs[0]):
                             #print("maxhsmaxhsmaxhsmaxhs")
-                            res_filename_maxhs = res_filename.replace("mse21_wt_results", "mse21_wt_results_no_min")
+                            res_filename_maxhs = res_filename#.replace("mse21_wt_results", "mse21_wt_results_no_min")
                             res =  copy.deepcopy(dummy)
                             results_maxsatcomp[file_name] = res                        
 
