@@ -104,7 +104,7 @@ from posixpath import split
 root_dir = "/home/nina/workspace/data/mse21_complete_wt/"
 results =  "/home/nina/workspace/data/mse21_wt_results/"
 solved_gurobi = []
-unsolved = []tus
+unsolved = []
 
 focus =[]
 # focus = ["kbtree9_7_3_5_90_2.wcsp.wcnf.gz", 
@@ -121,17 +121,19 @@ focus =[]
 # "kbtree9_7_3_5_30_5.wcsp.wcnf.gz"]
 
 rc2 = [False, "rc2"]
-rc2comp = [True, "rc2comp"]
+rc2comp = [False, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0  = [False, "maxres",  "-r mr1c ", "v0"]
-res_v1 = [False, "maxres", "-r mr1d ", "v1"]
-res_v2 = [False, "maxres", "-r mr2c ",  "v2"]
-res_v3 = [False, "maxres", "-r mr2d",  "v3"] # with closure
-res_v4 = [False, "maxres",  "-r mr1a",  "v4"] # 
-res_v5 = [False, "maxres", "-r mr1b ",  "v5"] 
-res_v6 = [False, "maxres", "-r mr2a ",  "v6"] 
-res_v7 = [False, "maxres", "-r mr2b ",  "v7"] 
+
+res_v0  = [False, "maxres","-r mr1d ", "v0"]
+res_v1 = [True, "maxres", "-r mr2d", "v1"]
+res_v2 = [True, "maxres", "-r mr2d -y ",  "v2"]
+res_v3 = [True, "maxres", "-r mr2d -y -u",  "v3"] # with closure
+res_v4 = [False, "maxres", "-r mr1b -y",  "v4"] # 
+res_v5 = [False, "maxres", "-r mr1b -y -u",  "v5"] 
+res_v6 = [False, "maxres", "-r mr2a -y ",  "v6"] 
+#res_v7 = [True, "maxres", "-r mr2a -y -u",  "v7"] 
+res_v7 = [False, "gurobi", " ",  "gurobi"] 
 
 # gurobi
 
@@ -139,7 +141,7 @@ resrg  = [False, "resrg",  "", "v0"]
 
 to = [3600]#, 3600*3]
 
-maxhs = [True, "maxhs"]
+maxhs = [False, "maxhs"]
 eva = [False, "eva"]
 
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
