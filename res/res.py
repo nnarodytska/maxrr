@@ -218,7 +218,7 @@ class RC2(object):
         self.minz = minz
         self.trim = trim
         self.relax = relax
-        self.graph =  nx.DiGraph()
+        self.graph =  nx.Graph()
         self.graph_labels = {}
 
       
@@ -246,6 +246,7 @@ class RC2(object):
         wght = self.wght.values()
         if not formula.hard and len(self.sels) > 100000 and min(wght) == max(wght):
             self.minz = False
+            #exit()
 
     def __del__(self):
         """
@@ -295,7 +296,7 @@ class RC2(object):
         #self.soft = []
         self.upperlevel = {}
         self.maxreslevel = {}
-        #self.ilp = 120
+        self.ilp = 360
         # if self.ilp > 0 or True:
         #     self.solve_gurobi(formula)
         #     exit()        
@@ -632,7 +633,10 @@ class RC2(object):
             self.adapt_am1()
 
         # main solving loop
-        while not self.oracle.solve(assumptions=self.sels + self.sums):
+        solve_res = self.oracle.solve(assumptions=self.sels + self.sums)
+        while not solve_res:
+            solve_res = True
+            self.unkown_in_core = 0
             self.get_core()
 
             if not self.core:
@@ -640,9 +644,36 @@ class RC2(object):
                 return False
             if  self.relax=='rc2': 
                 self.process_core()
-            print(self.relax)
+            #print(self.relax)
             if  self.relax in ['mr2a','mr2b', 'mr2c', 'mr1a', 'mr1b', 'mr1c', 'mr1d', 'mr2d']: 
                 self.process_core_maxres_tree()
+                if False:
+                    #write_dot(self.graph, 'file.dot')
+                    ls_cc = nx.connected_components(self.graph)    
+                    ccs = list(ls_cc)
+                    #print( len(ccs))
+                    if len(list(ccs)) > 1:    
+                        for ls in ccs:
+                            cc = [int(l) for l in ls]
+                            inter = list(set(self.core) & set(cc))
+                            diff = list(set(cc) - set(self.core))
+                            #print(inter, diff, self.core, ls )
+                            #print(self.sels, self.sums)
+
+                            if len(inter) > 0 and len(diff) > 0 :
+                                assert(len(inter) == len(self.core))
+                                focus = []
+                                for s in self.sels + self.sums:
+                                    if s in cc:
+                                        focus.append(s)
+                                solve_res = self.oracle.solve(assumptions=focus)
+                            # exit()
+            if (solve_res):
+                solve_res = self.oracle.solve(assumptions=self.sels + self.sums)
+            else:
+                print("cover")
+
+
 
             if self.verbose > 1:
                 print('c cost: {0}; core sz: {1}; soft sz: {2}'.format(self.cost,
@@ -671,8 +702,8 @@ class RC2(object):
             self.trim_core()
 
             # and by heuristic minimization
-            self.non_minimal_count = self.minimize_core()
-            #print( "---", self.non_minimal_count)
+            self.unkown_in_core = self.minimize_core()
+            #print( "---", self.unkown_in_core)
 
             # the core may be empty after core minimization
             if not self.core:
@@ -878,6 +909,7 @@ class RC2(object):
 
             self.gurobi_soft_vars = {}   
             ops = []
+            wops = []
             for j, cl in enumerate(formula.soft):
                 con_vars = []
                 rhs =  1
@@ -885,6 +917,8 @@ class RC2(object):
                 b = self.gurobi_model.addVar(vtype=GRB.INTEGER, name= f"s{j}", lb =0)
                 self.gurobi_soft_vars[j] = b
                 ops.append(self.gurobi_soft_vars[j])
+                wops.append(formula.wght[j])
+                
 
                 con_vars.append(self.gurobi_soft_vars[j])
 
@@ -898,12 +932,12 @@ class RC2(object):
                         
                 self.gurobi_model.addConstr(gp.quicksum(con_vars) >= rhs, f"soft clause {j}")  
 
-            self.gurobi_model.addConstr(gp.quicksum(ops) <= 29)  
-            self.gurobi_model.params.Method=1
-            self.gurobi_model.params.TuneTimeLimit=60
-            self.gurobi_model.tune()            
+            #self.gurobi_model.addConstr(gp.quicksum(ops) <= 29)  
+            # self.gurobi_model.params.Method=1
+            # self.gurobi_model.params.TuneTimeLimit=60
+            #self.gurobi_model.tune()            
 
-            self.gurobi_model.setObjective(gp.quicksum(ops), GRB.MINIMIZE)
+            self.gurobi_model.setObjective(gp.quicksum([ops[j]*wops[j] for j,_ in enumerate(ops)]), GRB.MINIMIZE)
             # try:
             #     self.gurobi_model.write("test.lp")
 
@@ -975,9 +1009,7 @@ class RC2(object):
             self.wght[u] = self.minw
             self.graph_labels[str(v)] = f"{u}"
             self.graph_labels[str(u)] = f"{u}"
-            if (u == 3646):
-                print(f"---------> {self.wght[u]}")
-                #exit()
+
 
 
         
@@ -1023,14 +1055,21 @@ class RC2(object):
                 self.new_sums = []
                 core            = []
                 self.core = [-l for l in self.rels]
-                #if debug: print("core:", self.core)
+                
                 has_upperlevel =  False
                 #min_core  =[]
+                diff = []
                 keep_core = []
                 unfolding ={}
                 core_unfolding = []
                 hard_clauses = []
-                self.non_minimal_count = len(self.core)
+                try:
+                    self.unkown_in_core
+                except:
+                    self.unkown_in_core = len(self.core)
+                
+                if debug: print("core:", len(self.core), self.unkown_in_core)
+                
                 for c in self.core:
                     if c in self.upperlevel:
                         core = core + self.upperlevel[c]["base"]
@@ -1045,11 +1084,14 @@ class RC2(object):
                         core.append(c)
                         keep_core = keep_core + [c]
                 if debug: print(f"self.core {self.core}")
+                #print("----", self.relax)
                 if (self.relax in ['mr1d', 'mr2d']):                     
                     if (promising) and (has_upperlevel) and (not flag_continue):
                         if debug: print(f"-- minimization [{len(self.core)}]: {len(core)}/{len(keep_core)} -- > ", end = " ")                
+                        #print(f"------{self.relax }")
                         if (self.relax in ['mr1d', 'mr2d']):                                                 
-                            self.non_minimal_count = self.minimize_core_unfolding (copy.deepcopy(core_unfolding), copy.deepcopy(unfolding), copy.deepcopy(keep_core))                
+                            self.unkown_in_core = self.minimize_core_unfolding (copy.deepcopy(core_unfolding), copy.deepcopy(unfolding), copy.deepcopy(keep_core))  
+                            #print(self.unkown_in_core)              
                         diff = list(set(core) - set(self.core))
                         #self.garbage = set(set(self.garbage) - set(diff))
                         remainig_core = remainig_core + diff
@@ -1063,14 +1105,19 @@ class RC2(object):
 
                 exhaust_core = False
                 
-                if (self.relax in ['mr1a', 'mr2a', 'mr1b', 'mr2b']): 
-                    ratio  = random.random()/5                    
-                else:
-                    ratio = float(self.non_minimal_count)/len(core)
-                print(f"promising------------ {ratio} {self.non_minimal_count} {len(core)}")
-                if ratio > 0.1 or not(self.hybrid):
+
+                ratio = float(self.unkown_in_core)/len(core)
+                print(f"promising------------ {ratio} self.unkown_in_core = {self.unkown_in_core} {len(core)} {len(diff)}")
+                #print(self.sels, self.sums)
+                if (ratio > 0.1) or not(self.hybrid):
                     self.new_sums = self.resolution(core)
-                   # print(self.new_sums)
+                    #print(self.new_sums, core)
+                    if (False):
+                        for v1 in core:
+                            for v2 in self.new_sums:
+                                self.graph.add_edge(self.graph_labels[str(v1)], self.graph_labels[str(v2)])
+
+
 
                     if (self.relax in ['mr1a', 'mr2a']): 
                         self.sums = self.sums  + self.new_sums 
@@ -1089,7 +1136,11 @@ class RC2(object):
                         self.sums = self.sums + [c]
                         self.new_sums = [c]
                         #assert(len(remainig_core) ==0)
+                        
+
+
                     print("mr")
+
 
 
                 else:
@@ -1103,7 +1154,8 @@ class RC2(object):
                     t = self.create_sum()
                     #c = self.set_bound(t, 1)
                     
-                    
+
+                    c = t
 
                     # # # apply core exhaustion if required
                     b = self.exhaust_core(t) if self.exhaust else 1
@@ -1119,13 +1171,21 @@ class RC2(object):
                     #print(f"exaust b ={b}")
                     exhaust_core = True
                     self.new_sums = [c]
+
+                    if (False):
+                        self.graph_labels[str(c)] =  f"{c}"
+                        for v1 in core:
+                            if not (str(v1) in self.graph_labels):
+                                self.graph_labels[str(v1)] =  f"{v1}"
+                            self.graph.add_edge(self.graph_labels[str(v1)], self.graph_labels[str(c)])
+
+
                     #print("---")
                     # if debug: print(f"self.core {self.core}")
                     # if debug: print(f"self.upperlevel {self.upperlevel}")
                     # if debug: print(f"self.sums {self.sums }")
                     # if debug: print(f"self.sels {self.sels }")
-
-
+                #print(self.graph_labels)
 
                 if (exhaust_core) or  self.oracle.solve(assumptions=self.new_sums):
                     if debug: print("exaust done")
@@ -1134,11 +1194,15 @@ class RC2(object):
                         #if (len(remainig_core) > 50):
                         r = self.add_upperlevel(remainig_core, tag = "remainig_core")
                         self.sums = self.sums + [r]
+                        if (False):                            
+                            self.graph_labels[str(r)] =  f"{r}"
                         # else:                       
-                        #     self.sels = self.sels + remainig_core
+                        # self.sums = self.sums + remainig_core
 
-                        #     self.garbage = set(set(self.garbage) - set(remainig_core))
-
+                        # self.garbage = set(set(self.garbage) - set(remainig_core))
+                        # for s in remainig_core:
+                        #     self.maxreslevel[s] = {}
+                        #     self.maxreslevel[s]["base"] = [s]         
                         #if debug: print(f" remainig_core {remainig_core} /{self.new_sums}")
                    #exit()
                     break 
@@ -1170,7 +1234,7 @@ class RC2(object):
         #pos = nx.nx_agraph.graphviz_layout(self.graph)
         #nx.draw(self.graph, pos=pos)
         #plt.savefig("path.png")
-        #write_dot(self.graph, 'file.dot')
+
         #print(len(self.sels) , len(self.sums))
         # remove unnecessary assumptions
 
@@ -1449,6 +1513,9 @@ class RC2(object):
         is_minimal = 0
         if not (core is None):
             self.core = core
+
+        org_lens = len(self.core)
+
         if self.minz and len(self.core +keep_def ) > 1:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
             
@@ -1480,7 +1547,10 @@ class RC2(object):
 
                 
                 
-                self.oracle.prop_budget(100000)
+                if org_lens >  50: 
+                    self.oracle.prop_budget(100000)
+                else:
+                    self.oracle.prop_budget(1000000)
                 #print(prop)
                 if self.oracle.solve_limited(assumptions= keep + to_test) == False:
                     newcore = self.oracle.get_core()
@@ -1530,6 +1600,9 @@ class RC2(object):
             #print(k,v)
             total_soft = total_soft +  v
         #print(f"keep {keep_def} total_soft {total_soft}")
+        org_lens = len(self.core)
+        if not self.minz:
+             self.core = total_soft
 
         if self.minz and len(total_soft+keep_def) > 1:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
@@ -1569,7 +1642,10 @@ class RC2(object):
                     core = core[1:]
                     continue
                 #print("starting")
-                self.oracle.prop_budget(100000)
+                if org_lens >  50: 
+                    self.oracle.prop_budget(100000)
+                else:
+                    self.oracle.prop_budget(1000000)
                 #print(to_test+keep)
    
                 if self.oracle.solve_limited(assumptions= keep + to_test) == False:
@@ -2001,6 +2077,8 @@ class RC2Stratified(RC2, object):
 
         self.levl = 0    # initial optimization level
         self.blop = []   # a list of blo levels
+
+     
 
         # BLO strategy
         assert blo and blo in blomap, 'Unknown BLO strategy'
