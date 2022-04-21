@@ -704,68 +704,68 @@ if (process_run):
                 s_res_v6 = ""
                 s_res_v7 = ""
                 try:
-                    s_resrg = f"{results_resrg[f][0]:<5}/{results_resrg[f][2]:<5} {results_resrg[f][1]:<10}"
+                    s_resrg = f"{results_resrg[f][0]:<15}/{results_resrg[f][2]:<15} {results_resrg[f][1]:<10}"
                 except:
                     pass
                                 
                 try:
-                    s_res_v0 = f"{results_res_v0[f][0]:<5}/{results_res_v0[f][2]:<5} {results_res_v0[f][1]:<10}"
+                    s_res_v0 = f"{results_res_v0[f][0]:<15}/{results_res_v0[f][2]:<15} {results_res_v0[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_res_v1 = f"{results_res_v1[f][0]:<5}/{results_res_v1[f][2]:<5} {results_res_v1[f][1]:<10}"
+                    s_res_v1 = f"{results_res_v1[f][0]:<15}/{results_res_v1[f][2]:>15} {results_res_v1[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_res_v2 = f"{results_res_v2[f][0]:<5}/{results_res_v2[f][2]:<5} {results_res_v2[f][1]:<10}"
+                    s_res_v2 = f"{results_res_v2[f][0]:>15}/{results_res_v2[f][2]:>15} {results_res_v2[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_res_v3 = f"{results_res_v3[f][0]:<5}/{results_res_v3[f][2]:<5} {results_res_v3[f][1]:<10}"
+                    s_res_v3 = f"{results_res_v3[f][0]:>15}/{results_res_v3[f][2]:>15} {results_res_v3[f][1]:<10}"
                 except:
-                    s_res_v3 = f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v3 = f"{0:>15}/{0:>15} {0:<10}"
                     pass
 
                 try:
-                    s_res_v4 = f"{results_res_v4[f][0]:<5}/{results_res_v4[f][2]:<5} {results_res_v4[f][1]:<10}"
+                    s_res_v4 = f"{results_res_v4[f][0]:>15}/{results_res_v4[f][2]:>15} {results_res_v4[f][1]:<10}"
                 except:
-                    s_res_v4= f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v4= f"{0:>15}/{0:>15} {0:<10}"
                     pass
 
                 try:
-                    s_res_v5 = f"{results_res_v5[f][0]:<5}/{results_res_v5[f][2]:<5} {results_res_v5[f][1]:<10}"
+                    s_res_v5 = f"{results_res_v5[f][0]:>15}/{results_res_v5[f][2]:>15} {results_res_v5[f][1]:<10}"
                 except:
-                    s_res_v5= f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v5= f"{0:>15}/{0:>15} {0:<10}"
                     pass
 
                 try:
-                    s_res_v6 = f"{results_res_v6[f][0]:<5}/{results_res_v6[f][2]:<5} {results_res_v6[f][1]:<10}"
+                    s_res_v6 = f"{results_res_v6[f][0]:>15}/{results_res_v6[f][2]:>15} {results_res_v6[f][1]:<10}"
                 except:
-                    s_res_v6= f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v6= f"{0:>15}/{0:>15} {0:<10}"
                     pass
 
                 try:
-                    s_res_v7 = f"{results_res_v7[f][0]:<5}/{results_res_v7[f][2]:<5} {results_res_v7[f][1]:<10}"
+                    s_res_v7 = f"{results_res_v7[f][0]:>15}/{results_res_v7[f][2]:>15} {results_res_v7[f][1]:<10}"
                 except:
-                    s_res_v7= f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v7= f"{0:>15}/{0:>15} {0:<10}"
                     pass
 
 
                 try:
-                    s_eva = f"{results_eva[f][0]:<5}/{results_eva[f][2]:<5} {results_eva[f][1]:<10}"
-                except:
-                    pass
-
-                try:
-                    s_rc2comp = f"{results_rc2comp[f][0]:<5}/{results_rc2comp[f][2]:<5} {results_rc2comp[f][1]:<10}"
+                    s_eva = f"{results_eva[f][0]:>15}/{results_eva[f][2]:>15} {results_eva[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_maxhs  = f"{results_maxsatcomp[f][0]:<5}/{results_maxsatcomp[f][2]:<5}/{results_maxsatcomp[f][3]:<5} {results_maxsatcomp[f][1]:<10} "
+                    s_rc2comp = f"{results_rc2comp[f][0]:>15}/{results_rc2comp[f][2]:>15} {results_rc2comp[f][1]:<10}"
+                except:
+                    pass
+
+                try:
+                    s_maxhs  = f"{results_maxsatcomp[f][0]:>15}/{results_maxsatcomp[f][2]:>15}/{results_maxsatcomp[f][3]:>15} {results_maxsatcomp[f][1]:<10} "
                 except:
                     pass
 
