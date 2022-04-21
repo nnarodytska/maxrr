@@ -620,7 +620,7 @@ if (process_run):
         with open(f'results_wt.{timetag}txt', 'w') as the_file:
             h_eva = f" {opt:<10}/{lb:<10} {eva[1]:<10} "
             h_rc2comp = f"{opt:<10}/{lb:<10}   {rc2comp[1]:<10}"
-            h_maxhs = f"{opt:<10}/{lb:<10}/{ub:<5}   {maxhs[1]:<10}"
+            h_maxhs = f"{opt:<10}/{lb:<10}/{ub:<10}   {maxhs[1]:<10}"
             h_cashwmaxsat = f"{opt:<10}   {cashwmaxsat[1]:<12}"
             h_resrg =  f"{opt:<10}/{lb:<10}  {resrg[1]:<10} "
             h_res_v0 = f"{opt:<10}/{lb:<10}  {res_v0[1]:<10} "
