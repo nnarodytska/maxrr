@@ -222,7 +222,10 @@ import itertools
 import os
 from pysat_local._fileio import FileObject
 import sys
-from gurobipy import GRB
+try:
+    from gurobipy import GRB
+except:
+    pass
 #from pysat_local.card import CardEnc
 # checking whether or not py-aiger-cnf is available and working as expected
 aiger_present = True
