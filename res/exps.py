@@ -104,7 +104,7 @@ from posixpath import split
 root_dir = "/home/nina/workspace/data/mse21_complete_unwt/"
 results =  "/home/nina/workspace/data/mse21_unwt_results/"
 
-unsolved =solved_gurobi + unsolved
+#unsolved =solved_gurobi + unsolved
 
 focus =[]
 # focus = ["kbtree9_7_3_5_90_2.wcsp.wcnf.gz", 
@@ -176,7 +176,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open('run.txt', 'w') as the_file:
