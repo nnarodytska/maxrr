@@ -147,9 +147,11 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import write_dot
 import copy
-import gurobipy as gp
-from gurobipy import GRB
-
+try:
+    import gurobipy as gp
+    from gurobipy import GRB
+except:
+    pass
 from ortools.sat.python import cp_model
 
 # names of BLO strategies
