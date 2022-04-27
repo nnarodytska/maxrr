@@ -335,8 +335,8 @@ class RC2(object):
             #    formula.hard.append([c])   
             solution = self.solve_ortools_sat(formula, solve=False)
             presolve =  True
-            self.oracle = Solver(name=self.solver)
-            return
+            #self.oracle = Solver(name=self.solver)
+            #return
             formula = self.solve_gurobi(formula, solve=True, presolve=presolve, solution = solution)
             #exit()            
             #formula = formula_new
