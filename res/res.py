@@ -131,11 +131,14 @@ from gc import garbage
 import getopt
 import itertools
 from math import copysign
-import os
+import sys,os
 from tkinter import S
-from pysat.formula import CNFPlus, WCNFPlus, IDPool, CNF
-from pysat.card import ITotalizer
-from pysat.solvers import Solver, SolverNames
+
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE)
+from pysat_local.formula import CNFPlus, WCNFPlus, IDPool, CNF
+from pysat_local.card import ITotalizer, CardEnc, EncType
+from pysat_local.solvers import Solver, SolverNames
 import re
 import six
 from six.moves import range
@@ -146,10 +149,15 @@ from networkx.drawing.nx_pydot import write_dot
 import copy
 import gurobipy as gp
 from gurobipy import GRB
-import random
+
+from ortools.sat.python import cp_model
+
 # names of BLO strategies
 #==============================================================================
 blomap = {'none': 0, 'basic': 1, 'div': 3, 'cluster': 5, 'full': 7}
+
+
+
 
 
 #
@@ -193,7 +201,7 @@ class RC2(object):
         :param trim: do core trimming at most this number of times
         :param verbose: verbosity level
 
-        :type formula: :class:`.WCNF`
+        :type formula: :class:`.WCNF` self.wght[u] 
         :type solver: str
         :type adapt: bool
         :type exhaust: bool
@@ -203,7 +211,7 @@ class RC2(object):
         :type verbose: int
     """
 
-    def __init__(self, formula, solver='g3', adapt=False, exhaust=False, hybrid =False, closure =False,
+    def __init__(self, formula, solver='g3', adapt=False, exhaust=False, hybrid =False, closure =False, ilp = 0,
             incr=False, minz=False, trim=0, relax='rc2', verbose=0):
         """
             Constructor.
@@ -221,6 +229,7 @@ class RC2(object):
         self.graph =  nx.Graph()
         self.graph_labels = {}
         self.closure = closure
+        self.ilp = ilp
 
       
 
@@ -239,6 +248,7 @@ class RC2(object):
         VariableMap = collections.namedtuple('VariableMap', ['e2i', 'i2e'])
         self.vmap = VariableMap(e2i={}, i2e={})
 
+        
         # initialize SAT oracle with hard clauses only
         self.init(formula, incr=incr)
 
@@ -248,7 +258,6 @@ class RC2(object):
         if not formula.hard and len(self.sels) > 100000 and min(wght) == max(wght):
             self.minz = False
             #exit()
-
     def __del__(self):
         """
             Destructor.
@@ -269,6 +278,21 @@ class RC2(object):
         """
 
         self.delete()
+
+    def process_cc(self, formula):
+        while True:        
+            G = nx.Graph()
+            for i, cl in enumerate(formula.hard):
+                for c in cl:
+                    G.add_edge(i, abs(c))
+            ls_cc = nx.connected_components(G)    
+            ccs = list(ls_cc)
+            print(len(ccs))
+            #exit()
+            break
+
+
+
 
     def init(self, formula, incr=False):
         """
@@ -297,13 +321,53 @@ class RC2(object):
         #self.soft = []
         self.upperlevel = {}
         self.maxreslevel = {}
-        self.ilp = 360
-        # if self.ilp > 0 or True:
-        #     self.solve_gurobi(formula)
-        #     exit()        
+    
 
-        self.oracle = Solver(name=self.solver, bootstrap_with=formula.hard,
-                incr=incr, use_timer=True)
+
+        if self.ilp > 0:
+            if self.verbose > 1:
+                print('c init formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
+                    len(formula.hard), len(formula.soft)))         
+            # disjoints = [-36239, -36240, -36241,-36242, -36243, -36244, -36245,-36246, -36247, -36248, -36249, -36250, -36251, -36252, -36253, -36254, -36255] 
+            # for c in disjoints:
+            #    formula.hard.append([c])   
+            solution = self.solve_ortools_sat(formula, solve=False)
+            presolve =  True
+            exit()
+
+            formula = self.solve_gurobi(formula, solve=True, presolve=presolve, solution = solution)
+            #exit()            
+            #formula = formula_new
+            if (presolve):
+                try:
+                    self.cost  =  int(formula.cost)
+                except:
+                    pass
+                if formula.atmosts:
+                    for vars, rhs in formula.atmosts:
+                        #print("atmost", vars, rhs, formula.nv)
+                        cnf = CardEnc.atmost(lits=vars, bound= rhs, encoding= EncType.seqcounter, top_id = formula.nv)
+                        formula.nv = cnf.nv + 1
+                        #print( formula.nv)                    
+                        for cl in cnf.clauses:
+                            formula.hard.append(cl)
+
+                if formula.equals:
+                    for vars, rhs in formula.equals:
+                        #print("equal", vars, rhs, )
+                        cnf = CardEnc.equals(lits=vars, bound= rhs, encoding= EncType.seqcounter, top_id = formula.nv)
+                        formula.nv = cnf.nv + 1
+                        #print( formula.nv)                    
+                        for cl in cnf.clauses:
+                            formula.hard.append(cl)
+            
+            
+
+            self.pool = IDPool(start_from=formula.nv + 1)
+        self.formula = formula
+        #exit()
+
+
 
         # # adding native cardinality constraints (if any) as hard clauses
         # # this can be done only if the Minicard solver is in use
@@ -316,20 +380,17 @@ class RC2(object):
         #         self.oracle.add_atmost(*atm)
 
         # adding soft clauses to oracle
+        softs = CNF()
         for i, cl in enumerate(formula.soft):
+            
             selv = cl[0]  # if clause is unit, selector variable is its literal
 
-            if len(cl) > 0:
+            if len(cl) > 1:
                 selv = self.pool.id()
-
                 self.s2cl[selv] = cl[:]
                 cl.append(-selv)
-                self.oracle.add_clause(cl)        
-                #self.soft.append(cl)
-            #if len(cl)  == 1:
-            #    print(cl)
-                
-
+                softs.append(cl)
+                print(cl)
             if selv not in self.wght:
                 # record selector and its weight
                 self.sels.append(selv)
@@ -338,6 +399,18 @@ class RC2(object):
             else:
                 # selector is not new; increment its weight
                 self.wght[selv] += formula.wght[i]
+
+       
+
+
+        self.oracle = Solver(name=self.solver, bootstrap_with=formula.hard,
+                incr=incr, use_timer=True)
+                            
+        for i, cl in enumerate(softs):
+            self.oracle.add_clause(cl)        
+
+
+
 
         # storing the set of selectors
         self.sels_set = set(self.sels)
@@ -349,8 +422,8 @@ class RC2(object):
             self.vmap.i2e[v] = v
 
         if self.verbose > 1:
-            print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
-                len(formula.hard), len(formula.soft)))
+            print('c formula: {0} vars, {1} hard, {2} soft max vars{3}'.format(formula.nv,
+                len(formula.hard), len(formula.soft), self.pool.top))
 
         # self.reinit()
 
@@ -874,27 +947,127 @@ class RC2(object):
         # seal cardinality
         return card_formula, s, topv
 
-    
-    def solve_gurobi(self,formula):
+    def solve_ortools_sat(self,formula, solve = False, presolve = True):        
+         
+        ##########################################
+        self.ortools_model = cp_model.CpModel()
+        max_id = self.pool.top+1
+
+        self.ortools_vars = {}
+        for c in range(max_id):
+            #print(c)
+            b = self.ortools_model.NewBoolVar(name= f"{c}")
+            self.ortools_vars[c] = b
+        
+        #print(ortools)
+        
+        for j, cl in enumerate(formula.hard):
+            con_vars = []
+            rhs =  1
+            
+            #print(cl, max_id)
+            for c in cl:
+                if (c > 0):
+                    con_vars.append(self.ortools_vars[abs(c)])
+                else:
+                    con_vars.append(self.ortools_vars[abs(c)].Not())
+                    
+            self.ortools_model.AddBoolOr(con_vars)       
+        self.ortools_soft_vars = {}   
+        ops = []
+        wops = []
+        for j, cl in enumerate(formula.soft):
+           #print(cl)
+            if (len(cl) == 1):                    
+                c = cl[0]
+
+                if (c > 0):
+                    self.ortools_soft_vars[j] = self.ortools_vars[abs(c)].Not()                    
+                else:
+                    self.ortools_soft_vars[j] = self.ortools_vars[abs(c)]                    
+            else:
+                con_vars = []
+                v = max_id + j
+                b = self.ortools_model.NewBoolVar(name= f"{v}")
+                self.ortools_vars[v] = b
+                self.ortools_soft_vars[j] = b
+                
+                con_vars.append(self.ortools_vars[abs(v)])
+                for c in cl:
+                    if (c > 0):
+                        con_vars.append(self.ortools_vars[abs(c)])
+                    else:
+                        con_vars.append(self.ortools_vars[abs(c)].Not())
+                self.ortools_model.AddBoolOr(con_vars)       
+            
+            ops.append(self.ortools_soft_vars[j])
+            wops.append(formula.wght[j])  
+            
+        # print(ops, wops)
+        # exit()
+          
+        #print(ops)
+        #print(wops)
+        solver = cp_model.CpSolver()
+
+        self.ortools_model.Minimize(cp_model.LinearExpr.WeightedSum(ops, wops))
+        solver.parameters.log_search_progress = True
+        solver.parameters.num_search_workers = 1
+        solver.parameters.max_time_in_seconds = self.ilp
+
+
+        status = solver.Solve(self.ortools_model)
+        print('Solve status: %s' % solver.StatusName(status))
+        if status == cp_model.OPTIMAL:
+            print('Optimal objective value: %i' % solver.ObjectiveValue())
+        print('Statistics')
+        print('  - conflicts : %i' % solver.NumConflicts())
+        print('  - branches  : %i' % solver.NumBranches())
+        print('  - wall time : %f s' % solver.WallTime())
+
+        print(solver.ResponseStats)
+        solution = {}
+        for c in range(max_id):
+            #print(c)            
+            b = self.ortools_vars[c]
+            solution[c] = solver.BooleanValue(b)
+
+        
+        return solution
+
+    def solve_gurobi(self,formula, solve = False, presolve = True, solution = None):
         with gp.Env(empty=True) as env:
             #env.setParam('OutputFlag', 0)
             env.setParam('TimeLimit', self.ilp)
-            env.setParam('Threads', 1)
-            env.setParam('MIPFocus', 1)
+            env.setParam('Threads', 1)            
+            #env.setParam('Presolve', 2)
         
+      
+
+            
+
+            
             
             env.start()
             ##########################################
             self.gurobi_model = gp.Model("whole", env=env)
-            max_id = self.pool.id()
+            max_id = self.pool.top + 1
 
             self.gurobi_vars = {}
             for c in range(max_id):
-                b = self.gurobi_model.addVar(vtype=GRB.BINARY, name= f"{c}")
+                b = self.gurobi_model.addVar(vtype=GRB.BINARY, name= f"{c}",)
                 self.gurobi_vars[c] = b
+                if not (solution is  None):
+                    try:
+                        #print(c,solution[c])
+                        b.setAttr('Start', solution[c])
+                        #self.gurobi_model.addConstr(b == solution[c], f"clause_{c} = {solution[c]}")
+                    except:
+                        pass
+                        print("-->", c)
             
             #print(gurobi_vars)
-
+            
             for j, cl in enumerate(formula.hard):
                 con_vars = []
                 rhs =  1
@@ -907,61 +1080,77 @@ class RC2(object):
                         con_vars.append(-self.gurobi_vars[abs(c)])
                         rhs = rhs -1
                         
-                self.gurobi_model.addConstr(gp.quicksum(con_vars) >= rhs, f" clause {j}")       
+                self.gurobi_model.addConstr(gp.quicksum(con_vars) >= rhs, f"clause_{j}")       
 
             self.gurobi_soft_vars = {}   
             ops = []
             wops = []
             for j, cl in enumerate(formula.soft):
-                con_vars = []
-                rhs =  1
+                if (len(cl) == 1):                    
+                    c = cl[0]
 
-                b = self.gurobi_model.addVar(vtype=GRB.INTEGER, name= f"s{j}", lb =0)
-                self.gurobi_soft_vars[j] = b
-                ops.append(self.gurobi_soft_vars[j])
-                wops.append(formula.wght[j])
-                
-
-                con_vars.append(self.gurobi_soft_vars[j])
-
-                for c in cl:
                     if (c > 0):
-                        con_vars.append(self.gurobi_vars[abs(c)])
+                        self.gurobi_soft_vars[j] = 1-self.gurobi_vars[abs(c)]                    
                     else:
-                        con_vars.append(-self.gurobi_vars[abs(c)])
-                        rhs = rhs -1
+                        self.gurobi_soft_vars[j] = self.gurobi_vars[abs(c)]                    
+                else:
+                    con_vars = []
+                    rhs =  1
+                    v = max_id + j
+                    b = self.gurobi_model.addVar(vtype=GRB.BINARY, name= f"{v}")
+                    self.gurobi_vars[v] = b
+                    self.gurobi_soft_vars[j] = b
+                    
+                    con_vars.append(self.gurobi_vars[abs(v)])
+                    for c in cl:
+                        if (c > 0):
+                            con_vars.append(self.gurobi_vars[abs(c)])
+                        else:
+                            con_vars.append(-self.gurobi_vars[abs(c)])
+                            rhs = rhs -1
+                    self.gurobi_model.addConstr(gp.quicksum(con_vars) >= rhs, f"soft_clause_{j}")  
                 
-                        
-                self.gurobi_model.addConstr(gp.quicksum(con_vars) >= rhs, f"soft clause {j}")  
+                ops.append(self.gurobi_soft_vars[j])
+                wops.append(formula.wght[j])  
+            # print(ops, wops)
+            # exit()
 
-            #self.gurobi_model.addConstr(gp.quicksum(ops) <= 29)  
-            # self.gurobi_model.params.Method=1
+            #self.gurobi_model.addConstr(gp.quicksum([ops[j]*wops[j] for j,_ in enumerate(ops)]) <= 18)  
+            # self.gurobi_model.params.Method=1q
             # self.gurobi_model.params.TuneTimeLimit=60
             #self.gurobi_model.tune()            
-
+            #print(ops)
             self.gurobi_model.setObjective(gp.quicksum([ops[j]*wops[j] for j,_ in enumerate(ops)]), GRB.MINIMIZE)
-            # try:
-            #     self.gurobi_model.write("test.lp")
+            formula_new = None
+            self.gurobi_model.write("test.lp")
 
-            #     presolved_m=self.gurobi_model.presolve()
-            #     presolved_m.printStats() 
-            #     presolved_m.write("pre-test.lp")
-            # except Exception as e:
-            #     print(e)
-            #     pass
-            # exit()             
-            
-            self.gurobi_model.optimize()
-            obj = None
-            solution_vars = []
-            sols = []
-            if self.gurobi_model.status == GRB.OPTIMAL:
-                obj = self.gurobi_model.objVal 
-                best_obj = int(obj)                
-            else:
-                obj = -1
-                best_obj = self.gurobi_model.objVal      
-            print(best_obj)
+
+            if (solve):
+                self.gurobi_model.optimize()
+                obj = None
+                solution_vars = []
+                sols = []
+                if self.gurobi_model.status == GRB.OPTIMAL:
+                    obj = self.gurobi_model.objVal 
+                    best_obj = int(obj)                
+                else:
+                    obj = -1
+                    best_obj = self.gurobi_model.objVal      
+                print(best_obj)
+
+            if (presolve):
+                try:
+                    self.gurobi_model=self.gurobi_model.presolve()
+                    self.gurobi_model.printStats() 
+                    self.gurobi_model.write("pre-test.lp")
+                    formula_new = WCNFPlus(from_gmodel=self.gurobi_model)                                                            
+                    self.gmodel = self.gurobi_model
+                except Exception as e:
+                    print("-----------", e)
+                    exit()
+
+
+            return formula_new
     
     def add_upperlevel(self, lits, tag = 'base'):
         debug = False
@@ -981,6 +1170,7 @@ class RC2(object):
             #print(cl)
             #self.soft.append(cl)
             self.oracle.add_clause(cl)   
+
         return c     
 
     def graph_label(self, v, lv = None):
@@ -1030,7 +1220,8 @@ class RC2(object):
         for cl in formula:
             #print(cl)
             #self.soft.append(cl)
-            self.oracle.add_clause(cl)        
+            self.oracle.add_clause(cl)    
+             
         return new_sums
     def process_core_maxres_tree(self):
         debug  = False 
@@ -1058,7 +1249,6 @@ class RC2(object):
                 #print(f"after  process_sums_maxres {self.garbage}")
                 
                 prefix = True
-
                 
                 self.new_sums = []
                 core            = []
@@ -1092,12 +1282,13 @@ class RC2(object):
                         core.append(c)
                         keep_core = keep_core + [c]
                 if debug: print(f"self.core {self.core}")
-                #print("----", self.relax)
+                print("----", self.relax, has_upperlevel, flag_continue)
                 if (self.relax in ['mr1d', 'mr2d']):                     
                     if (promising) and (has_upperlevel) and (not flag_continue):
                         if debug: print(f"-- minimization [{len(self.core)}]: {len(core)}/{len(keep_core)} -- > ", end = " ")                
                         #print(f"------{self.relax }")
-                        if (self.relax in ['mr1d', 'mr2d']):                                                 
+                        if (self.relax in ['mr1d', 'mr2d']):                    
+                            #print(copy.deepcopy(core_unfolding), copy.deepcopy(unfolding), copy.deepcopy(keep_core))                             
                             self.unkown_in_core = self.minimize_core_unfolding (copy.deepcopy(core_unfolding), copy.deepcopy(unfolding), copy.deepcopy(keep_core))  
                             #print(self.unkown_in_core)              
                         diff = list(set(core) - set(self.core))
@@ -1163,7 +1354,7 @@ class RC2(object):
                 else:
                     print("rc2")
                     #print(self.core)
-                    #print(core)
+                    print(core)
                     self.core = core
                     assert(self.oracle.solve(assumptions= core) == False)
                     
@@ -1203,7 +1394,7 @@ class RC2(object):
                     # if debug: print(f"self.sels {self.sels }")
                 #print(self.graph_labels)
 
-                if (exhaust_core) or  self.oracle.solve(assumptions=self.new_sums):
+                if (exhaust_core) or not(self.minz)  or self.oracle.solve(assumptions=self.new_sums):
                     if debug: print("exaust done")
                     #print("exaust done")
                     if (len(remainig_core) !=0): 
@@ -1236,9 +1427,11 @@ class RC2(object):
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)
-            #print("unit---")
+            print("unit---")
             #self.hard.append([-self.core_sels[0]])
-            self.oracle.add_clause([-self.core_sels[0]])                               
+            print(f"{self.core} {self.core_sels}")
+
+            self.oracle.add_clause([-self.core_sels[0]])     
             self.garbage.add(self.core_sels[0])
         if debug: print("filter_assumps_maxres")
 
@@ -1250,6 +1443,8 @@ class RC2(object):
         if debug: print(f"end: self.sums {self.sums }")
         if debug: print(f"end: self.sels {self.sels }")
         if debug: print(f"end: self.tobj {self.tobj }")
+
+
 
         #pos = nx.nx_agraph.graphviz_layout(self.graph)
         #nx.draw(self.graph, pos=pos)
@@ -1323,6 +1518,7 @@ class RC2(object):
                     # they must become hard
                     for relv in self.rels:
                         self.oracle.add_clause([relv])
+                        
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)            
@@ -1477,7 +1673,8 @@ class RC2(object):
             selv = self.pool.id()
 
             # adding a new clause
-            self.oracle.add_clause([-l for l in self.rels] + [-selv])
+            cl = [-l for l in self.rels] + [-selv]
+            self.oracle.add_clause(cl)
             #self.soft.append([-l for l in self.rels] + [-selv])
 
 
@@ -2084,7 +2281,7 @@ class RC2Stratified(RC2, object):
     """
 
     def __init__(self, formula, solver='g3', adapt=False, blo='div',
-            exhaust=False, hybrid = False, closure = False, incr=False, minz=False, nohard=False, trim=0,
+            exhaust=False, hybrid = False, closure = False, ilp = 0, incr=False, minz=False, nohard=False, trim=0,
             relax='rc2', verbose=0):
         """
             Constructor.
@@ -2092,7 +2289,7 @@ class RC2Stratified(RC2, object):
 
         # calling the constructor for the basic version
         super(RC2Stratified, self).__init__(formula, solver=solver,
-                adapt=adapt, exhaust=exhaust, hybrid = hybrid, closure=closure, incr=incr, minz=minz, trim=trim,relax =relax,
+                adapt=adapt, exhaust=exhaust, hybrid = hybrid, closure=closure, ilp = ilp, incr=incr, minz=minz, trim=trim,relax =relax,
                 verbose=verbose)
 
         self.levl = 0    # initial optimization level
@@ -2233,7 +2430,7 @@ class RC2Stratified(RC2, object):
 
         # cluster of weights to build (if needed)
         cluster = [self.levl]
-
+        print(self.blop)
         while self.levl < len(self.blop) - 1:
             # current weight
             wght = self.blop[self.levl]
@@ -2355,7 +2552,9 @@ class RC2Stratified(RC2, object):
             selv = self.pool.id()
 
             # adding a new clause
-            self.oracle.add_clause([-l for l in self.rels] + [-selv])
+            cl = [-l for l in self.rels] + [-selv]
+            self.oracle.add_clause(cl)
+
 
             # integrating the new selector
             self.sels.append(selv)
@@ -2493,8 +2692,8 @@ def parse_options():
     """
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:ms:tr:uvxy',
-                ['adapt', 'block=', 'comp=', 'enum=', 'exhaust', 'closure', 'help',
+        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:mps:tr:uvxy',
+                ['adapt', 'block=', 'comp=', 'enum=', 'exhaust', 'closure', 'ilp=',  'help',
                     'incr', 'blo=', 'minimize', 'solver=', 'trim=', 'relax=','verbose',
                     'vnew'])
     except getopt.GetoptError as err:
@@ -2517,6 +2716,7 @@ def parse_options():
     vnew = False
     hybrid = False
     closure = False
+    ilp = 0
 
     for opt, arg in opts:
         if opt in ('-a', '--adapt'):
@@ -2554,6 +2754,8 @@ def parse_options():
             hybrid = True
         elif opt in ('-u', '--closure'):
             closure = True
+        elif opt in ('-p', '--ilp'):
+            ilp = int(arg)            
         elif opt in ('-r', '--relax'):
             relax = str(arg) 
             assert(relax in ['mr1a', 'mr1b', 'mr1c', 'mr2a', 'mr2b',  'mr2c', 'mr1d', 'mr2d', 'rc2'])
@@ -2565,8 +2767,7 @@ def parse_options():
     bmap = {'mcs': -1, 'mcses': -1, 'model': 0, 'models': 0, 'mss': 1, 'msses': 1}
     assert block in bmap, 'Unknown solution blocking'
     block = bmap[block]
-
-    return adapt, blo, block, cmode, to_enum, exhaust, hybrid, closure, incr, minz, \
+    return adapt, blo, block, cmode, to_enum, exhaust, hybrid, closure, ilp, incr, minz, \
             solver, trim, relax, verbose, vnew, args
 
 
@@ -2600,14 +2801,16 @@ def usage():
     print('        -x, --exhaust            Exhaust new unsatisfiable cores')
     print('        -y, --hybrid             Hybrid on')
     print('        -u, --closure            Closure on')
+    print('        -p, --ilp                ILP on')
     
 
 
 #
 #==============================================================================
 if __name__ == '__main__':
-    adapt, blo, block, cmode, to_enum, exhaust, closure, hybrid, incr, minz, solver, trim, \
+    adapt, blo, block, cmode, to_enum, exhaust, hybrid, closure, ilp, incr, minz, solver, trim, \
             relax, verbose, vnew, files = parse_options()
+
 
     if files:
         # parsing the input formula
@@ -2615,7 +2818,6 @@ if __name__ == '__main__':
             formula = WCNFPlus(from_file=files[0])
         else:  # expecting '*.cnf[,p,+].*'
             formula = CNFPlus(from_file=files[0]).weighted()
-
         # enabling the competition mode
         if cmode:
             assert cmode in ('a', 'b'), 'Wrong MSE18 mode chosen: {0}'.format(cmode)
@@ -2637,10 +2839,12 @@ if __name__ == '__main__':
         else:
             MXS = RC2
 
-        # starting the solver
-        with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust, hybrid = hybrid, closure= closure,
-                incr=incr, minz=minz, trim=trim, relax=relax, verbose=verbose) as rc2:
+        
 
+        # starting the solver
+        with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust, hybrid = hybrid, closure= closure, ilp = ilp,
+                incr=incr, minz=minz, trim=trim, relax=relax, verbose=verbose) as rc2:
+            x,y = rc2.oracle.propagate()
             if isinstance(rc2, RC2Stratified):
                 rc2.bstr = blomap[blo]  # select blo strategy
                 if to_enum != 1:
