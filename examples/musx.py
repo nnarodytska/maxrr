@@ -99,8 +99,8 @@
 from __future__ import print_function
 import getopt
 import os
-from pysat.formula import CNFPlus, WCNFPlus
-from pysat.solvers import Solver, SolverNames
+from pysat_local.formula import CNFPlus, WCNFPlus
+from pysat_local.solvers import Solver, SolverNames
 import re
 import sys
 

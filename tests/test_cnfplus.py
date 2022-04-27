@@ -1,6 +1,6 @@
-from pysat.card import *
-from pysat.formula import CNFPlus
-from pysat.solvers import Solver, SolverNames
+from pysat_local.card import *
+from pysat_local.formula import CNFPlus
+from pysat_local.solvers import Solver, SolverNames
 
 # all available solvers
 solvers = ['cadical',

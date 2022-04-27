@@ -110,8 +110,8 @@ import getopt
 import os
 from pysat.examples.hitman import Hitman
 from pysat.examples.rc2 import RC2
-from pysat.formula import CNFPlus, WCNFPlus
-from pysat.solvers import Solver
+from pysat_local.formula import CNFPlus, WCNFPlus
+from pysat_local.solvers import Solver
 import re
 import sys
 

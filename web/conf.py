@@ -15,7 +15,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-import pysat
+import pysat_local
 
 
 # -- Project information -----------------------------------------------------
@@ -27,7 +27,7 @@ author = u'Alexey Ignatiev, Joao Marques-Silva, Antonio Morgado'
 # The short X.Y version
 version = u''
 # The full version, including alpha/beta/rc tags
-release = pysat.__version__
+release = pysat_local.__version__
 
 # variables to be accessed from html
 html_context = {

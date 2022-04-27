@@ -1,7 +1,7 @@
 import math
-from pysat.formula import IDPool
-from pysat.card import CardEnc, EncType
-from pysat.solvers import MinisatGH
+from pysat_local.formula import IDPool
+from pysat_local.card import CardEnc, EncType
+from pysat_local.solvers import MinisatGH
 
 encs = ['seqcounter', 'sortnetwrk', 'cardnetwrk', 'totalizer', 'mtotalizer',
         'kmtotalizer']

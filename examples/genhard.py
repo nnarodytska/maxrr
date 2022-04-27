@@ -117,8 +117,8 @@ import collections
 import getopt
 import itertools
 import os
-from pysat.card import *
-from pysat.formula import IDPool, CNF
+from pysat_local.card import *
+from pysat_local.formula import IDPool, CNF
 from six.moves import range
 import sys
 

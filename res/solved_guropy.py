@@ -624,6 +624,6 @@ solved_gurobi_wt = [
 "relational-inference/pa-1.wcnf.gz",
 "relational-inference/rc-2.wcnf.gz",
 "setcover-rail_zhendong/pms-instances-of-scp-rail-master/rail516.wcnf.gz",
-"setcover-rail_zhendong/pms-instances-of-scp-rail-master/rail5\"82.wcnf.gz",
+"setcover-rail_zhendong/pms-instances-of-scp-rail-master/rail582.wcnf.gz",
 "MinimumWeightDominatingSetProblem/web-wikipedia2009.wcnf.gz",
 ]

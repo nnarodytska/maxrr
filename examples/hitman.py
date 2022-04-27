@@ -158,7 +158,7 @@
 
 #
 #==============================================================================
-from pysat.formula import IDPool, WCNF
+from pysat_local.formula import IDPool, WCNF
 from pysat.examples.rc2 import RC2, RC2Stratified
 from pysat.examples.lbx import LBX
 from pysat.examples.mcsls import MCSls

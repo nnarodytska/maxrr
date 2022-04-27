@@ -131,9 +131,9 @@ import getopt
 import itertools
 from math import copysign
 import os
-from pysat.formula import CNFPlus, WCNFPlus, IDPool
-from pysat.card import ITotalizer
-from pysat.solvers import Solver, SolverNames
+from pysat_local.formula import CNFPlus, WCNFPlus, IDPool
+from pysat_local.card import ITotalizer
+from pysat_local.solvers import Solver, SolverNames
 import re
 import six
 from six.moves import range

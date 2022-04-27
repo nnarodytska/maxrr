@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.join(os.path.realpath(os.path.abspath(os.path.split(i
 import platform
 import prepare
 
-from pysat import __version__
+from pysat_local import __version__
 
 
 #

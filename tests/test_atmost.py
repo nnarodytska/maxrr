@@ -1,5 +1,5 @@
-from pysat.formula import IDPool
-from pysat.card import CardEnc
+from pysat_local.formula import IDPool
+from pysat_local.card import CardEnc
 
 def test_atmost():
     vp = IDPool()

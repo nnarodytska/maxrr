@@ -1,6 +1,6 @@
 import itertools
 from pysat.examples.optux import OptUx
-from pysat.formula import CNF, WCNF
+from pysat_local.formula import CNF, WCNF
 
 def test_unique_mus():
     def check_formula(wcnf):

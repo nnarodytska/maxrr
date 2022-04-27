@@ -1,5 +1,5 @@
-from pysat.solvers import Solver
-from pysat.formula import CNF
+from pysat_local.solvers import Solver
+from pysat_local.formula import CNF
 
 solvers = ['cadical',
            'gluecard30',

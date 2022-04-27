@@ -11,8 +11,8 @@
 #
 #==============================================================================
 from __future__ import print_function
-from pysat.solvers import Solver  # standard way to import the library
-from pysat.solvers import Minisat22, Glucose3  # more direct way
+from pysat_local.solvers import Solver  # standard way to import the library
+from pysat_local.solvers import Minisat22, Glucose3  # more direct way
 
 #
 #==============================================================================

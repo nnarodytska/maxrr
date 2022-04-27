@@ -86,9 +86,9 @@
 #==============================================================================
 from __future__ import print_function
 import getopt
-from pysat.card import ITotalizer
-from pysat.formula import CNF, WCNF, WCNFPlus
-from pysat.solvers import Solver, SolverNames
+from pysat_local.card import ITotalizer
+from pysat_local.formula import CNF, WCNF, WCNFPlus
+from pysat_local.solvers import Solver, SolverNames
 from threading import Timer
 import os
 import sys
