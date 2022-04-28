@@ -177,7 +177,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = True
+gen_run = False
 process_run = True
 if (gen_run):
     with open('../run.txt', 'w') as the_file:
@@ -636,7 +636,7 @@ if (process_run):
             h_res_v7 = f"{opt:<5}/{lb:<5}  {res_v7[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3}  {h_res_v4}  {h_res_v5}  {h_res_v6}  {h_res_v7}"
+            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_res_v0}"# {h_res_v1}  {h_res_v2}  {h_res_v3}  {h_res_v4}  {h_res_v5}  {h_res_v6}  {h_res_v7}"
             print(s)
             the_file.write(f'{s}\n')
 
@@ -672,26 +672,26 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_res_v3[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_res_v0[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v3[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_res_v0[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = pref + "~~"
                 else:
                     pref = pref+  "  "
 
 
-                if (results_res_v3[f][0] > -1) and results_maxsatcomp[f][0] == -1:
+                if (results_res_v0[f][0] > -1) and results_maxsatcomp[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v3[f][0] == -1) and results_maxsatcomp[f][0] > -1:
+                elif (results_res_v0[f][0] == -1) and results_maxsatcomp[f][0] > -1:
                     pref = pref + "++"
                 else:
                     pref = pref+  "  "
 
 
 
-                if (results_res_v7[f][0] > -1) and results_maxsatcomp[f][0] == -1:
+                if (results_res_v0[f][0] > -1) and results_maxsatcomp[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v7[f][0] == -1) and results_maxsatcomp[f][0] > -1:
+                elif (results_res_v0[f][0] == -1) and results_maxsatcomp[f][0] > -1:
                     pref = pref + "^^"
                 else:
                     pref = pref+  "  "
@@ -767,7 +767,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0} {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}  {s_res_v5}   {s_res_v6}  {s_res_v7}"
+                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0}" # {s_res_v1}  {s_res_v2}   {s_res_v3}  {s_res_v4}  {s_res_v5}   {s_res_v6}  {s_res_v7}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
