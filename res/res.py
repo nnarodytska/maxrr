@@ -334,34 +334,34 @@ class RC2(object):
             # for c in disjoints:
             #    formula.hard.append([c])   
             solution = self.solve_ortools_sat(formula, solve=False)
-            presolve =  True
-            self.oracle = Solver(name=self.solver)
-            return
-            formula = self.solve_gurobi(formula, solve=True, presolve=presolve, solution = solution)
-            #exit()            
-            #formula = formula_new
-            if (presolve):
-                try:
-                    self.cost  =  int(formula.cost)
-                except:
-                    pass
-                if formula.atmosts:
-                    for vars, rhs in formula.atmosts:
-                        #print("atmost", vars, rhs, formula.nv)
-                        cnf = CardEnc.atmost(lits=vars, bound= rhs, encoding= EncType.seqcounter, top_id = formula.nv)
-                        formula.nv = cnf.nv + 1
-                        #print( formula.nv)                    
-                        for cl in cnf.clauses:
-                            formula.hard.append(cl)
+            presolve =  False
+            #self.oracle = Solver(name=self.solver)
+            #return
+            self.solve_gurobi(formula, solve=True, solution = solution)
+            # #exit()            
+            # #formula = formula_new
+            # if (presolve):
+            #     try:
+            #         self.cost  =  int(formula.cost)
+            #     except:
+            #         pass
+            #     if formula.atmosts:
+            #         for vars, rhs in formula.atmosts:
+            #             #print("atmost", vars, rhs, formula.nv)
+            #             cnf = CardEnc.atmost(lits=vars, bound= rhs, encoding= EncType.seqcounter, top_id = formula.nv)
+            #             formula.nv = cnf.nv + 1
+            #             #print( formula.nv)                    
+            #             for cl in cnf.clauses:
+            #                 formula.hard.append(cl)
 
-                if formula.equals:
-                    for vars, rhs in formula.equals:
-                        #print("equal", vars, rhs, )
-                        cnf = CardEnc.equals(lits=vars, bound= rhs, encoding= EncType.seqcounter, top_id = formula.nv)
-                        formula.nv = cnf.nv + 1
-                        #print( formula.nv)                    
-                        for cl in cnf.clauses:
-                            formula.hard.append(cl)
+            #     if formula.equals:
+            #         for vars, rhs in formula.equals:
+            #             #print("equal", vars, rhs, )
+            #             cnf = CardEnc.equals(lits=vars, bound= rhs, encoding= EncType.seqcounter, top_id = formula.nv)
+            #             formula.nv = cnf.nv + 1
+            #             #print( formula.nv)                    
+            #             for cl in cnf.clauses:
+            #                 formula.hard.append(cl)
             
             
 
