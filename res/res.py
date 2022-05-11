@@ -153,7 +153,7 @@ try:
 except:
     pass
 from ortools.sat.python import cp_model
-
+from random import shuffle
 # names of BLO strategies
 #==============================================================================
 blomap = {'none': 0, 'basic': 1, 'div': 3, 'cluster': 5, 'full': 7}
@@ -214,7 +214,7 @@ class RC2(object):
     """
 
     def __init__(self, formula, solver='g3', adapt=False, exhaust=False, hybrid =False, closure =False, ilp = 0,
-            incr=False, minz=False, trim=0, relax='rc2', verbose=0):
+            incr=False, minz=False, trim=0, relax='rc2', verbose=0, file = None):
         """
             Constructor.
         """
@@ -232,7 +232,8 @@ class RC2(object):
         self.graph_labels = {}
         self.closure = closure
         self.ilp = ilp
-
+        self.input_file = file
+        self.forced_model = False
       
 
         # clause selectors and mapping from selectors to clause ids
@@ -292,10 +293,158 @@ class RC2(object):
             print(len(ccs))
             #exit()
             break
+    
+    def read_ortools(self, formula, result_file):
+        if result_file is None:
+            return 
+        obj = -1
+        solution = {}
+        fixed_vars = {}
+        f = open(result_file +".out.txt", "r")
+
+        k = 1
+        for x in f:
+            if x[0:9] == 'objective':
+                obj = int((x.split(":")[1]).replace(" ", ""))
+            if x[0:8] == 'solution':
+                res = x.split(":")
+                #print(x, res)
+                value = int(res[1].replace(" ", ""))                
+                solution[k] = value
+                #print(x, k, solution[k], fixed_vars[k])
+                k = k+ 1
+
+        # for k,v in fixed_vars.items():
+        #     print(k, " ",  v)
+        #     if (v == 0):
+        #         formula.hard.append([-k])
+        #     else:
+        #         formula.hard.append([k])
+        os.remove(result_file+".out.txt")
+        
+
+        f = open(result_file+".results.txt", "r")
+        partial_solution = {}
+        partial_fixed_vars = {}
+
+        status = -1
+        for x in f:
+            if x[0] == 's':
+                status = int((x.split(" ")[1]))
+            if x[0] == 'o':
+                obj = int(x.split()[1])
+            if x[0] == 'v':
+                res = x[1:].split(",")
+                #print(x, res)
+                var = int(res[0].replace(" ", ""))                
+                sol= int(res[1].replace(" ", ""))
+                # if (solution[var] != sol):
+                #     print(f"solution[{var}] = {solution[var]}")
+                #     exit()
+                # else:
+                #      print(f"-->solution[{var}] = {solution[var]}")
+                partial_solution[var] = sol
+                partial_fixed_vars[var] = partial_solution[var] 
+        
+        for k,v in partial_fixed_vars.items():
+            if (v == 0):
+                formula.hard.append([-k])
+            else:
+                formula.hard.append([k])
+        os.remove(result_file+".results.txt")
+        #exit()
+        return obj, partial_solution, solution, status
+    def preprocessor(self, formula):
+        softs = CNF()
+        cores = CNF()
+        prep_sels = []
+        
+        #print(formula.soft)
+        for i, cl in enumerate(formula.soft):
+            
+            selv = cl[0]  # if clause is unit, selector variable is its literal
+
+            if len(cl) > 1:
+                selv = self.pool.id()
+                cl.append(-selv)
+                softs.append(cl)
+            prep_sels.append(selv)
+    
+
+        self.oracle = Solver(name=self.solver, bootstrap_with=formula.hard,
+                incr=incr, use_timer=True)
+                            
+        for i, cl in enumerate(softs):
+            self.oracle.add_clause(cl)
+        upper_bound  = 19
+
+        #print(prep_sels)
+        disjoint_cores = []
+        nb_random = 10
+        rnd = 0
+        prep_sels_init = copy.deepcopy(prep_sels)
+        while rnd  < nb_random:
+            rnd = rnd + 1
+
+            self.oracle.conf_budget(100000)
+            self.oracle.solve_limited(assumptions=prep_sels)
+            solve_res = self.oracle.get_status() 
+            print(solve_res)
+            num_cores = 0
+            round_cores = []
+            while not solve_res and not (solve_res is None):
+                solve_res = True
+                self.core = self.oracle.get_core()
+
+                if self.core:
+                    # try to reduce the core by trimming
+                    self.trim_core()
+                    # and by heuristic minimization
+                    self.unkown_in_core = self.minimize_core()
+
+                #print(self.core)
+                if not (self.core in disjoint_cores):
+                    disjoint_cores.append(self.core)
+                    round_cores.append(self.core)
+
+                print(self.core )
+                print(num_cores, len(disjoint_cores))
+                num_cores +=1
+                if (num_cores == upper_bound-1):
+                    break
+                prep_sels = list(filter(lambda x: x not in  self.core, prep_sels))
+                
+                self.oracle.conf_budget(100000)                
+                self.oracle.solve_limited(assumptions=prep_sels)
+                solve_res = self.oracle.get_status() 
 
 
+                if self.verbose > 1:
+                    print('c cost: {0}; core sz: {1}; soft sz: {2}'.format(self.cost,
+                        len(self.core), len(self.sels) + len(self.sums)))
+                #exit()
+            if not (solve_res is None):
+                in_var = list(itertools.chain.from_iterable(round_cores))
+                out_var =  list(filter(lambda x: x not in  in_var, prep_sels))
+                print(len(in_var))
+                print(len(out_var))
+                cnf = CardEnc.atmost(lits=[-l for l in out_var], bound= upper_bound - 1 - num_cores, encoding= EncType.totalizer, top_id = self.pool.id())
+                formula.nv =self.pool.top+1
+                for cl in cnf:
+                    formula.hard.append(cl)
+
+                for cl in round_cores:
+                    formula.hard.append([-c for c in cl])
 
 
+            prep_sels = copy.deepcopy(prep_sels_init)
+            #print(prep_sels)
+            shuffle(prep_sels)
+            # for cl in round_cores:
+            #     formula.hard.append(cl)
+        #exit()
+        return disjoint_cores
+               
     def init(self, formula, incr=False):
         """
             Initialize the internal SAT oracle. The oracle is used
@@ -324,7 +473,9 @@ class RC2(object):
         self.upperlevel = {}
         self.maxreslevel = {}
     
-
+        
+        #exit()
+        #self.preprocessor(formula)
 
         if self.ilp > 0:
             if self.verbose > 1:
@@ -333,11 +484,50 @@ class RC2(object):
             # disjoints = [-36239, -36240, -36241,-36242, -36243, -36244, -36245,-36246, -36247, -36248, -36249, -36250, -36251, -36252, -36253, -36254, -36255] 
             # for c in disjoints:
             #    formula.hard.append([c])   
-            solution = self.solve_ortools_sat(formula, solve=False)
-            presolve =  False
+            #solution = self.solve_ortools_sat(formula, solve=False)
+            #presolve =  False
             #self.oracle = Solver(name=self.solver)
             #return
-            self.solve_gurobi(formula, solve=True, solution = solution)
+            gurobi_status = -1
+            try:
+                gurobi_obj, gurobi_solution, gurobi_status, gurobi_time = self.solve_gurobi(formula, solve=True)
+            except:
+                pass
+
+            if (gurobi_status == GRB.OPTIMAL):
+                self.force_model(gurobi_solution)
+                self.cost = gurobi_obj
+                self.time = gurobi_time
+                return 
+            else:                
+                #run ortools
+                try:
+                    os.mkdir("temp/")
+                except:
+                    pass
+                base = "temp/" + os.path.basename(self.input_file)
+                result_file  = base + ".wcnf"
+                os.system(f" gunzip -c {self.input_file} > {result_file}") 
+                if (gurobi_status == GRB.SUBOPTIMAL):
+                    s = f"./or-tools/bin/sat_runner --input={result_file}  --output={result_file}.out.txt --output_cnf_solution --upper_bound={gurobi_obj-1} --lower_bound=0"
+                    os.system(s) 
+                else:
+                    s = f"./or-tools/bin/sat_runner --input={result_file}  --output={result_file}.out.txt --output_cnf_solution  --lower_bound=0"
+                    os.system(s) 
+                print(s)
+                self.or_obj, self.or_parial_solution, self.or_solution, or_status = self.read_ortools(formula, result_file)
+                os.remove(result_file)
+                if (or_status == 4): # optimal
+                    self.force_model(self.or_solution)
+                    self.cost = self.or_obj
+                    self.time = 360
+                if (or_status == 3): # infeasible
+                    self.force_model(gurobi_solution)
+                    self.cost = gurobi_obj
+                    self.time = gurobi_time + 360
+                
+
+
             # #exit()            
             # #formula = formula_new
             # if (presolve):
@@ -542,14 +732,16 @@ class RC2(object):
             Explicit destructor of the internal SAT oracle and all the
             totalizer objects creating during the solving process.
         """
+        try:
+            if self.oracle:
+                if not self.oracle.supports_atmost():  # for minicard, there is nothing to free
+                    for t in six.itervalues(self.tobj):
+                        t.delete()
 
-        if self.oracle:
-            if not self.oracle.supports_atmost():  # for minicard, there is nothing to free
-                for t in six.itervalues(self.tobj):
-                    t.delete()
-
-            self.oracle.delete()
-            self.oracle = None
+                self.oracle.delete()
+                self.oracle = None
+        except:
+            pass
 
     def compute(self):
         """
@@ -594,9 +786,10 @@ class RC2(object):
         # simply apply MaxSAT only once
         res = self.compute_()
 
-        if res:
+        if res == True or res == "hit":
             # extracting a model
-            self.model = self.oracle.get_model()
+            if (res == True):
+                self.model = self.oracle.get_model()
 
             if self.model is None and self.pool.top == 0:
                 # we seem to have been given an empty formula
@@ -691,6 +884,15 @@ class RC2(object):
             else:
                 done = True
 
+    def force_model(self, solution, force_flag = True):
+        self.forced_model = force_flag
+        self.model = []
+        for k, v in solution.items():
+            if (v <= 0):
+                self.model.append(-(k-1))
+            else:
+                self.model.append(k-1)        
+
     def compute_(self):
         """
             Main core-guided loop, which iteratively calls a SAT
@@ -702,6 +904,9 @@ class RC2(object):
 
             :rtype: bool
         """
+
+
+
 
         # trying to adapt (simplify) the formula
         # by detecting and using atmost1 constraints
@@ -718,12 +923,24 @@ class RC2(object):
             if not self.core:
                 # core is empty, i.e. hard part is unsatisfiable
                 return False
+
+     
             if  self.relax=='rc2': 
                 self.process_core()
             #print(self.relax)
+
+
             if  self.relax in ['mr2a','mr2b', 'mr2c', 'mr1a', 'mr1b', 'mr1c', 'mr1d', 'mr2d']: 
                 self.process_core_maxres_tree()
-                if self.closure:
+                if (self.or_obj == self.cost + 1):
+                    print('c cost: {0}/{3}; core sz: {1}; soft sz: {2}'.format(self.cost,
+                            len(self.core), len(self.sels) + len(self.sums), self.or_obj))    
+                    self.force_model(self.or_solution)
+                    return "hit";  
+                if self.closure:      
+                    if self.verbose > 1:
+                        print('c cost: {0}/{3}; core sz: {1}; soft sz: {2}'.format(self.cost,
+                            len(self.core), len(self.sels) + len(self.sums), self.or_obj))                          
                     #write_dot(self.graph, 'file.dot')
                     ls_cc = nx.connected_components(self.graph)    
                     ccs = list(ls_cc)
@@ -753,8 +970,8 @@ class RC2(object):
 
 
             if self.verbose > 1:
-                print('c cost: {0}; core sz: {1}; soft sz: {2}'.format(self.cost,
-                    len(self.core), len(self.sels) + len(self.sums)))
+                    print('c cost: {0}/{3}; core sz: {1}; soft sz: {2}'.format(self.cost,
+                            len(self.core), len(self.sels) + len(self.sums), self.or_obj))  
             #exit()
         return True
 
@@ -1011,11 +1228,13 @@ class RC2(object):
         #print(ops)
         #print(wops)
         solver = cp_model.CpSolver()
+       # self.ortools_model.Add(cp_model.LinearExpr.WeightedSum(ops, wops) < 93)
 
         self.ortools_model.Minimize(cp_model.LinearExpr.WeightedSum(ops, wops))
         solver.parameters.log_search_progress = True
-        solver.parameters.num_search_workers = 1
+        solver.parameters.num_search_workers = 10
         solver.parameters.max_time_in_seconds = self.ilp
+        #solver.parameters.
 
 
         status = solver.Solve(self.ortools_model)
@@ -1062,11 +1281,13 @@ class RC2(object):
                 if not (solution is  None):
                     try:
                         #print(c,solution[c])
+                        b.setAttr('VarHintVal', solution[c])
                         b.setAttr('Start', solution[c])
+
                         #self.gurobi_model.addConstr(b == solution[c], f"clause_{c} = {solution[c]}")
                     except:
                         pass
-                        print("-->", c)
+                        #print("-->", c)
             
             #print(gurobi_vars)
             
@@ -1124,35 +1345,45 @@ class RC2(object):
             #print(ops)
             self.gurobi_model.setObjective(gp.quicksum([ops[j]*wops[j] for j,_ in enumerate(ops)]), GRB.MINIMIZE)
             formula_new = None
-            self.gurobi_model.write("test.lp")
+            #self.gurobi_model.write("test.lp")
 
 
             if (solve):
-                self.gurobi_model.optimize()
+                self.gurobi_model.optimize()                
                 obj = None
-                solution_vars = []
                 sols = []
-                if self.gurobi_model.status == GRB.OPTIMAL:
+                t = self.gurobi_model.Runtime
+                if self.gurobi_model.status in {GRB.OPTIMAL, GRB.SUBOPTIMAL}:
+                    solution_vars = {}
                     obj = self.gurobi_model.objVal 
-                    best_obj = int(obj)                
+                    best_obj = int(obj)             
+                    for c in range(max_id):                
+                        b = self.gurobi_vars[c]
+                        solution_vars[c] = int(b.x)
+
                 else:
                     obj = -1
                     best_obj = self.gurobi_model.objVal      
-                print(best_obj)
-
-            if (presolve):
-                try:
-                    self.gurobi_model=self.gurobi_model.presolve()
-                    self.gurobi_model.printStats() 
-                    self.gurobi_model.write("pre-test.lp")
-                    formula_new = WCNFPlus(from_gmodel=self.gurobi_model)                                                            
-                    self.gmodel = self.gurobi_model
-                except Exception as e:
-                    print("-----------", e)
-                    exit()
+                    solution_vars = None
 
 
-            return formula_new
+
+                #print(best_obj)
+
+
+            # if (presolve):
+            #     try:
+            #         self.gurobi_model=self.gurobi_model.presolve()
+            #         self.gurobi_model.printStats() 
+            #         self.gurobi_model.write("pre-test.lp")
+            #         formula_new = WCNFPlus(from_gmodel=self.gurobi_model)                                                            
+            #         self.gmodel = self.gurobi_model
+            #     except Exception as e:
+            #         print("-----------", e)
+            #         exit()
+
+
+            return best_obj, solution_vars, self.gurobi_model.status, t#formula_new
     
     def add_upperlevel(self, lits, tag = 'base'):
         debug = False
@@ -1420,6 +1651,10 @@ class RC2(object):
                    #exit()
                     break 
                 else:
+
+                    if (self.or_obj == self.cost + 1):
+                        return ;  
+
                     if debug: print("exaust continue")
                     #print("exaust continue")
                     flag_continue = True
@@ -1736,7 +1971,10 @@ class RC2(object):
         org_lens = len(self.core)
 
         if self.minz and len(self.core +keep_def ) > 1:
-            self.core = sorted(self.core, key=lambda l: self.wght[l])
+            try:
+                self.core = sorted(self.core, key=lambda l: self.wght[l])
+            except:
+                pass
             
 
             
@@ -2284,7 +2522,7 @@ class RC2Stratified(RC2, object):
 
     def __init__(self, formula, solver='g3', adapt=False, blo='div',
             exhaust=False, hybrid = False, closure = False, ilp = 0, incr=False, minz=False, nohard=False, trim=0,
-            relax='rc2', verbose=0):
+            relax='rc2', verbose=0, file  = None):
         """
             Constructor.
         """
@@ -2292,7 +2530,7 @@ class RC2Stratified(RC2, object):
         # calling the constructor for the basic version
         super(RC2Stratified, self).__init__(formula, solver=solver,
                 adapt=adapt, exhaust=exhaust, hybrid = hybrid, closure=closure, ilp = ilp, incr=incr, minz=minz, trim=trim,relax =relax,
-                verbose=verbose)
+                verbose=verbose, file = file)
 
         self.levl = 0    # initial optimization level
         self.blop = []   # a list of blo levels
@@ -2845,42 +3083,63 @@ if __name__ == '__main__':
 
         # starting the solver
         with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust, hybrid = hybrid, closure= closure, ilp = ilp,
-                incr=incr, minz=minz, trim=trim, relax=relax, verbose=verbose) as rc2:
-            x,y = rc2.oracle.propagate()
-            if isinstance(rc2, RC2Stratified):
-                rc2.bstr = blomap[blo]  # select blo strategy
-                if to_enum != 1:
-                    # no clause hardening in case we enumerate multiple models
-                    print('c hardening is disabled for model enumeration')
-                    rc2.hard = False
+                incr=incr, minz=minz, trim=trim, relax=relax, verbose=verbose, file = files[0]) as rc2:
+            if not rc2.forced_model:
+                x,y = rc2.oracle.propagate()
+                if isinstance(rc2, RC2Stratified):
+                    rc2.bstr = blomap[blo]  # select blo strategy
+                    if to_enum != 1:
+                        # no clause hardening in case we enumerate multiple models
+                        print('c hardening is disabled for model enumeration')
+                        rc2.hard = False
 
-            optimum_found = False
-            for i, model in enumerate(rc2.enumerate(block=block), 1):
-                optimum_found = True
+                optimum_found = False
+                for i, model in enumerate(rc2.enumerate(block=block), 1):
+                    optimum_found = True
+
+                    if verbose:
+                        if i == 1:
+                            print('s OPTIMUM FOUND')
+                            print('o {0}'.format(rc2.cost))
+
+                        if verbose > 3:
+                            if vnew:  # new format of the v-line
+                                print('v', ''.join(str(int(l > 0)) for l in model))
+                            else:
+                                print('v', ' '.join([str(l) for l in model]))
+
+                    if i == to_enum:
+                        break
+                else:
+                    # needed for MSE'20
+                    if verbose > 2 and vnew and to_enum != 1 and block == 1:
+                        print('v')
 
                 if verbose:
-                    if i == 1:
-                        print('s OPTIMUM FOUND')
-                        print('o {0}'.format(rc2.cost))
+                    if not optimum_found:
+                        print('s UNSATISFIABLE')
+                    elif to_enum != 1:
+                        print('c models found:', i)
+
+                    if verbose > 1:
+                        print('c oracle time: {0:.4f}'.format(rc2.oracle_time()))
+            else:
+                optimum_found = True
+                model = rc2.model
+                if verbose:
+
+                    print('s OPTIMUM FOUND')
+                    print('o {0}'.format(rc2.cost))
 
                     if verbose > 3:
                         if vnew:  # new format of the v-line
                             print('v', ''.join(str(int(l > 0)) for l in model))
                         else:
-                            print('v', ' '.join([str(l) for l in model]))
+                            print('v', ' '.join([str(l) for l in model]))                
 
-                if i == to_enum:
-                    break
-            else:
-                # needed for MSE'20
-                if verbose > 2 and vnew and to_enum != 1 and block == 1:
-                    print('v')
+                if verbose:
+                    if not optimum_found:
+                        print('s UNSATISFIABLE')
 
-            if verbose:
-                if not optimum_found:
-                    print('s UNSATISFIABLE')
-                elif to_enum != 1:
-                    print('c models found:', i)
-
-                if verbose > 1:
-                    print('c oracle time: {0:.4f}'.format(rc2.oracle_time()))
+                    if verbose > 1:
+                        print('c oracle time: {0:.4f}'.format(rc2.time))

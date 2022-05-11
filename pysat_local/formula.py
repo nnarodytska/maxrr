@@ -1165,7 +1165,7 @@ class WCNF(object):
                     self.equals.append([vars, rhs-extra])
                 elif sense == "<":
                     self.atmosts.append([vars, rhs-extra])
-                print("-->",r, vars, rhs, extra, sense, self.nv )
+                #print("-->",r, vars, rhs, extra, sense, self.nv )
 
             else:
                 assert(rhs == 1)
