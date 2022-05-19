@@ -180,7 +180,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
 gen_run = True
 process_run = True
 if (gen_run):
-    with open('../run.txt', 'w') as the_file:
+    with open('./run.txt', 'w') as the_file:
         for tm in to:
             known = []
 
