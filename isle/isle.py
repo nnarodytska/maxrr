@@ -138,7 +138,7 @@ import re
 import six
 from six.moves import range
 import sys
-import pprofile
+#import pprofile
 from graphviz import Digraph
 
 
