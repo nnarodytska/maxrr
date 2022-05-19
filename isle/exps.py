@@ -219,7 +219,7 @@ if (gen_run):
                         s = f"timeout -t {tm}s python3.8.8 -u ../examples/rc2.py -vv {filename} > {res_filename}.{rc2[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
                     if (rc2comp[0]):
-                        #s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b  -v {filename} > {res_filename}.{rc2comp[1]}.{timetag}res "
+                        #s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b  -v {filename} > {res_filename}.{rc2comp[1]}.{timetag}res "
                         s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/examples/rc2.py -c b  -v {filename} > {res_filename}.{rc2comp[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
@@ -237,42 +237,42 @@ if (gen_run):
                         the_file.write(f'{s}\n')
 
                     if (res_v0[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b  {res_v0[2]}  -vv {filename} > {res_filename}.{res_v0[3]}.{res_v0[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b  {res_v0[2]}  -vv {filename} > {res_filename}.{res_v0[3]}.{res_v0[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (res_v1[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b  {res_v1[2]}  -vv {filename} > {res_filename}.{res_v1[3]}.{res_v1[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b  {res_v1[2]}  -vv {filename} > {res_filename}.{res_v1[3]}.{res_v1[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (res_v2[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b {res_v2[2]} -vv {filename} > {res_filename}.{res_v2[3]}.{res_v2[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v2[2]} -vv {filename} > {res_filename}.{res_v2[3]}.{res_v2[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (res_v3[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b {res_v3[2]} -vv {filename} > {res_filename}.{res_v3[3]}.{res_v3[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v3[2]} -vv {filename} > {res_filename}.{res_v3[3]}.{res_v3[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (res_v4[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b {res_v4[2]} -vv {filename} > {res_filename}.{res_v4[3]}.{res_v4[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v4[2]} -vv {filename} > {res_filename}.{res_v4[3]}.{res_v4[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (res_v5[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b {res_v5[2]} -vv {filename} > {res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v5[2]} -vv {filename} > {res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
                     if (res_v6[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b {res_v6[2]} -vv {filename} > {res_filename}.{res_v6[3]}.{res_v6[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v6[2]} -vv {filename} > {res_filename}.{res_v6[3]}.{res_v6[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
                     if (res_v7[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b {res_v7[2]} -vv {filename} > {res_filename}.{res_v7[3]}.{res_v7[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v7[2]} -vv {filename} > {res_filename}.{res_v7[3]}.{res_v7[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
                     if (resrg[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/res/res.py -c b  {resrg[2]}  -vv {filename} > {res_filename}.{resrg[3]}.{resrg[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b  {resrg[2]}  -vv {filename} > {res_filename}.{resrg[3]}.{resrg[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
