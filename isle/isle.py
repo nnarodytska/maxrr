@@ -131,6 +131,7 @@ import getopt
 import itertools
 from math import copysign
 import os
+import time
 from pysat.formula import CNFPlus, WCNFPlus, IDPool
 from pysat.card import ITotalizer
 from pysat.solvers import Solver, SolverNames
@@ -230,6 +231,14 @@ class RC2(object):
         self.sums = []  # totalizer sum assumptions
         self.cost = 0
         self.round = 0
+        self.time = 0
+        self.timer = time.time()
+        self.build_time = 0
+        
+        
+
+
+        
 
         # mappings between internal and external variables
         VariableMap = collections.namedtuple('VariableMap', ['e2i', 'i2e'])
@@ -372,7 +381,13 @@ class RC2(object):
                 len(self.formula.hard), len(self.formula.soft)))
 
     def rebuild(self, reactivate = False):
+        try:
+            self.time += self.oracle.time_accum()
+        except:
+            pass
+        tm = time.time()
         self.oracle = Solver(name=self.solver, bootstrap_with=self.formula.hard, use_timer=True)
+        self.build_time  += time.time() - tm
         active_selectors    = []
         active_weights      = []
 
@@ -586,8 +601,7 @@ class RC2(object):
             #print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ core {self.core} round {self.round}")
 
             if self.verbose > 1:
-                print('c cost: {0}; core sz: {1}; soft sz: {2}'.format(self.cost,
-                    len(self.core), len(self.sels) + len(self.sums)))
+                print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{rc2.build_time:.4f}")
 
             self.rebuild()
             # assert(self.oracle.solve(assumptions=self.sol))
@@ -1325,7 +1339,8 @@ class RC2(object):
             Report the total SAT solving time.
         """
 
-        return self.oracle.time_accum()
+        end = time.time()
+        return self.time + self.oracle.time_accum() +  end - self.timer - self.build_time
 
     def _map_extlit(self, l):
         """
@@ -1506,6 +1521,7 @@ if __name__ == '__main__':
         with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust,
                 incr=incr, minz=minz, trim=trim, circuitinject=circuitinject, verbose=verbose) as rc2:
 
+            
             # if isinstance(rc2, RC2Stratified):
             #     rc2.bstr = blomap[blo]  # select blo strategy
             #     if to_enum != 1:
