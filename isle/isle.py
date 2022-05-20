@@ -601,7 +601,7 @@ class RC2(object):
 
         debug = False
         # main solving loop
-        print(self.sels + self.sums)
+        #print(self.sels + self.sums)
         unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
         #assert(self.oracle.solve(assumptions=self.sol))
         print(f"start  unsat {unsat}")
