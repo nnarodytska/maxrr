@@ -665,7 +665,7 @@ if (process_run):
 
             for fls in all_files:
                 f = fls[0]
-                print(f)
+                #print(f)
                 file_name  = fls[1]
                 gs_pref = " "
                 for gs in solved_gurobi:
