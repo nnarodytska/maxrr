@@ -128,8 +128,8 @@ cashwmaxsat = [False, "cashwmaxsat"]
 res_v0  = [False, "maxres","--circuitinject=0", "v0"]
 res_v1 = [False, "maxres", "--circuitinject=1", "v1"]
 res_v2 = [False, "maxres", "--circuitinject=2",  "v2"]
-res_v3 = [True, "maxres", "--circuitinject=2",  "v3"] # with closure
-res_v4 = [False, "maxres", "-r mr1b -y",  "v4"] # 
+res_v3 = [False, "maxres", "--circuitinject=2",  "v3"] # with closure
+res_v4 = [True, "maxres", "--circuitinject=2,  "v4"] # 
 res_v5 = [False, "maxres", "-r mr1b -y -u",  "v5"] 
 res_v6 = [False, "maxres", "-r mr2a -y ",  "v6"] 
 res_v7 = [False, "ortools", "",  "ortools"] 
@@ -180,7 +180,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open(run_file, 'w') as the_file:
@@ -657,7 +657,7 @@ if (process_run):
             h_res_v7 = f"{opt:<5}/{lb:<5}  {res_v7[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3}  "#{h_res_v4}  {h_res_v5}  {h_res_v6}  {h_res_v7}"
+            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3} {h_res_v4}   "#{h_res_v5}  {h_res_v6}  {h_res_v7}"
             print(s)
             the_file.write(f'{s}\n')
 
@@ -788,7 +788,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0}{s_res_v1}  {s_res_v2}    {s_res_v3} " # {s_res_v4}  {s_res_v5}   {s_res_v6}  {s_res_v7}"
+                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0}{s_res_v1}  {s_res_v2}    {s_res_v3} {s_res_v4} " #  {s_res_v5}   {s_res_v6}  {s_res_v7}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
