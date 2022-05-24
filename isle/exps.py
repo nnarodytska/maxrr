@@ -300,8 +300,8 @@ if (gen_run):
                         except:
                             pass                    
                     filename2 = filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
-                    print(filename1)
-                    print(filename2)
+                    #print(filename1)
+                    #print(filename2)
 
                     try:
                         os.mkdir(filename1)
@@ -321,6 +321,8 @@ if (process_run):
     res_v0  = [True, "maxres", "--circuitinject=0", "v0"]
     res_v1 = [True, "maxres", "--circuitinject=1", "v1"]
     res_v2 = [True, "maxres", "--circuitinject=2", "v2"]
+    res_v3 = [True, "maxres", "--circuitinject=2", "v3"]
+
     # resrg  = [True, "resrg",  "", "v0"]
 
 
@@ -386,7 +388,7 @@ if (process_run):
                             s = f"{res_filename}.{rc2comp[1]}.{timetag}res"
                             s = s.replace("mse21_unwt_results", "mse21_unwt_results_g4_rc2_many_mrs")
 			    #"mse21_unwt_results_g4_rc2_many_mrs")#"mse21_unwt_results_back")#
-                            print(s)
+                            #print(s)
                             res = copy.deepcopy(dummy)
                             results_rc2comp[file_name] = res
 
