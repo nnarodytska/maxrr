@@ -300,9 +300,9 @@ if (process_run):
 
     maxhs = [True, "maxhs"]
     rc2comp = [True, "rc2comp"]
-    results_res_v0  = [True, "maxres"]
-    results_res_v1 = [True, "maxres",]
-    results_res_v2 = [True, "maxres",]
+    results_res_v0  = [True, "maxres", "--circuitinject=0", "v0"]
+    results_res_v1 = [True, "maxres", "--circuitinject=1", "v1"]
+    results_res_v2 = [True, "maxres", "--circuitinject=2", "v2"]
     # resrg  = [True, "resrg",  "", "v0"]
 
 
