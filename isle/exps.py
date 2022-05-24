@@ -300,9 +300,9 @@ if (process_run):
 
     maxhs = [True, "maxhs"]
     rc2comp = [True, "rc2comp"]
-    results_res_v0  = [False, "maxres"]
-    results_res_v1 = [False, "maxres",]
-    results_res_v2 = [False, "maxres",]
+    results_res_v0  = [True, "maxres"]
+    results_res_v1 = [True, "maxres",]
+    results_res_v2 = [True, "maxres",]
     # resrg  = [True, "resrg",  "", "v0"]
 
 
