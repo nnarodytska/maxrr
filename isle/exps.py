@@ -132,10 +132,13 @@ res_v3 = [True, "maxres", "--circuitinject=2",  "v3"] # with closure
 res_v4 = [False, "maxres", "-r mr1b -y",  "v4"] # 
 res_v5 = [False, "maxres", "-r mr1b -y -u",  "v5"] 
 res_v6 = [False, "maxres", "-r mr2a -y ",  "v6"] 
-res_v7 = [False, "maxres", "-r mr2a -y -u",  "v7"] 
+res_v7 = [False, "ortools", "",  "ortools"] 
 
 # gurobi
-
+or_tools = False
+run_file = './run.txt'
+if (or_tools):
+    run_file = './or_run.txt'
 resrg  = [False, "resrg",  "", "v0"]
 
 to = [3600]#, 3600*3]
@@ -180,7 +183,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
 gen_run = False
 process_run = True
 if (gen_run):
-    with open('./run.txt', 'w') as the_file:
+    with open(run_file, 'w') as the_file:
         for tm in to:
             known = []
 
@@ -204,7 +207,15 @@ if (gen_run):
                     local_desktop = "pysat" # 
 
                     known.append(filename)
+                    
                     res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
+                    if (or_tools):
+                        res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_ortools")
+                        try:
+                            os.mkdir("/home/nina/workspace/data/mse21_unwt_ortools/")
+                        except:
+                            pass
+
                     res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
 
                     name = (res_filename.split("/"))[-1]
@@ -249,7 +260,7 @@ if (gen_run):
                         the_file.write(f'{s}\n')
 
                     if (res_v3[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v3[2]} -vv {filename} > {res_filename}.{res_v3[3]}.{res_v3[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v3[2]} -vv {filename} > {res_fiename}.{res_v3[3]}.{res_v3[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (res_v4[0]):
@@ -267,6 +278,7 @@ if (gen_run):
 
 
                     if (res_v7[0]):
+                        os.system("gunzip -c {filename} > {res_filename_1}.wcnf")
                         s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v7[2]} -vv {filename} > {res_filename}.{res_v7[3]}.{res_v7[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
@@ -281,6 +293,12 @@ if (gen_run):
 
                 else:
                     filename1 = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
+                    if (or_tools):
+                        filename1 = filename.replace("mse21_complete_unwt", "mse21_unwt_ortools")
+                        try:
+                            os.mkdir("/home/nina/workspace/data/mse21_unwt_ortools/")
+                        except:
+                            pass                    
                     filename2 = filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
                     print(filename1)
                     print(filename2)
@@ -683,9 +701,9 @@ if (process_run):
                     pref = pref+  "  "
 
 
-                if (results_res_v2[f][0] > -1) and results_maxsatcomp[f][0] == -1:
+                if (results_res_v2[f][0] > -1) and results_res_v3[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v2[f][0] == -1) and results_maxsatcomp[f][0] > -1:
+                elif (results_res_v2[f][0] == -1) and results_res_v3[f][0] > -1:
                     pref = pref + "++"
                 else:
                     pref = pref+  "  "
