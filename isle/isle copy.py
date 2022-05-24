@@ -131,7 +131,6 @@ import copy
 import getopt
 import itertools
 from math import copysign
-import math
 import os
 import time
 from pysat.formula import CNFPlus, WCNFPlus, IDPool
@@ -241,7 +240,8 @@ class RC2(object):
         self.sat_time = 0
         self.garbage = set()
 
-        self.asm2nodes = {}
+        self.or_model = None
+        self.or_model_ub = None
         
         
 
@@ -258,6 +258,8 @@ class RC2(object):
         # core minimization is going to be extremely expensive
         # for large plain formulas, and so we turn it off here
         wght = self.wght.values()
+        if not formula.hard and len(self.sels) > 100000 and min(wght) == max(wght):
+            self.minz = False
 
         self.test_cores = []
         
@@ -322,8 +324,7 @@ class RC2(object):
 
 
         self.formula = formula
-        self.orig_formula = copy.deepcopy(formula)
-
+        self.init_nb_hard =  len(formula.hard)
         # adding soft clauses to oracle
 
         dublicated = {} 
@@ -343,6 +344,8 @@ class RC2(object):
                 dublicated[selv] += self.formula.wght[i]
                 removable.append(i)
         
+        # trying to adapt (simplify) the formula
+        # by detecting and using atmost1 constraints
 
         removable = sorted(removable, reverse=True)
         for selv, w in dublicated.items():
@@ -364,13 +367,13 @@ class RC2(object):
                 selv = self.pool.id()
                 cl.append(-selv)            
                 self.add_new_clause(cl, self.formula.hard, self.oracle)
-            
-            t = self.create_node(name = "{-selv}", u = selv,  v = selv,  weight = self.formula.wght[i],  type = INITIAL_SELECTOR, status = STATUS_ACTIVE)
-
-
+            t = Circuit(f"{-selv}", 
+                        u = selv,
+                        v = selv, 
+                        weight = self.formula.wght[i], 
+                        type = INITIAL_SELECTOR, 
+                        status = STATUS_ACTIVE)
             self.forest.append(t)
-
-            
             if selv  in self.wght:         
                 assert False, "we should not have duplicates"
 
@@ -386,26 +389,9 @@ class RC2(object):
             print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
                 len(self.formula.hard), len(self.formula.soft)))
 
-        if not self.orig_formula.hard and len(self.sels) > 100000 and min(self.orig_formula.wght) == max(self.orig_formula.wght):
-            self.minz = False  
-
-    def create_node(self, name, u, v, weight, type, status, children = None, into_phase = 0):
-
-        node = Circuit(name,        
-                        u = u,
-                        v = v, 
-                        weight = weight, 
-                        type = type, 
-                        status = status,
-                        children = children,
-                        into_phase = into_phase
-                        )        
-        self.asm2nodes[u] = node
-        return node
-
     def rebuild(self, reactivate = False, init = False, debug = False):
 
-        print("------------->  rebuild  <-----------------")
+        #print("------------->  rebuild  <-----------------")
         
 
 
@@ -419,11 +405,17 @@ class RC2(object):
                 self.time += self.oracle.time_accum()
             except:
                 pass            
+            # print("---")
             self.oracle = Solver(name=self.solver, bootstrap_with=self.formula.hard, use_timer=True)
             self.build_time  += time.time() - tm
+            # for cl in self.formula.hard[self.init_nb_hard:]:
+            #     print("hard", cl)
 
+
+        
 
         prev_asm_len = len(self.sums + self.sels)
+        #print("start ", self.sums + self.sels, prev_asm_len)
         if (prev_asm_len == 0):
             prev_asm_len = len(self.forest)
         else:
@@ -445,13 +437,16 @@ class RC2(object):
         if not (self.use_accum_oracle) or (init):
 
             nodes = forest_nodes(self.forest)
+
             for i, node in enumerate(nodes):
+                # if (node.status  == STATUS_INACTIVE):
+                #     continue
                 for v_cl in node.v_clauses:
                     #print(v_cl)
                     self.oracle.add_clause(v_cl)
 
                 for u_cl in node.u_clauses:
-                    #print(v_cl)
+                    #print(u_cl)
                     self.oracle.add_clause(u_cl)
                     
 
@@ -459,17 +454,18 @@ class RC2(object):
         # storing the set of selectors
         self.sels_set = set(self.sels)
         self.sums_set = set()
-        print(f" self.sels  = {len(self.sels)}")
-        print(f" self.sums  = {len(self.sums)}")
+        #print(f" self.sels  = {len(self.sels)}")
+        #print(f" self.sums  = {len(self.sums)}")
         #print(f" self.sels  = {(self.sels)}")
         #print(f" self.sums  = {sorted(self.sums)}")
 
         #print(len(self.sums + self.sels), prev_asm_len )
 
-        # if not (reactivate):
-        #     if not (len(self.sums + self.sels) <= prev_asm_len): 
-        #         forest_build_graph(self.forest)        
-        #     assert(len(self.sums + self.sels) <= prev_asm_len)
+        if not (reactivate):
+            #print(self.sums + self.sels, prev_asm_len)
+            if not (len(self.sums + self.sels) <= prev_asm_len): 
+                forest_build_graph(self.forest)        
+            assert(len(self.sums + self.sels) <= prev_asm_len)
 
 
     def delete(self):
@@ -523,9 +519,7 @@ class RC2(object):
         """
 
         # simply apply MaxSAT only once
-        debug = False
         res = self.compute_()
-        if debug: print(res)
 
         if res:
             # extracting a model
@@ -542,13 +536,13 @@ class RC2(object):
 
             return self.model
 
-    def reactivate(self, model):
+    def reactivate(self, model, or_model = None):
         if (self.circuitinject == CIRCUITINJECT_DELAYED):
-            return self.delayed_reactivation(model)
+            return self.delayed_reactivation(model, or_model)
         else:
-            return self.reactivation(model)
+            return self.reactivation(model, or_model)
 
-    def reactivation(self, model):
+    def reactivation(self, model, or_model = None):
         #  selectors_nodes = []
         # for t in self.forest:
         #     get_nodes(t, selectors_nodes)
@@ -564,8 +558,11 @@ class RC2(object):
         for node in waiting_selectors_nodes:
             u =  node.u
             #print(u, model[u-1])
-            #if u != model[u-1]:
-            if(True):
+            cond = (node.u != model[node.u-1])
+            if not (or_model  is None):
+                cond = (node.u != or_model[node.u])
+            if cond:
+            #if(True):
                 node.status = STATUS_ACTIVE
                 violated_waiting += 1
         if violated_waiting == 0:
@@ -576,7 +573,7 @@ class RC2(object):
         return violated_waiting
 
 
-    def delayed_reactivation(self, model = None, forest = None):
+    def delayed_reactivation(self, model, or_model = None):
         #  selectors_nodes = []
         # for t in self.forest:
         #     get_nodes(t, selectors_nodes)
@@ -587,9 +584,7 @@ class RC2(object):
         #     print(u, model[u-1])
 
         #print("-------------")              
-        if (forest is None):
-            forest = self.forest
-        folded_selectors_nodes = forest_folded(forest)
+        folded_selectors_nodes = forest_folded(self.forest)
         # for node in folded_selectors_nodes:
         #     print(node.__str__())
         violated_folded = 0
@@ -597,8 +592,13 @@ class RC2(object):
         for node in folded_selectors_nodes:
             #print(node)
             #print(u, model[u-1])
-            if True:
-            #if node.v != model[node.v-1]:
+            #if True:
+            # for a,b in or_model.items():
+            #     print(a,b,node.v)
+            cond = (node.v != model[node.v-1])
+            if not (or_model  is None)  and node.v in or_model:
+                cond = (node.v != or_model[node.v])
+            if cond:
                 self.delayed_resolution(circuits = node.children, t = node, unfoldng = True)
                 violated_folded += 1
         if violated_folded == 0:
@@ -623,32 +623,48 @@ class RC2(object):
             :rtype: bool
         """
 
+
+        # trying to adapt (simplify) the formula
+        # by detecting and using atmost1 constraints
         if self.adapt:
             self.adapt_am1()
             self.rebuild(reactivate = True, init = True)
-            #or_model, or_model_ub = solve_ortools(self.formula, self.forest)
+       
 
-        debug = True
+        debug = False
         # main solving loop
-        #if debug: print(self.sels + self.sums)
         unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
         #assert(self.oracle.solve(assumptions=self.sol))
         print(f"start  unsat {unsat}")
+    
 
         while unsat:
+            #print("self.sels + self.sums", self.sels + self.sums)
 
             self.get_core()
+            #solve_ortools(self.formula, self.forest, minimization = self.sels + self.sums)
+
 
             if not self.core:
                 # core is empty, i.e. hard part is unsatisfiable
                 return False
-            self.process_core()
+            #print(1, self.core)
+            #assert(self.oracle.solve(assumptions=self.core) == False)
+            #print(2)
+            new_relaxs = self.process_core()
+            #print(3, self.core, new_relaxs)
+            #new_status = self.oracle.solve(assumptions=new_relaxs)
+            #print(4)
+
+
             #print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ core {self.core} round {self.round}")
 
             if self.verbose > 1:
                 print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
 
             self.rebuild()
+            #assert(self.oracle.solve(assumptions=new_relaxs) == new_status)
+
             # assert(self.oracle.solve(assumptions=self.sol))
             # model = self.oracle.get_model()
             # for s in self.sums+self.sels + [193, 197, 209, 187, 207, 205, 201, 214, 216]:
@@ -657,26 +673,64 @@ class RC2(object):
             #     except:
             #         pass
 
-            # forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}-start")
+            #forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}-start")
 
 
             unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
             delayed_selectors_nodes = []
             if (not unsat):
                 delayed_selectors_nodes = forest_waiting(self.forest) +  forest_folded(self.forest)
+            #print(f"delayed_selectors_nodes {delayed_selectors_nodes}")
             rebuild = 0
+            nodes = forest_i_selectors(self.forest)
             while (not unsat) and len(delayed_selectors_nodes) > 0:
                 tm = time.time()                     
                 model = self.oracle.get_model()
+                # if(rebuild == 0):
+                #     #or_model = None
+                #     or_model, or_model_ub = solve_ortools(self.formula, self.forest, extra_nodes = nodes, hints = self.or_model, lb = self.cost, ub = self.or_model_ub)
+                #     if not (or_model is None) and len(or_model) > 0:
+                #         self.or_model = copy.deepcopy(or_model)
+                #         self.or_model_ub = or_model_ub
+
+                # else:
+                #     if not(self.or_model is None):
+                #         ass  = []
+                #         for a,b in self.or_model.items():
+                #             if (b):
+                #                 ass.append(a)
+                #             else:
+                #                 ass.append(-a)
+                #         r, props = self.oracle.propagate(assumptions=ass)
+                        
+                #         for a in props:                            
+                #             if a in ass:
+                #                 continue
+                #             #print(a)
+                #             if (a > 0):
+                #                 self.or_model[a] = True
+                #             else:
+                #                 self.or_model[-a] = False
+                #         #exit()
+
+  
+
+                
+                    
+
                 #forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}")
-                nb_violated = self.reactivate(model)
+                nb_violated = self.reactivate(model, None)
                 #forest_build_graph(self.forest, fname= "g_"+GRAPH_PRINT_DEF+f"-{self.round}")
                 print(f"any violated? {nb_violated}")
 
                 if (nb_violated == 0):
                     break
 
+
                 self.rebuild(reactivate = True)
+                if self.verbose > 1:
+                    print(f"c same-cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
+
                 # assert(self.oracle.solve(assumptions=self.sol))
                 # model = self.oracle.get_model()
                 # for s in self.sums+self.sels:
@@ -686,7 +740,18 @@ class RC2(object):
                 
                 rebuild +=1
 
+                #solve_ortools(self.formula, self.forest, self.sels + self.sums)
                 unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
+                # or_model = solve_ortools(self.formula, self.forest, nodes = nodes)
+                # if (or_model is None):
+                #     unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
+                # else:
+                #     if(len(or_model) == 0):
+                #         unsat = True
+                #     else:
+                #         unsat = False
+
+
                 self.sat_time  += time.time() - tm
 
                 print("---", unsat)#, self.sels, self.sums)
@@ -699,7 +764,6 @@ class RC2(object):
                 if (debug):
                     forest_build_graph(self.forest)
                     #exit()
-
 
             
         return True
@@ -747,22 +811,24 @@ class RC2(object):
 
 
     def deactivate_sel(self, u):
-        node  = forest_find_node(self.forest, u, mapping = self.asm2nodes)
+        node  = forest_find_node(self.forest, u)
         node.status = STATUS_INACTIVE
         node.weight = 0
+
         self.garbage.add(u)
 
     def deactivate_unit(self, u):        
-        node  = forest_find_node(self.forest, u, mapping = self.asm2nodes)
+        node  = forest_find_node(self.forest, u)
         node.status = STATUS_INACTIVE        
         node.u_clauses.append([-u])
 
     def update_weight_sel(self, u, new_weight):
-        node  = forest_find_node(self.forest, u, mapping = self.asm2nodes)
+        node  = forest_find_node(self.forest, u)
         node.weight = new_weight
 
     
-    def add_new_clause(self, cl, vec, oracle, label = "", full_encoding = True, debug = False):
+    def add_new_clause(self, cl, vec, oracle, label = "", debug = False):
+        #debug  = True
         vec.append(cl)  
         oracle.add_clause(cl)
         if (debug): print(label,  cl)
@@ -823,7 +889,7 @@ class RC2(object):
         circuits = []
         root_nodes = []
         for c in core:
-            node  = forest_find_node(self.forest, u = c, mapping = self.asm2nodes)
+            node  = forest_find_node(self.forest, u = c)
             circuits.append(node)
             assert(node.u == c)
             if node.is_root():
@@ -845,8 +911,16 @@ class RC2(object):
             if (self.circuitinject == CIRCUITINJECT_TOP) and (len(core) > 2):
                 status = STATUS_WAITING
             
-            t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = status, children = [node0, node1], into_phase = self.round)
-
+            
+            t = Circuit(f"{-u}", 
+                            u = u, 
+                            v = v,
+                            weight = self.minw, 
+                            type = SELECTOR, 
+                            status = status,
+                            children=[node0, node1],
+                            into_phase = self.round)
+        
             #print(core[0], core[1], node0.u, node1.u)
             if (t.status == STATUS_ACTIVE):
                 new_relaxs.append(u)
@@ -866,16 +940,15 @@ class RC2(object):
         #for t in self.forest:
         #    traverse(t)
         self.filter_forest()
-
         for node in root_nodes:
             #print(f"clean up looking {node}")            
             # we are looking at a root so it will be part of a bigger circuit
             if not (node in self.forest):
-                continue            
+                continue
             self.forest.remove(node)
             #print(f"----------------------------> remove subcircuit {node}")
         return new_relaxs
-
+        
     def folded_half(self, children, debug = False):
         node = None
         t_w = None
@@ -886,8 +959,16 @@ class RC2(object):
             t_w = u
         else:
             u = self.pool.id()    
-            v = self.pool.id()    
-            node = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = STATUS_FOLDED, children = children, into_phase = self.round)
+            v = self.pool.id()              
+            node = Circuit(f"{-u}", 
+                            u = u, 
+                            v = v,
+                            weight = self.minw, 
+                            type = SELECTOR, 
+                            status = STATUS_FOLDED,
+                            children= children,
+                            into_phase = self.round)
+
             self.added_folded_gate(node, v, [n.u for n in children])
             if (debug): print("--->", node, v, [n.u for n in children])
             t_w = v
@@ -961,7 +1042,7 @@ class RC2(object):
         #forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}-a")
 
         for c in core:
-            node  = forest_find_node(self.forest, u = c, mapping = self.asm2nodes)
+            node  = forest_find_node(self.forest, u = c)
             circuits.append(node)
             if node.is_root():
                 root_nodes.append(node)
@@ -980,20 +1061,37 @@ class RC2(object):
             t1, t1_w = self.folded_half(half1)
             t2, t2_w = self.folded_half(half2)
 
-            t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = STATUS_ACTIVE, children = [t1, t2], into_phase = self.round)
-    
+
+
+            t = Circuit(f"{-u}", 
+                                u = u, 
+                                v = v,
+                                weight = self.minw, 
+                                type = SELECTOR, 
+                                status = STATUS_ACTIVE,
+                                children=[t1, t2],
+                                into_phase = self.round)
             if (t.status == STATUS_ACTIVE):
                 new_relaxs.append(u)
+
             self.added_gate(t, t1_w, t2_w)
             if (debug): print([n.u for n in half1], f"t {t}",  f"t1 {t1} w {t1_w} ")            
             if (debug): print([n.u for n in half2], f"t {t}",  f"t1 {t2} w {t2_w} ")
         else:               
             t1  = circuits[0]
             t2  = circuits[1]
-            t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = STATUS_ACTIVE, children = [t1, t2], into_phase = self.round)
+            t = Circuit(f"{-u}", 
+                                u = u, 
+                                v = v,
+                                weight = self.minw, 
+                                type = SELECTOR, 
+                                status = STATUS_ACTIVE,
+                                children=[t1, t2],
+                                into_phase = self.round)
 
             if (t.status == STATUS_ACTIVE):
-                new_relaxs.append(u)  
+                new_relaxs.append(u)
+
             t1.parents.append(t)
             t2.parents.append(t)                
                 
@@ -1009,7 +1107,6 @@ class RC2(object):
         #    traverse(t)
         #print(f" unfoldng {unfoldng} root_nodes{[n.u for n in root_nodes]}")
         self.filter_forest()
-
         for node in root_nodes:
             #print(f"clean up looking {node}")            
             # we are looking at a root so it will be part of a bigger circuit
@@ -1020,7 +1117,6 @@ class RC2(object):
             #print(f"----------------------------> remove subcircuit {node}")
 
         return new_relaxs
-
     
     def filter_forest(self):
         to_dels = []
@@ -1036,6 +1132,7 @@ class RC2(object):
             nodes = []
             get_nodes(t, nodes)            
             for node in nodes:
+                #print("---->", node.u,  node.v_clauses, node.u_clauses)
                 for v_cl in node.v_clauses:
                     self.add_new_clause(v_cl, self.formula.hard, self.oracle)
                     
@@ -1066,29 +1163,15 @@ class RC2(object):
         # assumptions to remove
         self.garbage = set()
         new_relaxs = []
-
         if  len(self.core_sels + self.core_sums) > 1:
             rels = self.process_assumptions()
             self.core = [-l for l in rels]
             #print(self.core, self.core_sums, self.core_sels)
-            #self.add_new_clause(self.core , self.formula.hard, self.oracle)
-            if self.circuitinject == CIRCUITINJECT_DELAYED:
-
-                if (len(self.core) <= 16):
-                    self.circuitinject = CIRCUITINJECT_FULL
-                    new_relaxs = self.resolution(self.core)
-                    self.circuitinject = CIRCUITINJECT_DELAYED
-                else:
-                    new_relaxs = self.delayed_resolution(self.core)
-                    assert(len(new_relaxs) == 1)
-                    node = forest_find_node(self.forest, new_relaxs[0], mapping = self.asm2nodes)
-                    partial_unfolding = int(math.log2(len(self.core))*2/3)
-                    for i in range(partial_unfolding):
-                        self.delayed_reactivation(forest = [node])
+            self.add_new_clause(self.core , self.formula.hard, self.oracle)
+            if (self.circuitinject == CIRCUITINJECT_DELAYED):
+                new_relaxs = self.delayed_resolution(self.core)
             else:
-
                 new_relaxs = self.resolution(self.core)
-                
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)
@@ -1099,11 +1182,11 @@ class RC2(object):
         #     traverse(t)
 
         self.filter_forest()
-        # print("------------------------")
-        # for j, t in enumerate(self.forest):
-        #     print(f"----->  tree {j} ")
-        #     traverse(t)
-        #return new_relaxs
+
+        # print("*************************")
+        # for t in self.forest:
+        #     traverse(t)        
+        return new_relaxs
 
     def adapt_am1(self):
         """
@@ -1259,12 +1342,16 @@ class RC2(object):
             self.add_new_clause([-l for l in rels] + [-selv], self.formula.hard, self.oracle)
  
 
-            t = self.create_node(name = f"{-selv}", u = selv,  v = selv,  weight = self.minw,  type = INITIAL_SELECTOR, status = STATUS_ACTIVE)
-
+            t = Circuit(f"{-selv}", 
+                        u = selv, 
+                        v = selv, 
+                        weight = self.minw, 
+                        type = INITIAL_SELECTOR, 
+                        status = STATUS_ACTIVE)
             self.forest.append(t)
             for u in self.garbage:
                 #print(u)
-                node = forest_find_node(forest=self.forest, u = u, mapping = self.asm2nodes)
+                node = forest_find_node(forest=self.forest, u = u)
                 node.status = STATUS_INACTIVE
                 
 
@@ -1275,7 +1362,6 @@ class RC2(object):
         self.filter_forest()
         #print(len(self.forest), "<--")
         #print("return")
-
 
     def trim_core(self):
         """
@@ -1318,8 +1404,9 @@ class RC2(object):
         """
 
         debug = False
-        #print(self.minz)
-        if self.minz and len(self.core) > 1 and (len(self.core) < 1000):
+        if debug: print(self.core)
+
+        if self.minz and len(self.core) > 1:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
             i = 0
             keep = []
@@ -1340,7 +1427,7 @@ class RC2(object):
 
                 keep = [c for c in keep if c in proj]
                 self.oracle.prop_budget(100000)
-
+ 
                 #print(prop)
                 if self.oracle.solve_limited(assumptions= keep + to_test) == False:
                     newcore = self.oracle.get_core()
@@ -1352,6 +1439,7 @@ class RC2(object):
 
                 else:
                     keep.append(core[0])
+
                 if debug: print(f"{self.oracle.get_status()} {core[0]}")
                 core = core[1:]
                     #break
@@ -1359,8 +1447,10 @@ class RC2(object):
 
             self.core =  keep
             #print(f"final {keep}")
-            #assert(self.oracle.solve_limited(assumptions=self.core) == False)
-            if debug: print(f"min end {len(self.core)}")            
+            if debug: assert(self.oracle.solve_limited(assumptions=self.core) == False)
+            if debug: print(f"min end {len(self.core)}")         
+        #exit()
+   
             
     def process_assumptions(self):
         """
@@ -1380,7 +1470,7 @@ class RC2(object):
 
         # new relaxation variables
         rels = []
-
+        
         for l in self.core_sels + self.core_sums:
             if self.wght[l] == self.minw:
                 self.deactivate_sel(u = l)
@@ -1405,8 +1495,8 @@ class RC2(object):
             return  self.oracle.time_accum() 
 
         else:
-            end = time.time()
-            return self.time + self.oracle.time_accum() #+  end - self.timer - self.build_time
+            #end = time.time()
+            return self.time + self.oracle.time_accum() #-  self.build_time
 
     def _map_extlit(self, l):
         """

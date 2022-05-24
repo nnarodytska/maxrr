@@ -14,7 +14,8 @@ from graphviz import Digraph
 from circuit import build_graph, find_u, get_active_selectors_nodes, get_folded_selectors_nodes, get_nodes, get_waiting_selectors_nodes
 
 
-def forest_find_node(forest, u):
+def forest_find_node (forest, u,  mapping):
+    return mapping[u]
     node = None            
     for i, t in enumerate(forest):
         # print(f"circuit #{i}")
