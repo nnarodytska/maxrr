@@ -51,7 +51,7 @@ def add_hards(ortools_model, ortools_vars, formula, forest):
         for u_cl in node.u_clauses:
             create_clauses_con(ortools_model, ortools_vars, u_cl) 
 
-def solve_ortools(formula, forest, extra_nodes = None, minimization = [], hints = None, lb = None, ub = None):        
+def solve_ortools(formula, forest, extra_nodes = None, minimization = [], hints = None, lb = None, ub = None, to = 600):        
          
     ##########################################
     ortools_model = cp_model.CpModel()
@@ -129,7 +129,7 @@ def solve_ortools(formula, forest, extra_nodes = None, minimization = [], hints 
     solver = cp_model.CpSolver()
     solver.parameters.log_search_progress = True
     solver.parameters.num_search_workers = 1
-    solver.parameters.max_time_in_seconds = 300
+    solver.parameters.max_time_in_seconds = to
     #solver.parameters.
     status = solver.Solve(ortools_model)
     print('Solve status: %s' % solver.StatusName(status))

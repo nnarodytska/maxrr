@@ -527,6 +527,10 @@ class RC2(object):
         res = self.compute_()
         if debug: print(res)
 
+        # or_model, or_model_ub = solve_ortools(self.formula, self.forest, to = 600)
+        # print(self.)
+        # exit()
+
         if res:
             # extracting a model
             self.model = self.oracle.get_model()
@@ -628,7 +632,7 @@ class RC2(object):
             self.rebuild(reactivate = True, init = True)
             #or_model, or_model_ub = solve_ortools(self.formula, self.forest)
 
-        debug = True
+        debug = False
         # main solving loop
         #if debug: print(self.sels + self.sums)
         unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
