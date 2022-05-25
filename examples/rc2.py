@@ -1153,10 +1153,7 @@ class RC2(object):
             the core processing methods, i.e. in :func:`process_core`,
             :func:`process_sels`, and :func:`process_sums`.
         """
-        print(len(self.garbage), len(self.sels))
-        print(1)
         self.sels = list(filter(lambda x: x not in self.garbage, self.sels))
-        print(2)
         self.sums = list(filter(lambda x: x not in self.garbage, self.sums))
 
         self.bnds = {l: b for l, b in six.iteritems(self.bnds) if l not in self.garbage}

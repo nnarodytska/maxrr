@@ -227,7 +227,7 @@ if (gen_run):
                     if (tm > 3601):
                         timetag = str(tm) + "."
                     if (rc2[0]):
-                        s = f"timeout -t {tm}s python3.8.8 -u ../examples/rc2.py -vv {filename} > {res_filename}.{rc2[1]}.{timetag}res "
+                        s = f"timeout -t {tm}s python3.8 -u ../examples/rc2.py -vv {filename} > {res_filename}.{rc2[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
                     if (rc2comp[0]):
                         #s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b  -v {filename} > {res_filename}.{rc2comp[1]}.{timetag}res "
