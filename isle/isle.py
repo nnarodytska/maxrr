@@ -133,6 +133,7 @@ import itertools
 from math import copysign
 import math
 import os
+import random
 import time
 from pysat.formula import CNFPlus, WCNFPlus, IDPool
 from pysat.card import ITotalizer
@@ -440,7 +441,7 @@ class RC2(object):
         for u, _ in sorted_active_u2l.items():
             #print(f"--------------{u}------------")
             node= forest_find_node(u, self.asm2nodes)
-            #print(node)
+            print(node)
             if node.type == INITIAL_SELECTOR:
                 self.sels.append(node.u)
             else:
@@ -835,8 +836,10 @@ class RC2(object):
         #     forest_build_graph(self.forest, fname= f"graph-{self.round}")
         circuits = []
         root_nodes = set()
+        #random.shuffle(core)
         for c in core:
             node  = forest_find_node(u = c, mapping = self.asm2nodes)
+            print(node)
             circuits.append(node.u)
             assert(node.u == c)
             if node.is_root():
@@ -883,6 +886,7 @@ class RC2(object):
                 core = core[clean_thresh:]   
                 circuits = circuits[clean_thresh:]   
                 pointer = 0
+
         set_topdown_levels(t, level = 0)
         self.forest.append(t.u)
         self.filter_forest(root_nodes)
@@ -1309,14 +1313,15 @@ class RC2(object):
             dropped after obtaining 1000 conflicts.
         """
 
-        debug = False
+        debug = True
         #print(self.minz)
-        if self.minz and len(self.core) > 1 and (len(self.core) < 1000):
+        if self.minz and len(self.core) > 1 and (len(self.core) < 1000) and len(self.formula.hard) < 5000000:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
             i = 0
             keep = []
             core = self.core
             proj = keep + core 
+            
             start_prop = 5000000
             def_prop = 100000
             misses_in_a_row = 50
@@ -1324,6 +1329,8 @@ class RC2(object):
             time_total = 0
             core = self.core
             time_per_call = 2
+         
+                
 
             while len(core) > 0:
                 if (miss == misses_in_a_row):
@@ -1340,6 +1347,7 @@ class RC2(object):
                     continue
 
                 keep = [c for c in keep if c in proj]
+                #################################################
                 self.oracle.clear_interrupt()
                 self.oracle.prop_budget(start_prop)
                 def interrupt(s):
@@ -1347,15 +1355,19 @@ class RC2(object):
                 timer = Timer(time_per_call, interrupt, [self.oracle])            
                 start =time.time()
                 timer.start()
+
                 status = self.oracle.solve_limited(assumptions= keep + to_test, expect_interrupt=True)        
+                
                 timer.cancel()        
                 time_total +=time.time() - start
-
                 self.oracle.clear_interrupt()
-
+                
                 if (time_total > 60):
                     start_prop = def_prop
+                    time_per_call = 1
                 
+                ##############################################
+
                 if debug:  print('c oracle time: {0:.4f}'.format(time_total))
                 #print(prop)
                 if status  == False:

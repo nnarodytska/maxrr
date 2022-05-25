@@ -11,7 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from graphviz import Digraph
 
-from circuit import STATUS_ACTIVE, STATUS_WAITING, build_graph, find_u, get_active_selectors_nodes, get_active_selectors_u_and_level_nodes, get_folded_selectors_nodes, get_nodes, get_waiting_selectors_nodes
+from circuit import INITIAL_SELECTOR, STATUS_ACTIVE, STATUS_WAITING, build_graph, find_u, get_active_selectors_nodes, get_active_selectors_u_and_level_nodes, get_folded_selectors_nodes, get_nodes, get_waiting_selectors_nodes
 
 
 def forest_find_node (u,  mapping):
@@ -60,7 +60,10 @@ def u_and_level_active(mapping):
     u2l = {}
     for u, node in mapping.items():
         if node.status == STATUS_ACTIVE:
-            u2l[u]= node.level
+            if (node.type == INITIAL_SELECTOR):
+                u2l[u]= 0               
+            else:
+                u2l[u]= (node.level+1)*1000 - node.into_phase
 
     return u2l
 
