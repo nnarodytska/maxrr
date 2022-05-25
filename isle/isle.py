@@ -441,7 +441,7 @@ class RC2(object):
         for u, _ in sorted_active_u2l.items():
             #print(f"--------------{u}------------")
             node= forest_find_node(u, self.asm2nodes)
-            print(node)
+            #print(node)
             if node.type == INITIAL_SELECTOR:
                 self.sels.append(node.u)
             else:
@@ -839,7 +839,7 @@ class RC2(object):
         #random.shuffle(core)
         for c in core:
             node  = forest_find_node(u = c, mapping = self.asm2nodes)
-            print(node)
+            #print(node)
             circuits.append(node.u)
             assert(node.u == c)
             if node.is_root():
@@ -1312,7 +1312,7 @@ class RC2(object):
             During this core minimization procedure, all SAT calls are
             dropped after obtaining 1000 conflicts.
         """
-
+ 
         debug = False
         #print(self.minz)
         if self.minz and len(self.core) > 1 and (len(self.core) < 1000) and len(self.formula.hard) < 10000000:
