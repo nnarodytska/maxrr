@@ -126,8 +126,8 @@ rc2comp = [False, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
 res_v0  = [False, "maxres","--circuitinject=0", "v0"]
-res_v1 = [False, "maxres", "--circuitinject=1", "v1"]
-res_v2 = [True, "maxres", "--circuitinject=0",  "v2"]
+res_v1 = [True, "maxres", "--circuitinject=1", "v1"]
+res_v2 = [False, "maxres", "--circuitinject=0",  "v2"]
 res_v3 = [False, "maxres", "--circuitinject=2",  "v3"] # with closure
 res_v4 = [False, "maxres", "--circuitinject=2",  "v4"] # 
 res_v5 = [False, "maxres", "-r mr1b -y -u",  "v5"] 
