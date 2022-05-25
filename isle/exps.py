@@ -704,9 +704,9 @@ if (process_run):
                     pref = pref+  "  "
 
 
-                if (results_res_v2[f][0] > -1) and results_res_v0[f][0] == -1:
+                if (results_res_v0[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v2[f][0] == -1) and results_res_v0[f][0] > -1:
+                elif (results_res_v0[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = pref + "++"
                 else:
                     pref = pref+  "  "

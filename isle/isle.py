@@ -1305,7 +1305,7 @@ class RC2(object):
             dropped after obtaining 1000 conflicts.
         """
 
-        debug = False
+        debug = True
         #print(self.minz)
         if self.minz and len(self.core) > 1 and (len(self.core) < 1000):
             self.core = sorted(self.core, key=lambda l: self.wght[l])
