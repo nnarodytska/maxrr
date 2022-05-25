@@ -180,7 +180,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open(run_file, 'w') as the_file:
@@ -704,9 +704,9 @@ if (process_run):
                     pref = pref+  "  "
 
 
-                if (results_res_v0[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_res_v2[f][0] > -1) and results_maxsatcomp[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v0[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_res_v2[f][0] == -1) and results_maxsatcomp[f][0] > -1:
                     pref = pref + "++"
                 else:
                     pref = pref+  "  "
