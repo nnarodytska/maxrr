@@ -366,9 +366,7 @@ class RC2(object):
                 self.add_new_clause(cl, self.formula.hard, self.oracle)
             
             t = self.create_node(name = "{-selv}", u = selv,  v = selv,  weight = self.formula.wght[i],  type = INITIAL_SELECTOR, status = STATUS_ACTIVE)
-
-
-            self.forest.append(t)
+            self.forest.append(t.u)
 
             
             if selv  in self.wght:         
@@ -432,8 +430,8 @@ class RC2(object):
 
         
         self.wght = {}  # weights of soft clauses
-        
-        active_selectors_nodes = forest_active(self.forest)
+
+        active_selectors_nodes = forest_active(self.forest, self.asm2nodes)
         for i, node in enumerate(active_selectors_nodes):
             if node.type == INITIAL_SELECTOR:
                 self.sels.append(node.u)
@@ -444,7 +442,7 @@ class RC2(object):
 
         if not (self.use_accum_oracle) or (init):
 
-            nodes = forest_nodes(self.forest)
+            nodes = forest_nodes(self.forest, self.asm2nodes)
             for i, node in enumerate(nodes):
                 for v_cl in node.v_clauses:
                     #print(v_cl)
@@ -563,7 +561,7 @@ class RC2(object):
         #     print(u, model[u-1])
 
         #print("-------------")              
-        waiting_selectors_nodes = forest_waiting(self.forest)
+        waiting_selectors_nodes = forest_waiting(self.forest, self.asm2nodes)
         violated_waiting = 0
         for node in waiting_selectors_nodes:
             u =  node.u
@@ -593,7 +591,7 @@ class RC2(object):
         #print("-------------")              
         if (forest is None):
             forest = self.forest
-        folded_selectors_nodes = forest_folded(forest)
+        folded_selectors_nodes = forest_folded(forest, self.asm2nodes)
         # for node in folded_selectors_nodes:
         #     print(node.__str__())
         violated_folded = 0
@@ -603,7 +601,7 @@ class RC2(object):
             #print(u, model[u-1])
             if True:
             #if node.v != model[node.v-1]:
-                self.delayed_resolution(circuits = node.children, t = node, unfoldng = True)
+                self.delayed_resolution(circuits = [n.u for n in node.children], t = node, unfoldng = True)
                 violated_folded += 1
         if violated_folded == 0:
             print(f"sat model while folded {len(folded_selectors_nodes)}")
@@ -667,7 +665,7 @@ class RC2(object):
             unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
             delayed_selectors_nodes = []
             if (not unsat):
-                delayed_selectors_nodes = forest_waiting(self.forest) +  forest_folded(self.forest)
+                delayed_selectors_nodes = forest_waiting(self.forest, self.asm2nodes) +  forest_folded(self.forest, self.asm2nodes)
             rebuild = 0
             while (not unsat) and len(delayed_selectors_nodes) > 0:
                 tm = time.time()                     
@@ -701,7 +699,7 @@ class RC2(object):
                 #     #exit()
                 
                 if (debug):
-                    forest_build_graph(self.forest)
+                    forest_build_graph(self.forest, self.asm2nodes)
                     #exit()
 
 
@@ -751,18 +749,18 @@ class RC2(object):
 
 
     def deactivate_sel(self, u):
-        node  = forest_find_node(self.forest, u, mapping = self.asm2nodes)
+        node  = forest_find_node(u, mapping = self.asm2nodes)
         node.status = STATUS_INACTIVE
         node.weight = 0
         self.garbage.add(u)
 
     def deactivate_unit(self, u):        
-        node  = forest_find_node(self.forest, u, mapping = self.asm2nodes)
+        node  = forest_find_node(u, mapping = self.asm2nodes)
         node.status = STATUS_INACTIVE        
         node.u_clauses.append([-u])
 
     def update_weight_sel(self, u, new_weight):
-        node  = forest_find_node(self.forest, u, mapping = self.asm2nodes)
+        node  = forest_find_node( u, mapping = self.asm2nodes)
         node.weight = new_weight
 
     
@@ -825,59 +823,57 @@ class RC2(object):
         #     print("--->", core, self.round )
         #     forest_build_graph(self.forest, fname= f"graph-{self.round}")
         circuits = []
-        root_nodes = []
+        root_nodes = set()
         for c in core:
-            node  = forest_find_node(self.forest, u = c, mapping = self.asm2nodes)
-            circuits.append(node)
+            node  = forest_find_node(u = c, mapping = self.asm2nodes)
+            circuits.append(node.u)
             assert(node.u == c)
             if node.is_root():
-                root_nodes.append(node)
+                root_nodes.add(node.u)
 
-
+        len_core = len(core)
         upper = []
-        while len(core) >= 2:
+        pointer = 0
+        while pointer+1 < len(core):
             u = self.pool.id()    
             v = self.pool.id()    
             
-
-            node0  = circuits[0]
-            node1  = circuits[1]
-            self.sanity_build_up(node0, core[0], upper)
-            self.sanity_build_up(node1, core[1], upper) 
+            if (len(core)%5000 ==0):
+                print(len(core))
+                
+            node0  = forest_find_node(u = circuits[pointer],     mapping = self.asm2nodes) 
+            node1  = forest_find_node(u = circuits[pointer + 1], mapping = self.asm2nodes) 
+            
+            if (len_core < 100):
+                self.sanity_build_up(node0, core[pointer], upper)
+                self.sanity_build_up(node1, core[pointer + 1], upper) 
 
             status = STATUS_ACTIVE
             if (self.circuitinject == CIRCUITINJECT_TOP) and (len(core) > 2):
                 status = STATUS_WAITING
             
             t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = status, children = [node0, node1], into_phase = self.round)
-
+            #print(t.u)
             #print(core[0], core[1], node0.u, node1.u)
             if (t.status == STATUS_ACTIVE):
                 new_relaxs.append(u)
-            self.added_gate(t, core[0], core[1])
 
-            core = core[2:] + [ v ]    
-            circuits = circuits[2:] + [ t ]    
-            upper.append(v)
-        
-            #exit()
-            # if (self.relax in ['mr2a', 'mr2b', 'mr2d']):
-            #     core = core[2:] + [ v ]
-            # if (self.relax in ['mr1a', 'mr1b',  'mr1d']):
-            #     core = [v] + core[2:] 
-        
-        self.forest.append(t)
-        #for t in self.forest:
-        #    traverse(t)
-        self.filter_forest()
+            ######################################################3
+            self.added_gate(t, core[pointer], core[pointer + 1])
+            ######################################################
+            
+            core = core + [ v ]    
+            circuits = circuits +[ t.u]    
+            if (len_core < 100): upper.append(v)
+            pointer = pointer + 2
+           
+            if (pointer > 5000) and len(core) > 5002:
+                core = core[5000:]   
+                circuits = circuits[5000:]   
+                pointer = 0
 
-        for node in root_nodes:
-            #print(f"clean up looking {node}")            
-            # we are looking at a root so it will be part of a bigger circuit
-            if not (node in self.forest):
-                continue            
-            self.forest.remove(node)
-            #print(f"----------------------------> remove subcircuit {node}")
+        self.forest.append(t.u)
+        self.filter_forest(root_nodes)
         return new_relaxs
 
     def folded_half(self, children, debug = False):
@@ -897,24 +893,32 @@ class RC2(object):
             t_w = v
         return node, t_w
 
-
+    def us2nodes(self, us):
+        nodes = []
+        for u in us:
+            nodes.append(forest_find_node(u, mapping = self.asm2nodes))
+        return nodes
     def delayed_resolution_unfolding(self, core = None, circuits = None, t = None, debug = False):
         #print("*****************8 delayed_resolution_unfolding *****************")
         assert(not (circuits is None))
         assert(not (t is None))
-        for node in circuits:
+        for u in circuits:
+            node= forest_find_node(u , mapping = self.asm2nodes)
             assert not node.is_root(), f"Folded node is a root {node}"
 
                 
 
         if (len(circuits) > 2):
 
-            for node in circuits:
+            for u in circuits:
+                node = forest_find_node(u, mapping = self.asm2nodes)
                 node.parents = []
                 
             len_half = int(len(circuits)/2)
-            half1 =  circuits[:len_half]
-            half2 =  circuits[len_half:] 
+            for u in  circuits[:len_half]:
+                print(u)
+            half1 = self.us2nodes( circuits[:len_half])
+            half2 = self.us2nodes( circuits[len_half:]) 
             
             t1, t1_w = self.folded_half(half1)
             if (debug): print([n.u for n in half1], f"t {t}",  f"t1 {t1} w {t1_w} ")
@@ -934,7 +938,6 @@ class RC2(object):
             self.added_gate(t, t1_w, t2_w)
 
         elif  len(circuits) == 2:          
-
             t.status   = STATUS_ACTIVE
             [t1, t2] = t.children
             if (debug):  print(t.v_clauses)                 
@@ -958,17 +961,17 @@ class RC2(object):
             self.delayed_resolution_unfolding(core = core, circuits = circuits, t =t)
             return
         
-        root_nodes = []
+        root_nodes = set()
 
         assert(not (core is None))
         circuits = []
         #forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}-a")
 
         for c in core:
-            node  = forest_find_node(self.forest, u = c, mapping = self.asm2nodes)
-            circuits.append(node)
+            node  = forest_find_node(u = c, mapping = self.asm2nodes)
+            circuits.append(node.u)
             if node.is_root():
-                root_nodes.append(node)
+                root_nodes.add(node.u)
 
 
         u = self.pool.id()    
@@ -978,8 +981,8 @@ class RC2(object):
         if (len(circuits) > 2):
  
             len_half = int(len(circuits)/2)
-            half1 =  circuits[:len_half]
-            half2 =  circuits[len_half:] 
+            half1 = self.us2nodes( circuits[:len_half])
+            half2 = self.us2nodes( circuits[len_half:]) 
             
             t1, t1_w = self.folded_half(half1)
             t2, t2_w = self.folded_half(half2)
@@ -992,8 +995,8 @@ class RC2(object):
             if (debug): print([n.u for n in half1], f"t {t}",  f"t1 {t1} w {t1_w} ")            
             if (debug): print([n.u for n in half2], f"t {t}",  f"t1 {t2} w {t2_w} ")
         else:               
-            t1  = circuits[0]
-            t2  = circuits[1]
+            t1  =  forest_find_node(u = circuits[0], mapping = self.asm2nodes)
+            t2  =  forest_find_node(u = circuits[1], mapping = self.asm2nodes) 
             t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = STATUS_ACTIVE, children = [t1, t2], into_phase = self.round)
 
             if (t.status == STATUS_ACTIVE):
@@ -1008,46 +1011,41 @@ class RC2(object):
                         
             
         
-        self.forest.append(t)
-        #for t in self.forest:
-        #    traverse(t)
-        #print(f" unfoldng {unfoldng} root_nodes{[n.u for n in root_nodes]}")
-        self.filter_forest()
+        self.forest.append(t.u)
+        self.filter_forest(root_nodes)
 
-        for node in root_nodes:
-            #print(f"clean up looking {node}")            
-            # we are looking at a root so it will be part of a bigger circuit
-            #print( node)
-            if not (node in self.forest):
-                continue
-            self.forest.remove(node)
-            #print(f"----------------------------> remove subcircuit {node}")
 
         return new_relaxs
 
     
-    def filter_forest(self):
-        to_dels = []
-        for i, t in enumerate(self.forest):
-            if (is_inactive(t)):
-                to_dels.append(i)
-                #print(f"inactive {t} {i}")
+    def filter_forest(self, not_nodes):
+        #print(len(not_nodes), len(self.forest))
 
-        to_dels = sorted(to_dels, reverse=True)
-        for i in to_dels:
-            #############################################
-            t = self.forest[i]
-            nodes = []
-            get_nodes(t, nodes)            
-            for node in nodes:
-                for v_cl in node.v_clauses:
-                    self.add_new_clause(v_cl, self.formula.hard, self.oracle)
+        self.forest = list(filter(lambda x: x not in not_nodes, self.forest))
+
+        # to_dels = []
+        # for i, u in enumerate(self.forest):
+        #     t = forest_find_node(u, self.asm2nodes)
+        #     if (is_inactive(t)):
+        #         to_dels.append(i)
+        #         #print(f"inactive {t} {i}")
+
+        # to_dels = sorted(to_dels, reverse=True)
+        # for i in to_dels:
+        #     #############################################
+        #     u = self.forest[i]
+        #     t = forest_find_node(u, self.asm2nodes)            
+        #     nodes = []
+        #     get_nodes(t, nodes)            
+        #     for node in nodes:
+        #         for v_cl in node.v_clauses:
+        #             self.add_new_clause(v_cl, self.formula.hard, self.oracle)
                     
-                for u_cl in node.u_clauses:                    
-                    self.add_new_clause(u_cl, self.formula.hard, self.oracle)
-            ##############################################
+        #         for u_cl in node.u_clauses:                    
+        #             self.add_new_clause(u_cl, self.formula.hard, self.oracle)
+        #     ##############################################
 
-            self.forest = self.forest[:i] + self.forest[i+1:]
+        #     self.forest = self.forest[:i] + self.forest[i+1:]
 
     def process_core(self):
         """
@@ -1069,7 +1067,6 @@ class RC2(object):
 
         # assumptions to remove
         self.garbage = set()
-        new_relaxs = []
 
         if  len(self.core_sels + self.core_sums) > 1:
             rels = self.process_assumptions()
@@ -1078,31 +1075,27 @@ class RC2(object):
             #self.add_new_clause(self.core , self.formula.hard, self.oracle)
             if self.circuitinject == CIRCUITINJECT_DELAYED:
 
-                if (len(self.core) <= 16):
+                if (len(self.core) <= 4):
                     self.circuitinject = CIRCUITINJECT_FULL
-                    new_relaxs = self.resolution(self.core)
+                    self.resolution(self.core)
                     self.circuitinject = CIRCUITINJECT_DELAYED
                 else:
-                    new_relaxs = self.delayed_resolution(self.core)
-                    assert(len(new_relaxs) == 1)
-                    node = forest_find_node(self.forest, new_relaxs[0], mapping = self.asm2nodes)
-                    partial_unfolding = int(math.log2(len(self.core))*2/3)
-                    for i in range(partial_unfolding):
-                        self.delayed_reactivation(forest = [node])
+                    self.delayed_resolution(self.core)
             else:
 
-                new_relaxs = self.resolution(self.core)
+                self.resolution(self.core)
                 
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)
             self.deactivate_unit(u = self.core[0])
+            self.forest.remove(self.core[0])
 
         # print("*************************")
         # for t in self.forest:
         #     traverse(t)
 
-        self.filter_forest()
+        #self.filter_forest()
         # print("------------------------")
         # for j, t in enumerate(self.forest):
         #     print(f"----->  tree {j} ")
@@ -1265,18 +1258,18 @@ class RC2(object):
 
             t = self.create_node(name = f"{-selv}", u = selv,  v = selv,  weight = self.minw,  type = INITIAL_SELECTOR, status = STATUS_ACTIVE)
 
-            self.forest.append(t)
+            self.forest.append(t.u)
             for u in self.garbage:
                 #print(u)
-                node = forest_find_node(forest=self.forest, u = u, mapping = self.asm2nodes)
+                node = forest_find_node(u = u, mapping = self.asm2nodes)
                 node.status = STATUS_INACTIVE
-                
+                self.forest.remove(u)
 
 
         # removing unnecessary assumptions
         self.garbage = set()
         #print("-->", len(self.forest))
-        self.filter_forest()
+        #self.filter_forest()
         #print(len(self.forest), "<--")
         #print("return")
 

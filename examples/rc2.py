@@ -131,9 +131,9 @@ import getopt
 import itertools
 from math import copysign
 import os
-from pysat_local.formula import CNFPlus, WCNFPlus, IDPool
-from pysat_local.card import ITotalizer
-from pysat_local.solvers import Solver, SolverNames
+from pysat.formula import CNFPlus, WCNFPlus, IDPool
+from pysat.card import ITotalizer
+from pysat.solvers import Solver, SolverNames
 import re
 import six
 from six.moves import range
@@ -1153,8 +1153,10 @@ class RC2(object):
             the core processing methods, i.e. in :func:`process_core`,
             :func:`process_sels`, and :func:`process_sums`.
         """
-
+        print(len(self.garbage), len(self.sels))
+        print(1)
         self.sels = list(filter(lambda x: x not in self.garbage, self.sels))
+        print(2)
         self.sums = list(filter(lambda x: x not in self.garbage, self.sums))
 
         self.bnds = {l: b for l, b in six.iteritems(self.bnds) if l not in self.garbage}
@@ -1737,7 +1739,7 @@ if __name__ == '__main__':
         # enabling the competition mode
         if cmode:
             assert cmode in ('a', 'b'), 'Wrong MSE18 mode chosen: {0}'.format(cmode)
-            adapt, blo, exhaust, solver, verbose = True, 'div', True, 'g4', 3
+            adapt, blo, exhaust, solver, verbose = True, 'div', True, 'g4', 2
 
             if cmode == 'a':
                 trim = 5 if max(formula.wght) > min(formula.wght) else 0

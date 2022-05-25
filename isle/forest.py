@@ -14,26 +14,16 @@ from graphviz import Digraph
 from circuit import build_graph, find_u, get_active_selectors_nodes, get_folded_selectors_nodes, get_nodes, get_waiting_selectors_nodes
 
 
-def forest_find_node (forest, u,  mapping):
+def forest_find_node (u,  mapping):
+    assert u in mapping, f"u={u} is missing"
     return mapping[u]
-    node = None            
-    for i, t in enumerate(forest):
-        # print(f"circuit #{i}")
-        # traverse(t)
-        node = find_u(t, u = u)            
-        if not (node is None):
-            break
-    if (node is None):
-        assert False, f"could not find {u}"
-        
-        
-    return node
 
-def forest_build_graph(forest, fname ='graph.dot'):
+def forest_build_graph(forest, mapping, fname ='graph.dot'):
     graph = Digraph()
     edges = []
     nodes = []
-    for t in forest:
+    for u in forest:
+        t = mapping[u]
         build_graph(t, graph = graph, nodes = nodes,  edges = edges, is_top = True, fname = fname)    
 
 def unique_nodes(nodes, unique):
@@ -41,31 +31,35 @@ def unique_nodes(nodes, unique):
         nodes = list(set(nodes))
     return nodes
     
-def forest_folded(forest, unique = True):
+def forest_folded(forest, mapping, unique = True):
     nodes = []
-    for t in forest:
+    for u in forest:
+        t = forest_find_node(u, mapping)
         get_folded_selectors_nodes(t, nodes)
 
     return unique_nodes(nodes, unique)
 
 
-def forest_waiting(forest, unique = True):
+def forest_waiting(forest, mapping, unique = True):
     nodes = []
-    for t in forest:
+    for u in forest:
+        t = forest_find_node(u, mapping)
         get_waiting_selectors_nodes(t, nodes)
 
     return unique_nodes(nodes, unique)
 
-def forest_active(forest, unique = True):
+def forest_active(forest, mapping, unique = True):
     nodes = []
-    for i, t in enumerate(forest):
+    for u in forest:
+        t = forest_find_node(u, mapping)
         get_active_selectors_nodes(t, nodes)
 
     return unique_nodes(nodes, unique)         
 
-def forest_nodes(forest, unique = True):
+def forest_nodes(forest, mapping, unique = True):
     nodes = []
-    for i, t in enumerate(forest):
+    for u in forest:
+        t = forest_find_node(u, mapping)
         get_nodes(t, nodes)
 
     return unique_nodes(nodes, unique)  
