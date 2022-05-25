@@ -757,14 +757,15 @@ class RC2(object):
     def deactivate_unit(self, u):        
         node  = forest_find_node(u, mapping = self.asm2nodes)
         node.status = STATUS_INACTIVE        
-        node.u_clauses.append([-u])
+        self.add_new_clause([-u], node.u_clauses, self.oracle, label = "", debug = False)
+        
 
     def update_weight_sel(self, u, new_weight):
         node  = forest_find_node( u, mapping = self.asm2nodes)
         node.weight = new_weight
 
     
-    def add_new_clause(self, cl, vec, oracle, label = "", full_encoding = True, debug = False):
+    def add_new_clause(self, cl, vec, oracle, label = "",  debug = False):
         vec.append(cl)  
         oracle.add_clause(cl)
         if (debug): print(label,  cl)
@@ -1089,13 +1090,14 @@ class RC2(object):
             # unit cores are treated differently
             # (their negation is added to the hard part)
             self.deactivate_unit(u = self.core[0])
-            self.forest.remove(self.core[0])
+            assert(self.core[0] in self.forest)
+            self.filter_forest([self.core[0]])
 
         # print("*************************")
         # for t in self.forest:
         #     traverse(t)
 
-        #self.filter_forest()
+        #
         # print("------------------------")
         # for j, t in enumerate(self.forest):
         #     print(f"----->  tree {j} ")
@@ -1263,13 +1265,14 @@ class RC2(object):
                 #print(u)
                 node = forest_find_node(u = u, mapping = self.asm2nodes)
                 node.status = STATUS_INACTIVE
-                self.forest.remove(u)
 
 
         # removing unnecessary assumptions
+        self.filter_forest(self.garbage)
+
         self.garbage = set()
+
         #print("-->", len(self.forest))
-        #self.filter_forest()
         #print(len(self.forest), "<--")
         #print("return")
 
