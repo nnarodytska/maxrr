@@ -384,7 +384,7 @@ class RC2(object):
             print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
                 len(self.formula.hard), len(self.formula.soft)))
 
-        if (not self.orig_formula.hard and len(self.sels) > 100000 and min(self.orig_formula.wght) == max(self.orig_formula.wght)) or ( len(self.sels) > 1000000 ):
+        if (not self.orig_formula.hard and len(self.sels) > 100000 and min(self.orig_formula.wght) == max(self.orig_formula.wght)) or ( len(self.sels) > 500000 ):
             self.minz = False  
         print(self.minz)
         #exit()
