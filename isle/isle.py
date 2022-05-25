@@ -149,6 +149,7 @@ from circuit import *
 from forest import *
 from call_ortools import solve_ortools
 import operator
+from threading import Timer
 CIRCUITINJECT_FULL = 0
 CIRCUITINJECT_TOP = 1
 CIRCUITINJECT_DELAYED = 2 
@@ -1287,6 +1288,9 @@ class RC2(object):
             # otherwise, update core
             self.core = new_core
 
+   
+
+
     def minimize_core(self):
         """
             Reduce a previously extracted core and compute an
@@ -1313,9 +1317,18 @@ class RC2(object):
             keep = []
             core = self.core
             proj = keep + core 
-
+            start_prop = 5000000
+            def_prop = 100000
+            misses_in_a_row = 50
+            miss = 0
+            time_total = 0
             core = self.core
+            time_per_call = 2
+
             while len(core) > 0:
+                if (miss == misses_in_a_row):
+                    keep = keep + to_test
+                    break
                 to_test =  core[1:]
                 #print(f"core {core} keep {keep} proj {proj}")
 
@@ -1327,10 +1340,25 @@ class RC2(object):
                     continue
 
                 keep = [c for c in keep if c in proj]
-                self.oracle.prop_budget(100000)
+                self.oracle.clear_interrupt()
+                self.oracle.prop_budget(start_prop)
+                def interrupt(s):
+                    s.interrupt()                
+                timer = Timer(time_per_call, interrupt, [self.oracle])            
+                start =time.time()
+                timer.start()
+                status = self.oracle.solve_limited(assumptions= keep + to_test, expect_interrupt=True)        
+                timer.cancel()        
+                time_total +=time.time() - start
 
+                self.oracle.clear_interrupt()
+
+                if (time_total > 60):
+                    start_prop = def_prop
+                
+                if debug:  print('c oracle time: {0:.4f}'.format(time_total))
                 #print(prop)
-                if self.oracle.solve_limited(assumptions= keep + to_test) == False:
+                if status  == False:
                     newcore = self.oracle.get_core()
                     if (newcore is None):
                         newcore = []                    
@@ -1340,7 +1368,13 @@ class RC2(object):
 
                 else:
                     keep.append(core[0])
-                if debug: print(f"{self.oracle.get_status()} {core[0]}")
+                if status == None:
+                    miss +=1
+                if status == False:
+                    time_total -=time_per_call
+            
+
+                if debug: print(f"{self.oracle.get_status()} {core[0]} {len(keep + to_test)}")
                 core = core[1:]
                     #break
                 
@@ -1348,7 +1382,9 @@ class RC2(object):
             self.core =  keep
             #print(f"final {keep}")
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
-            if debug: print(f"min end {len(self.core)}")            
+            if debug: print(f"min end {len(self.core)}")           
+            self.oracle.clear_interrupt()
+ 
             
     def process_assumptions(self):
         """
