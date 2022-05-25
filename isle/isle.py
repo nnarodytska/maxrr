@@ -1322,8 +1322,8 @@ class RC2(object):
             core = self.core
             proj = keep + core 
             
-            start_prop = 5000000
-            def_prop = 100000
+            start_prop = 100000
+            #def_prop = 100000
             misses_in_a_row = 50
             miss = 0
             time_total = 0
@@ -1348,23 +1348,23 @@ class RC2(object):
 
                 keep = [c for c in keep if c in proj]
                 #################################################
-                self.oracle.clear_interrupt()
+                #self.oracle.clear_interrupt()
                 self.oracle.prop_budget(start_prop)
-                def interrupt(s):
-                    s.interrupt()                
-                timer = Timer(time_per_call, interrupt, [self.oracle])            
-                start =time.time()
-                timer.start()
+                #def interrupt(s):
+                #    s.interrupt()                
+                #timer = Timer(time_per_call, interrupt, [self.oracle])            
+                #start =time.time()
+                #timer.start()
 
                 status = self.oracle.solve_limited(assumptions= keep + to_test, expect_interrupt=True)        
                 
-                timer.cancel()        
-                time_total +=time.time() - start
-                self.oracle.clear_interrupt()
+                #timer.cancel()        
+                #time_total +=time.time() - start
+                #self.oracle.clear_interrupt()
                 
-                if (time_total > 60):
-                    start_prop = def_prop
-                    time_per_call = 1
+                #if (time_total > 60):
+                #    start_prop = def_prop
+                #    time_per_call = 1
                 
                 ##############################################
 
@@ -1395,7 +1395,7 @@ class RC2(object):
             #print(f"final {keep}")
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
             if debug: print(f"min end {len(self.core)}")           
-            self.oracle.clear_interrupt()
+            #self.oracle.clear_interrupt()
  
             
     def process_assumptions(self):
