@@ -11,7 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from ortools.sat.python import cp_model
 
-from forest import forest_active, forest_nodes
+from forest import forest_filter
 from circuit import INITIAL_SELECTOR, STATUS_ACTIVE, STATUS_INACTIVE
 
 def get_var(ortools_model, ortools_vars, c):

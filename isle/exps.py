@@ -125,9 +125,9 @@ rc2 = [False, "rc2"]
 rc2comp = [False, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0  = [True, "maxres","--circuitinject=0", "v0"]
+res_v0  = [False, "maxres","--circuitinject=0", "v0"]
 res_v1 = [False, "maxres", "--circuitinject=1", "v1"]
-res_v2 = [False, "maxres", "--circuitinject=2",  "v2"]
+res_v2 = [True, "maxres", "--circuitinject=0",  "v2"]
 res_v3 = [False, "maxres", "--circuitinject=2",  "v3"] # with closure
 res_v4 = [False, "maxres", "--circuitinject=2",  "v4"] # 
 res_v5 = [False, "maxres", "-r mr1b -y -u",  "v5"] 
@@ -180,7 +180,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open(run_file, 'w') as the_file:

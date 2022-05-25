@@ -20,6 +20,7 @@ STATUS_ACTIVE       = "A"
 STATUS_INACTIVE     = "I"
 STATUS_WAITING      = "W"
 STATUS_FOLDED       = "F"
+DUMMY_LEVEL         = -1
 
 GRAPH_PRINT_DEF     = 'graph.dot'
 def node_label(node):
@@ -53,7 +54,14 @@ def build_graph(root, graph = None, nodes = [], edges = [], is_top = False, fnam
         filename = graph.render(filename=fname,  format='pdf')
 
         
+def set_topdown_levels(root, level = 0):
+    if root.level != DUMMY_LEVEL:
+        return
+    root.level = level    
+    for child in root.children:
+        set_topdown_levels(child, level + 1)
 
+    
 
 def traverse(root, tab = 0):
     print(' '*tab + root.__str__())
@@ -72,6 +80,15 @@ def get_active_selectors_nodes(root, nodes = []):
         nodes.append(root)   
     for child in root.children:
         get_active_selectors_nodes(child, nodes)
+
+
+
+def get_active_selectors_u_and_level_nodes(root, u2l):
+    if (root.status == STATUS_ACTIVE):
+        u2l[root.u] = root.level
+
+    for child in root.children:
+        get_active_selectors_u_and_level_nodes(child, u2l)
 
 def get_waiting_selectors_nodes(root, nodes = []):
     if (root.status == STATUS_WAITING):
@@ -114,14 +131,21 @@ class Circuit(object):
         self.u = u
         self.v = v
         self.weight = weight
+        self.oweight = weight
         self.type = type
         self.status = status
         self.v_clauses = [] 
         self.u_clauses = [] 
         self.into_phase = into_phase
+        self.level = DUMMY_LEVEL
         
         if (self.type == INITIAL_SELECTOR):
             assert(self.u == self.v)
+            self.level = 0
+        
+
+
+
 
 
     # def add_child(self, data):
@@ -136,7 +160,7 @@ class Circuit(object):
         return not self.children
 
     def __str__(self):
-        s = f"({self.u}:p{self.into_phase}: {self.type}, {self.status})"
+        s = f"({self.u}/{self.level}:p{self.into_phase}: {self.type}, {self.status})"
         if self.is_leaf():
             return "*" + s 
         return  s 

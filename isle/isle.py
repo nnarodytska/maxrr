@@ -148,7 +148,7 @@ from ortools.sat.python import cp_model
 from circuit import *
 from forest import *
 from call_ortools import solve_ortools
-
+import operator
 CIRCUITINJECT_FULL = 0
 CIRCUITINJECT_TOP = 1
 CIRCUITINJECT_DELAYED = 2 
@@ -384,8 +384,10 @@ class RC2(object):
             print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
                 len(self.formula.hard), len(self.formula.soft)))
 
-        if not self.orig_formula.hard and len(self.sels) > 100000 and min(self.orig_formula.wght) == max(self.orig_formula.wght):
+        if (not self.orig_formula.hard and len(self.sels) > 100000 and min(self.orig_formula.wght) == max(self.orig_formula.wght)) or ( len(self.sels) > 1000000 ):
             self.minz = False  
+        print(self.minz)
+        #exit()
 
     def create_node(self, name, u, v, weight, type, status, children = None, into_phase = 0):
 
@@ -430,9 +432,14 @@ class RC2(object):
 
         
         self.wght = {}  # weights of soft clauses
+        active_u2l =  u_and_level_active(self.asm2nodes)
 
-        active_selectors_nodes = forest_active(self.forest, self.asm2nodes)
-        for i, node in enumerate(active_selectors_nodes):
+        sorted_active_u2l = {k: v for k, v in sorted(active_u2l.items(), key=lambda item: item[1])}
+
+        for u, _ in sorted_active_u2l.items():
+            #print(f"--------------{u}------------")
+            node= forest_find_node(u, self.asm2nodes)
+            #print(node)
             if node.type == INITIAL_SELECTOR:
                 self.sels.append(node.u)
             else:
@@ -442,8 +449,9 @@ class RC2(object):
 
         if not (self.use_accum_oracle) or (init):
 
-            nodes = forest_nodes(self.forest, self.asm2nodes)
-            for i, node in enumerate(nodes):
+            u_nodes = forest_filter(self.asm2nodes, status = None)
+            for i, u in enumerate(u_nodes):
+                node = forest_find_node(u, self.asm2nodes)
                 for v_cl in node.v_clauses:
                     #print(v_cl)
                     self.oracle.add_clause(v_cl)
@@ -561,19 +569,19 @@ class RC2(object):
         #     print(u, model[u-1])
 
         #print("-------------")              
-        waiting_selectors_nodes = forest_waiting(self.forest, self.asm2nodes)
+        u_waiting_selectors_nodes = forest_filter(self.asm2nodes, STATUS_WAITING)
         violated_waiting = 0
-        for node in waiting_selectors_nodes:
-            u =  node.u
+        for u in u_waiting_selectors_nodes:
+            node = forest_find_node(u, self.asm2nodes)
             #print(u, model[u-1])
             #if u != model[u-1]:
             if(True):
                 node.status = STATUS_ACTIVE
                 violated_waiting += 1
         if violated_waiting == 0:
-            print(f"sat model while waiting {len(waiting_selectors_nodes)}")
+            print(f"sat model while waiting {len(u_waiting_selectors_nodes)}")
         else:
-            print(f"reactivate {len(waiting_selectors_nodes)}")        
+            print(f"reactivate {len(u_waiting_selectors_nodes)}")        
         
         return violated_waiting
 
@@ -591,12 +599,13 @@ class RC2(object):
         #print("-------------")              
         if (forest is None):
             forest = self.forest
-        folded_selectors_nodes = forest_folded(forest, self.asm2nodes)
+        u_folded_selectors_nodes = forest_filter(self.asm2nodes, STATUS_FOLDED)
         # for node in folded_selectors_nodes:
         #     print(node.__str__())
         violated_folded = 0
         #forest_build_graph(self.forest)
-        for node in folded_selectors_nodes:
+        for u in u_folded_selectors_nodes:
+            node = forest_find_node(u, self.asm2nodes)
             #print(node)
             #print(u, model[u-1])
             if True:
@@ -604,9 +613,9 @@ class RC2(object):
                 self.delayed_resolution(circuits = [n.u for n in node.children], t = node, unfoldng = True)
                 violated_folded += 1
         if violated_folded == 0:
-            print(f"sat model while folded {len(folded_selectors_nodes)}")
+            print(f"sat model while folded {len(u_folded_selectors_nodes)}")
         else:
-            print(f"reactivate folded {violated_folded}/{len(folded_selectors_nodes)}")        
+            print(f"reactivate folded {violated_folded}/{len(u_folded_selectors_nodes)}")        
         
         #forest_build_graph(self.forest, fname= "g_"+GRAPH_PRINT_DEF)
 
@@ -665,7 +674,7 @@ class RC2(object):
             unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
             delayed_selectors_nodes = []
             if (not unsat):
-                delayed_selectors_nodes = forest_waiting(self.forest, self.asm2nodes) +  forest_folded(self.forest, self.asm2nodes)
+                delayed_selectors_nodes = list(forest_filter(self.asm2nodes, status = STATUS_WAITING)) +  list(forest_filter(self.asm2nodes, status = STATUS_FOLDED))
             rebuild = 0
             while (not unsat) and len(delayed_selectors_nodes) > 0:
                 tm = time.time()                     
@@ -835,6 +844,7 @@ class RC2(object):
         len_core = len(core)
         upper = []
         pointer = 0
+        clean_thresh = 5000
         while pointer+1 < len(core):
             u = self.pool.id()    
             v = self.pool.id()    
@@ -868,11 +878,11 @@ class RC2(object):
             if (len_core < 100): upper.append(v)
             pointer = pointer + 2
            
-            if (pointer > 5000) and len(core) > 5002:
-                core = core[5000:]   
-                circuits = circuits[5000:]   
+            if (pointer > clean_thresh) and len(core) > clean_thresh + 2:
+                core = core[clean_thresh:]   
+                circuits = circuits[clean_thresh:]   
                 pointer = 0
-
+        set_topdown_levels(t, level = 0)
         self.forest.append(t.u)
         self.filter_forest(root_nodes)
         return new_relaxs
@@ -1024,29 +1034,7 @@ class RC2(object):
 
         self.forest = list(filter(lambda x: x not in not_nodes, self.forest))
 
-        # to_dels = []
-        # for i, u in enumerate(self.forest):
-        #     t = forest_find_node(u, self.asm2nodes)
-        #     if (is_inactive(t)):
-        #         to_dels.append(i)
-        #         #print(f"inactive {t} {i}")
 
-        # to_dels = sorted(to_dels, reverse=True)
-        # for i in to_dels:
-        #     #############################################
-        #     u = self.forest[i]
-        #     t = forest_find_node(u, self.asm2nodes)            
-        #     nodes = []
-        #     get_nodes(t, nodes)            
-        #     for node in nodes:
-        #         for v_cl in node.v_clauses:
-        #             self.add_new_clause(v_cl, self.formula.hard, self.oracle)
-                    
-        #         for u_cl in node.u_clauses:                    
-        #             self.add_new_clause(u_cl, self.formula.hard, self.oracle)
-        #     ##############################################
-
-        #     self.forest = self.forest[:i] + self.forest[i+1:]
 
     def process_core(self):
         """
@@ -1090,7 +1078,7 @@ class RC2(object):
             # unit cores are treated differently
             # (their negation is added to the hard part)
             self.deactivate_unit(u = self.core[0])
-            assert(self.core[0] in self.forest)
+            #assert(self.core[0] in self.forest)
             self.filter_forest([self.core[0]])
 
         # print("*************************")

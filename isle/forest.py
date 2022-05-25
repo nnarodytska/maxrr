@@ -11,7 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from graphviz import Digraph
 
-from circuit import build_graph, find_u, get_active_selectors_nodes, get_folded_selectors_nodes, get_nodes, get_waiting_selectors_nodes
+from circuit import STATUS_ACTIVE, STATUS_WAITING, build_graph, find_u, get_active_selectors_nodes, get_active_selectors_u_and_level_nodes, get_folded_selectors_nodes, get_nodes, get_waiting_selectors_nodes
 
 
 def forest_find_node (u,  mapping):
@@ -31,35 +31,43 @@ def unique_nodes(nodes, unique):
         nodes = list(set(nodes))
     return nodes
     
-def forest_folded(forest, mapping, unique = True):
-    nodes = []
-    for u in forest:
-        t = forest_find_node(u, mapping)
-        get_folded_selectors_nodes(t, nodes)
+# def forest_folded(forest, mapping, unique = True):
+#     nodes = []
+#     for u in forest:
+#         t = forest_find_node(u, mapping)
+#         get_folded_selectors_nodes(t, nodes)
 
-    return unique_nodes(nodes, unique)
+#     return unique_nodes(nodes, unique)
 
 
-def forest_waiting(forest, mapping, unique = True):
-    nodes = []
-    for u in forest:
-        t = forest_find_node(u, mapping)
-        get_waiting_selectors_nodes(t, nodes)
+def forest_filter(mapping, status):
+    nodes = set()
+    for u, node in mapping.items():
+        if node.status == status or (status is None):
+            nodes.add(u)
 
-    return unique_nodes(nodes, unique)
+    return nodes
 
-def forest_active(forest, mapping, unique = True):
-    nodes = []
-    for u in forest:
-        t = forest_find_node(u, mapping)
-        get_active_selectors_nodes(t, nodes)
+# def forest_active(forest, mapping, unique = True):
+#     nodes = []
+#     for u in forest:
+#         t = forest_find_node(u, mapping)
+#         get_active_selectors_nodes(t, nodes)
 
-    return unique_nodes(nodes, unique)         
+#     return unique_nodes(nodes, unique)         
 
-def forest_nodes(forest, mapping, unique = True):
-    nodes = []
-    for u in forest:
-        t = forest_find_node(u, mapping)
-        get_nodes(t, nodes)
+def u_and_level_active(mapping):
+    u2l = {}
+    for u, node in mapping.items():
+        if node.status == STATUS_ACTIVE:
+            u2l[u]= node.level
 
-    return unique_nodes(nodes, unique)  
+    return u2l
+
+# def forest_nodes(forest, mapping, unique = True):
+#     nodes = []
+#     for u in forest:
+#         t = forest_find_node(u, mapping)
+#         get_nodes(t, nodes)
+
+#     return unique_nodes(nodes, unique)  
