@@ -260,7 +260,7 @@ if (gen_run):
                         the_file.write(f'{s}\n')
 
                     if (res_v3[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v3[2]} -vv {filename} > {res_fiename}.{res_v3[3]}.{res_v3[1]}.{timetag}res "
+                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v3[2]} -vv {filename} > {res_filename}.{res_v3[3]}.{res_v3[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
                     if (res_v4[0]):
