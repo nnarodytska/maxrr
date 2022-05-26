@@ -381,8 +381,8 @@ if (process_run):
                         dummy.append(file_name_clean[:80])
                         all_files.append([file_name,file_name_clean[:80]])
 
-                        #print(res_filename, file_name)
-                        #exit()
+                        print(res_filename, file_name)
+                        exit()
                         #print(dummy)
                         if (rc2[0]):
                             s = f"{res_filename}.{rc2[1]}.{timetag}res"
@@ -422,7 +422,7 @@ if (process_run):
 
                         if (maxhs[0]):
                             #print("maxhsmaxhsmaxhsmaxhs")
-                            res_filename_maxhs = res_filename.replace("mse21_unwt_results", "mse21_unwt_results_no_min")
+                            res_filename_maxhs = res_filename#.replace("mse21_unwt_results", "mse21_unwt_results_no_min")
                             res =  copy.deepcopy(dummy)
                             results_maxsatcomp[file_name] = res                        
 
