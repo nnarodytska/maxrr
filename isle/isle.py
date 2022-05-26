@@ -564,9 +564,15 @@ class RC2(object):
 
             return self.model
 
-    def reactivate(self, model):
+    def reactivate(self, model, rebuild = 0):
         if (self.circuitinject == CIRCUITINJECT_DELAYED):
-            return self.delayed_reactivation(model)
+            unfolded = 0
+            for i in range(2**rebuild+1):
+                new_unfolded = self.delayed_reactivation(model)
+                if (new_unfolded == 0):
+                    break
+                unfolded += new_unfolded
+            return unfolded
         else:
             return self.reactivation(model)
 
@@ -622,8 +628,10 @@ class RC2(object):
             #print(u, model[u-1])
             if True:
             #if node.v != model[node.v-1]:
-                self.delayed_resolution(circuits = [n.u for n in node.children], t = node, unfoldng = True)
-                violated_folded += 1
+                cld = [n.u for n in node.children]
+                if (len(cld) > 0):
+                    self.delayed_resolution(circuits = cld, t = node, unfoldng = True)
+                    violated_folded += 1
         if violated_folded == 0:
             print(f"sat model while folded {len(u_folded_selectors_nodes)}")
         else:
@@ -688,10 +696,7 @@ class RC2(object):
             self.rebuild()
             
             if (self.or_model is not None): 
-                #print(self.hints)
-                
                 hints, or_ub, or_lb = self.or_model.minimize(self.orig_sels, self.asm2nodes, hints = self.hints, lb = max(self.cost, self.or_lb),  ub = self.or_ub, to = 60)
-
                 if (len(hints.items()) > 0 ): 
                     self.hints, self.or_ub, self.or_lb  = hints, or_ub, or_lb 
                     if (or_ub == or_lb):
@@ -719,7 +724,7 @@ class RC2(object):
                 tm = time.time()                     
                 model = self.oracle.get_model()
                 #forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}")
-                nb_violated = self.reactivate(model)
+                nb_violated = self.reactivate(model, rebuild)
                 #forest_build_graph(self.forest, fname= "g_"+GRAPH_PRINT_DEF+f"-{self.round}")
                 print(f"any violated? {nb_violated}")
 
@@ -1081,7 +1086,7 @@ class RC2(object):
 
 
 
-    def process_core(self):
+    def process_core(self, sat_round  = 0):
         """
             The method deals with a core found previously in
             :func:`get_core`. Clause selectors ``self.core_sels`` and

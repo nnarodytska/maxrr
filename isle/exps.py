@@ -122,14 +122,14 @@ focus =[]
 # "kbtree9_7_3_5_30_5.wcsp.wcnf.gz"]
 
 rc2 = [False, "rc2"]
-rc2comp = [False, "rc2comp"]
+rc2comp = [True, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0  = [False, "maxres","--circuitinject=0", "v0"]
-res_v1 = [False, "maxres", "--circuitinject=1", "v1"]
-res_v2 = [True, "maxres", "--circuitinject=0",  "v2"]
-res_v3 = [True, "maxres", "--circuitinject=1",  "v3"] # with closure
-res_v4 = [True, "maxres", "--circuitinject=2",  "v4"] # 
+res_v0 = [True, "maxres","--circuitinject=0", "v0"]
+res_v1 = [True, "maxres", "--circuitinject=1", "v1"]
+res_v2 = [True, "maxres", "--circuitinject=2",  "v2"]
+res_v3 = [False, "maxres", "--circuitinject=1",  "v3"] # with closure
+res_v4 = [False, "maxres", "--circuitinject=2",  "v4"] # 
 res_v5 = [False, "maxres", "-r mr1b -y -u",  "v5"] 
 res_v6 = [False, "maxres", "-r mr2a -y ",  "v6"] 
 res_v7 = [False, "ortools", "",  "ortools"] 
@@ -141,9 +141,10 @@ if (or_tools):
     run_file = './or_run.txt'
 resrg  = [False, "resrg",  "", "v0"]
 
-to = [3600]#, 3600*3]
+#to = [3600]#, 3600*3]
+to = [3600*3]
 
-maxhs = [False, "maxhs"]
+maxhs = [True, "maxhs"]
 eva = [False, "eva"]
 
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
@@ -180,7 +181,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open(run_file, 'w') as the_file:
@@ -224,7 +225,7 @@ if (gen_run):
                         continue
                     
                     timetag = ""
-                    if (tm > 3601):
+                    if (tm > to[0]+1):
                         timetag = str(tm) + "."
                     if (rc2[0]):
                         s = f"timeout -t {tm}s python3.8 -u ../examples/rc2.py -vv {filename} > {res_filename}.{rc2[1]}.{timetag}res "
@@ -327,7 +328,8 @@ if (process_run):
     # resrg  = [True, "resrg",  "", "v0"]
 
 
-    to = [3600]#, 3600]#, 3600*3]
+    #to = [3600]#, 3600]#, 3600*3]
+    to = [3*3600]
     for tm in to:
 
         results_rc2comp = {}
@@ -348,7 +350,7 @@ if (process_run):
         
         dummy_init =  [-1, tm, -1, -1]
         timetag = ""
-        if (tm > 3601):
+        if (tm > to[0]+1):
             timetag = str(tm) + "."
         all_files = [] 
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
