@@ -971,8 +971,8 @@ class RC2(object):
                 node.parents = []
                 
             len_half = int(len(circuits)/2)
-            for u in  circuits[:len_half]:
-                print(u)
+            # for u in  circuits[:len_half]:
+            #     print(u)
             half1 = self.us2nodes( circuits[:len_half])
             half2 = self.us2nodes( circuits[len_half:]) 
             
