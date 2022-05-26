@@ -390,8 +390,8 @@ if (process_run):
                             s = f"{res_filename}.{rc2comp[1]}.{timetag}res"
                             #s = s.replace("mse21_unwt_results", "mse21_unwt_results_g4_rc2_many_mrs")
 			    #"mse21_unwt_results_g4_rc2_many_mrs")#"mse21_unwt_results_back")#
-                            print(s)
-                            exit()
+                            #print(s)
+                            #exit()
                             res = copy.deepcopy(dummy)
                             results_rc2comp[file_name] = res
 
