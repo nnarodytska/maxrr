@@ -329,7 +329,7 @@ class RC2(object):
 
 
         self.formula = formula
-        self.orig_formula = copy.deepcopy(formula)
+        #self.orig_formula = copy.deepcopy(formula)
 
         # adding soft clauses to oracle
 
@@ -392,7 +392,7 @@ class RC2(object):
             print('c formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
                 len(self.formula.hard), len(self.formula.soft)))
 
-        if (not self.orig_formula.hard and len(self.sels) > 100000 and min(self.orig_formula.wght) == max(self.orig_formula.wght)) or ( len(self.sels) > 500000 ):
+        if (not self.formula.hard and len(self.sels) > 100000 and min(self.orig_formula.wght) == max(self.orig_formula.wght)) or ( len(self.sels) > 500000 ):
             self.minz = False  
         print(self.minz)
         #exit()
@@ -1356,7 +1356,8 @@ class RC2(object):
  
         debug = False
         #print(self.minz)
-        if self.minz and len(self.core) > 1 and (len(self.core) < 1000) and len(self.formula.hard) < 10000000:
+        lnc = len(self.core)
+        if self.minz and len(self.core) > 1 and (len(self.core) < 1000) :
             self.core = sorted(self.core, key=lambda l: self.wght[l])
             u2l = u_and_level(self.core, self.asm2nodes)
             self.core = list({k: v for k, v in sorted(u2l.items(), key=lambda item: item[1], reverse=True)})
@@ -1367,9 +1368,11 @@ class RC2(object):
             keep = []
             core = self.core
             proj = keep + core 
-            
-            start_prop = 5000000
             def_prop = 100000
+            if (lnc < 250):
+                start_prop = 5000000
+            else:
+                start_prop = def_prop
             misses_in_a_row = 50
             miss = 0
             time_total = 0
