@@ -146,7 +146,7 @@ from ortools.sat.python import cp_model
 
 from circuit import *
 from forest import *
-from call_ortools import solve_ortools
+from isle.or_tools import solve_ortools
 
 CIRCUITINJECT_FULL = 0
 CIRCUITINJECT_TOP = 1

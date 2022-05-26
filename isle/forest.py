@@ -40,10 +40,10 @@ def unique_nodes(nodes, unique):
 #     return unique_nodes(nodes, unique)
 
 
-def forest_filter(mapping, status):
+def forest_filter(mapping, status = None, type = None):
     nodes = set()
     for u, node in mapping.items():
-        if node.status == status or (status is None):
+        if ((node.status == status) or (status is None)) and  ((node.type == type) or (type is None)):
             nodes.add(u)
 
     return nodes
@@ -60,11 +60,18 @@ def u_and_level_active(mapping):
     u2l = {}
     for u, node in mapping.items():
         if node.status == STATUS_ACTIVE:
-            if (node.type == INITIAL_SELECTOR):
-                u2l[u]= 0               
-            else:
-                u2l[u]= (node.level+1)*1000 - node.into_phase
+            u2l[u]= node.level
+            # if (node.type == INITIAL_SELECTOR):
+            #     u2l[u]= 0               
+            # else:
+            #     u2l[u]= (node.level+1)*1000 - node.into_phase
 
+    return u2l
+
+def u_and_level(us, mapping):
+    u2l = {}
+    for u in us:
+        u2l[u]= mapping[u].level
     return u2l
 
 # def forest_nodes(forest, mapping, unique = True):

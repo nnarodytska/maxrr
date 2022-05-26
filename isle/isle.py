@@ -148,7 +148,7 @@ from ortools.sat.python import cp_model
 
 from circuit import *
 from forest import *
-from call_ortools import solve_ortools
+from  or_tools import SolverOR, solve_ortools
 import operator
 from threading import Timer
 CIRCUITINJECT_FULL = 0
@@ -244,6 +244,11 @@ class RC2(object):
         self.garbage = set()
 
         self.asm2nodes = {}
+        self.ortools_on = False
+        self.or_model =  None
+        self.hints, self.or_ub, self.or_lb = None, None, -100
+        if (self.ortools_on):
+            self.or_model =  SolverOR()
         
         
 
@@ -331,6 +336,8 @@ class RC2(object):
         dublicated = {} 
         removable = []
         keep = {}
+        self.orig_sels = []
+
         for i, cl in enumerate(self.formula.soft):
             selv = cl[0]  # if clause is unit, selector variable is its literal
 
@@ -344,7 +351,6 @@ class RC2(object):
                 # selector is not new; increment its weight
                 dublicated[selv] += self.formula.wght[i]
                 removable.append(i)
-        
 
         removable = sorted(removable, reverse=True)
         for selv, w in dublicated.items():
@@ -402,6 +408,9 @@ class RC2(object):
                         children = children,
                         into_phase = into_phase
                         )        
+        if (type == INITIAL_SELECTOR):
+            self.orig_sels.append(u)
+
         self.asm2nodes[u] = node
         return node
 
@@ -414,6 +423,8 @@ class RC2(object):
         if self.use_accum_oracle:
             if (init):
                 self.oracle = Solver(name=self.solver, bootstrap_with=self.formula.hard, use_timer=True)
+                if (self.or_model is not None): self.or_model.add_hards(self.formula)
+                
             self.time = self.oracle.time_accum()
         else:    
             tm = time.time()
@@ -449,8 +460,7 @@ class RC2(object):
             assert(node.status  == STATUS_ACTIVE)
             self.wght[node.u] =  node.weight
 
-        if not (self.use_accum_oracle) or (init):
-
+        if not (self.use_accum_oracle):
             u_nodes = forest_filter(self.asm2nodes, status = None)
             for i, u in enumerate(u_nodes):
                 node = forest_find_node(u, self.asm2nodes)
@@ -624,6 +634,17 @@ class RC2(object):
         #self.circuitinject = CIRCUITINJECT_FULL
         return violated_folded
 
+
+
+    def force_model(self, solution, force_flag = True):
+        self.forced_model = force_flag
+        self.model = []
+        for k, v in solution.items():
+            if (v <= 0):
+                self.model.append(-(k-1))
+            else:
+                self.model.append(k-1)        
+
     def compute_(self):
         """
             Main core-guided loop, which iteratively calls a SAT
@@ -639,6 +660,9 @@ class RC2(object):
         if self.adapt:
             self.adapt_am1()
             self.rebuild(reactivate = True, init = True)
+            
+            #exit()
+
             #or_model, or_model_ub = solve_ortools(self.formula, self.forest)
 
         debug = False
@@ -662,6 +686,19 @@ class RC2(object):
                 print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
 
             self.rebuild()
+            
+            if (self.or_model is not None): 
+                #print(self.hints)
+                
+                hints, or_ub, or_lb = self.or_model.minimize(self.orig_sels, self.asm2nodes, hints = self.hints, lb = max(self.cost, self.or_lb),  ub = self.or_ub, to = 60)
+
+                if (len(hints.items()) > 0 ): 
+                    self.hints, self.or_ub, self.or_lb  = hints, or_ub, or_lb 
+                    if (or_ub == or_lb):
+                        self.force_model(hints)
+                        self.cost = or_ub
+                        return True
+
             # assert(self.oracle.solve(assumptions=self.sol))
             # model = self.oracle.get_model()
             # for s in self.sums+self.sels + [193, 197, 209, 187, 207, 205, 201, 214, 216]:
@@ -776,9 +813,12 @@ class RC2(object):
         node.weight = new_weight
 
     
-    def add_new_clause(self, cl, vec, oracle, label = "",  debug = False):
-        vec.append(cl)  
-        oracle.add_clause(cl)
+    def add_new_clause(self, cl, vec= None, oracle = None, label = "",  debug = False):
+        if (vec is not None):
+            vec.append(cl)  
+        if (oracle is not None):
+            oracle.add_clause(cl)
+        if (self.or_model is not None): self.or_model.create_clauses_con(cl)
         if (debug): print(label,  cl)
 
 
@@ -1065,6 +1105,7 @@ class RC2(object):
         if  len(self.core_sels + self.core_sums) > 1:
             rels = self.process_assumptions()
             self.core = [-l for l in rels]
+            self.add_new_clause(rels, vec = self.formula.hard, oracle= self.oracle)
             #print(self.core, self.core_sums, self.core_sels)
             #self.add_new_clause(self.core , self.formula.hard, self.oracle)
             if self.circuitinject == CIRCUITINJECT_DELAYED:
@@ -1317,13 +1358,18 @@ class RC2(object):
         #print(self.minz)
         if self.minz and len(self.core) > 1 and (len(self.core) < 1000) and len(self.formula.hard) < 10000000:
             self.core = sorted(self.core, key=lambda l: self.wght[l])
+            u2l = u_and_level(self.core, self.asm2nodes)
+            self.core = list({k: v for k, v in sorted(u2l.items(), key=lambda item: item[1], reverse=True)})
+
+
+            
             i = 0
             keep = []
             core = self.core
             proj = keep + core 
             
-            start_prop = 100000
-            #def_prop = 100000
+            start_prop = 5000000
+            def_prop = 100000
             misses_in_a_row = 50
             miss = 0
             time_total = 0
@@ -1337,6 +1383,8 @@ class RC2(object):
                     keep = keep + to_test
                     break
                 to_test =  core[1:]
+                #node = forest_find_node(core[0], self.asm2nodes)
+                #print(node)
                 #print(f"core {core} keep {keep} proj {proj}")
 
                 if not (core[0] in proj):
@@ -1353,17 +1401,18 @@ class RC2(object):
                 #def interrupt(s):
                 #    s.interrupt()                
                 #timer = Timer(time_per_call, interrupt, [self.oracle])            
-                #start =time.time()
+                start =time.time()
                 #timer.start()
 
-                status = self.oracle.solve_limited(assumptions= keep + to_test, expect_interrupt=True)        
+                status = self.oracle.solve_limited(assumptions= keep + to_test)        
                 
-                #timer.cancel()        
-                #time_total +=time.time() - start
+                #timer.cancel()
+                #print((time.time() - start))        
+                time_total = time_total + (time.time() - start)
                 #self.oracle.clear_interrupt()
                 
-                #if (time_total > 60):
-                #    start_prop = def_prop
+                if (time_total > 30):
+                    start_prop = def_prop
                 #    time_per_call = 1
                 
                 ##############################################
@@ -1382,8 +1431,7 @@ class RC2(object):
                     keep.append(core[0])
                 if status == None:
                     miss +=1
-                if status == False:
-                    time_total -=time_per_call
+
             
 
                 if debug: print(f"{self.oracle.get_status()} {core[0]} {len(keep + to_test)}")
