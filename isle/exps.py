@@ -382,7 +382,6 @@ if (process_run):
                         all_files.append([file_name,file_name_clean[:80]])
 
                         print(res_filename, file_name)
-                        exit()
                         #print(dummy)
                         if (rc2[0]):
                             s = f"{res_filename}.{rc2[1]}.{timetag}res"
@@ -391,7 +390,8 @@ if (process_run):
                             s = f"{res_filename}.{rc2comp[1]}.{timetag}res"
                             #s = s.replace("mse21_unwt_results", "mse21_unwt_results_g4_rc2_many_mrs")
 			    #"mse21_unwt_results_g4_rc2_many_mrs")#"mse21_unwt_results_back")#
-                            #print(s)
+                            print(s)
+                            exit()
                             res = copy.deepcopy(dummy)
                             results_rc2comp[file_name] = res
 
