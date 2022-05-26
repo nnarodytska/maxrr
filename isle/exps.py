@@ -320,8 +320,8 @@ if (process_run):
     rc2comp = [True, "rc2comp"]
     res_v0  = [True, "maxres", "--circuitinject=0", "v0"]
     res_v1 = [True, "maxres", "--circuitinject=1", "v1"]
-    res_v2 = [True, "maxres", "--circuitinject=2", "v2"]
-    res_v3 = [True, "maxres", "--circuitinject=2", "v3"]
+    res_v2 = [True, "maxres", "--circuitinject=0", "v2"]
+    res_v3 = [True, "maxres", "--circuitinject=1", "v3"]
     res_v4 = [True, "maxres", "--circuitinject=2", "v3"]
 
     # resrg  = [True, "resrg",  "", "v0"]
