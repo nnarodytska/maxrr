@@ -225,7 +225,7 @@ if (gen_run):
                         continue
                     
                     timetag = ""
-                    if (tm > to[0]+1):
+                    if (tm > 3601):
                         timetag = str(tm) + "."
                     if (rc2[0]):
                         s = f"timeout -t {tm}s python3.8 -u ../examples/rc2.py -vv {filename} > {res_filename}.{rc2[1]}.{timetag}res "
@@ -350,7 +350,7 @@ if (process_run):
         
         dummy_init =  [-1, tm, -1, -1]
         timetag = ""
-        if (tm > to[0]+1):
+        if (tm > 3601):
             timetag = str(tm) + "."
         all_files = [] 
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
