@@ -815,6 +815,7 @@ class RC2(object):
 
     def deactivate_compressor(self, u):
         node  = forest_find_node(u, mapping = self.asm2nodes)
+        self.add_new_clause([-u], node.u_clauses, self.oracle, label = "", debug = False)
         node.status = STATUS_INACTIVE
         node.weight = 0
 
@@ -1001,7 +1002,7 @@ class RC2(object):
         debug = False
         
         cu = self.pool.id()    
-        node = self.create_node(name = f"{-cu}", u = DUMMY_U,  v = DUMMY_U, cu = cu,  cu_cover = copy.deepcopy(lits), weight = self.minw, level = 1, type = COMPRESSSOR, status = STATUS_ACTIVE, into_phase = self.round)        
+        node = self.create_node(name = f"{-cu}", u = DUMMY_U,  v = DUMMY_U, cu = cu,  cu_cover = copy.deepcopy(lits), weight = self.minw, level = -self.round, type = COMPRESSSOR, status = STATUS_ACTIVE, into_phase = self.round)        
         self.wght[cu] = self.minw
     
         if debug: print(f"new {cu} base {len(lits)}")
@@ -1260,6 +1261,7 @@ class RC2(object):
                     self.delayed_resolution(self.core)
             elif self.circuitinject == CIRCUIT_COMPRESSED:
                 compressed_core = copy.deepcopy(self.core)
+                print(f"compressed_core {len(compressed_core)}")
                 self.minimize_core(unfolding = True)      
                 for u in self.core:
                     node = forest_find_node(u, self.asm2nodes)
@@ -1542,10 +1544,8 @@ class RC2(object):
             proj = keep + core 
             def_prop = 100000
             #if (lnc < 250):
-            if not (unfolding):
-                start_prop = 10000000
-            else:
-                start_prop = 5000000
+
+            start_prop = 5000000
             misses_in_a_row = 50
             miss = 0
             time_total = 0
@@ -1620,7 +1620,7 @@ class RC2(object):
                 time_total = time_total + (time.time() - start)
                 #self.oracle.clear_interrupt()
                 
-                if (time_total > 100):
+                if (time_total > 30):
                     start_prop = def_prop
                 #    time_per_call = 1
                 
