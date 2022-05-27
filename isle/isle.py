@@ -902,7 +902,7 @@ class RC2(object):
 
         #random.shuffle(core)
         debug =  False
-        if debug or True:
+        if debug:
             for u in uncompressed_core:
                 node = forest_find_node(u, self.asm2nodes)
                 if (node.type == COMPRESSSOR):
@@ -1261,6 +1261,12 @@ class RC2(object):
             elif self.circuitinject == CIRCUIT_COMPRESSED:
                 compressed_core = copy.deepcopy(self.core)
                 self.minimize_core(unfolding = True)      
+                for u in self.core:
+                    node = forest_find_node(u, self.asm2nodes)
+                    if (node.type == COMPRESSSOR):
+                        self.core  = self.core + node.cu_cover
+                    
+
                 self.resolution_compressed(compressed_core, self.core)
                 #self.resolution_compressed(compressed_core)
             else:
@@ -1550,7 +1556,7 @@ class RC2(object):
             while len(core) > 0:
                 if (miss == misses_in_a_row):
                     if (unfolding):
-                        new_core = keep
+                        new_core = copy.deepcopy(keep)
                         for u in to_test:
                             if u in self.upperlevel:
                                 node = forest_find_node(u, self.asm2nodes)                
@@ -1647,7 +1653,7 @@ class RC2(object):
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
             if debug: print(f"min end {len(self.core)}")           
             #self.oracle.clear_interrupt()
-            if (unfolding) and (debug or True):
+            if (unfolding) and debug:
                 for u in self.core:
                     node = forest_find_node(u, self.asm2nodes)
                     assert(node.type != COMPRESSSOR)
