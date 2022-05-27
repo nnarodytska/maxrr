@@ -1263,10 +1263,14 @@ class RC2(object):
                 compressed_core = copy.deepcopy(self.core)
                 print(f"compressed_core {len(compressed_core)}")
                 self.minimize_core(unfolding = True)      
+                recheck_core = []
                 for u in self.core:
                     node = forest_find_node(u, self.asm2nodes)
                     if (node.type == COMPRESSSOR):
-                        self.core  = self.core + node.cu_cover
+                        recheck_core  = recheck_core + node.cu_cover
+                    else:
+                        recheck_core = recheck_core + [u]
+                self.core = recheck_core
                     
 
                 self.resolution_compressed(compressed_core, self.core)
