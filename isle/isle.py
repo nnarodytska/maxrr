@@ -155,6 +155,7 @@ CIRCUITINJECT_FULL = 0
 CIRCUITINJECT_TOP = 1
 CIRCUITINJECT_DELAYED = 2 
 CIRCUIT_COMPRESSED = 3
+CIRCUIT_PARTIAL_SOFT = 4
 \
 # names of BLO strategies
 #==============================================================================
@@ -244,8 +245,11 @@ class RC2(object):
         self.garbage = set()
         self.upperlevel = {}
 
+        self.bnds = {}  # a mapping from sum assumptions to totalizer bounds
+        self.tobj = {}  # a mapping from sum assumptions to totalizer objects
+
         self.asm2nodes = {}
-        self.ortools_on = True
+        self.ortools_on = False
         self.or_model =  None
         self.hints, self.or_ub, self.or_lb = None, None, -100
         if (self.ortools_on):
@@ -365,7 +369,7 @@ class RC2(object):
             self.formula.wght.pop(idx)        
             self.formula.soft.pop(idx)
 
-        self.forest = []
+        #self.forest = []
 
         for i, cl in enumerate(self.formula.soft):
             selv = cl[0]  # if clause is unit, selector variable is its literal
@@ -375,7 +379,7 @@ class RC2(object):
                 self.add_new_clause(cl, self.formula.hard, self.oracle)
             
             t = self.create_node(name = "{-selv}", u = selv,  v = selv,  weight = self.formula.wght[i],  type = INITIAL_SELECTOR, status = STATUS_ACTIVE)
-            self.forest.append(t.u)
+            #self.forest.append(t.u)
 
             
             if selv  in self.wght:         
@@ -398,13 +402,15 @@ class RC2(object):
         print(self.minz)
         #exit()
 
-    def create_node(self, name, u, v, weight, type, status, level = DUMMY_LEVEL, cu = DUMMY_U,  cu_cover = DUMMY_U_COVER, children = None, into_phase = 0):
+    def create_node(self, name, u, v, weight, type, status, level = DUMMY_LEVEL, cu = DUMMY_U,  cu_cover = DUMMY_U_COVER, tobj =None, tobj_bound = 0, children = None, into_phase = 0):
 
         node = Circuit(name,        
                         u = u,
                         v = v, 
                         cu = cu,
                         cu_cover = cu_cover,
+                        tobj = tobj,
+                        tobj_bound = tobj_bound,
                         level = level,
                         weight = weight, 
                         type = type, 
@@ -415,7 +421,7 @@ class RC2(object):
         if (type == INITIAL_SELECTOR):
             self.orig_sels.append(u)
         if node.type == COMPRESSSOR:
-            self.asm2nodes[cu] = node
+            self.asm2nodes[cu] = node         
         else:
             self.asm2nodes[u] = node
         return node
@@ -631,8 +637,8 @@ class RC2(object):
         #     print(u, model[u-1])
 
         #print("-------------")              
-        if (forest is None):
-            forest = self.forest
+        # if (forest is None):
+        #     forest = self.forest
         u_folded_selectors_nodes = forest_filter(self.asm2nodes, STATUS_FOLDED)
         # for node in folded_selectors_nodes:
         #     print(node.__str__())
@@ -759,8 +765,8 @@ class RC2(object):
                 #     print(-172, -173, -174, 175, 176, -177, -178, 179, -180, 181, 182, 183,-184)
                 #     #exit()
                 
-                if (debug):
-                    forest_build_graph(self.forest, self.asm2nodes)
+                # if (debug):
+                #     forest_build_graph(self.forest, self.asm2nodes)
                     #exit()
 
 
@@ -890,88 +896,6 @@ class RC2(object):
         else:
             assert(node.u == c)
 
-  
-  
-    # def resolution_compressed(self, uncompressed_core = []):
-    #     #print(f"compressed_core  {compressed_core} uncompressed_core {uncompressed_core}")
-
-
-    #     new_relaxs = []
-    #     # if(self.round > 0):
-    #     #     print("--->", core, self.round )
-    #     #     forest_build_graph(self.forest, fname= f"graph-{self.round}")
-    #     circuits = []
-    #     root_nodes = set()
-
-    #     #random.shuffle(core)
-    #     debug =  False
-    #     if debug:
-    #         for u in uncompressed_core:
-    #             node = forest_find_node(u, self.asm2nodes)
-    #             if (node.type == COMPRESSSOR):
-    #                 print(node)                
-    #             assert(node.type != COMPRESSSOR)
-
-
-       
-    #     if debug: print(f"uncompressed_core {uncompressed_core}")            
-
-
-    #     for c in uncompressed_core:
-    #         node  = forest_find_node(u = c, mapping = self.asm2nodes)
-    #         if (node.u != c):
-    #             print(node)
-    #         circuits.append(node.u)
-    #         assert(node.u == c)
-    #         if node.is_root():
-    #             root_nodes.add(node.u)
-
-    #     len_uncompressed_core = len(uncompressed_core)
-    #     upper = []
-    #     pointer = 0
-    #     clean_thresh = 5000
-    #     while pointer+1 < len(uncompressed_core):
-    #         u = self.pool.id()    
-    #         v = self.pool.id()    
-            
-    #         if (len(uncompressed_core)%5000 ==0):
-    #             print(len(uncompressed_core))
-                
-    #         node0  = forest_find_node(u = circuits[pointer],     mapping = self.asm2nodes) 
-    #         node1  = forest_find_node(u = circuits[pointer + 1], mapping = self.asm2nodes) 
-            
-    #         if (len_uncompressed_core < 100):
-    #             self.sanity_build_up(node0, uncompressed_core[pointer], upper)
-    #             self.sanity_build_up(node1, uncompressed_core[pointer + 1], upper) 
-
-    #         status = STATUS_COMPRESSED            
-    #         t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = status, children = [node0, node1], into_phase = self.round)
-    #         #print(t.u)
-    #         #print(core[0], core[1], node0.u, node1.u)
-    #         new_relaxs.append(u)
-
-    #         ######################################################3
-    #         self.added_gate(t, uncompressed_core[pointer], uncompressed_core[pointer + 1])
-    #         ######################################################
-            
-    #         uncompressed_core = uncompressed_core + [ v ]    
-    #         circuits = circuits +[ t.u]    
-    #         pointer = pointer + 2
-    #         if (pointer > clean_thresh) and len(uncompressed_core) > clean_thresh + 2:
-    #             uncompressed_core = uncompressed_core[clean_thresh:]   
-    #             circuits = circuits[clean_thresh:]   
-    #             pointer = 0
-
-
-    #         if (len_uncompressed_core < 100): upper.append(v)
-           
-    
-    #     set_topdown_levels(t, level = 0)
-    
-    #     self.forest.append(t.u)
-    #     self.filter_forest(root_nodes)
-        
-    #     return [cu]  
 
     def add_upperlevel(self, lits):
         debug = False
@@ -1046,8 +970,8 @@ class RC2(object):
            
     
         set_topdown_levels(t, level = 0)
-        self.forest.append(t.u)
-        self.filter_forest(root_nodes)
+        #self.forest.append(t.u)
+        #self.filter_forest(root_nodes)
         return new_relaxs
 
     def folded_half(self, children, debug = False):
@@ -1185,17 +1109,17 @@ class RC2(object):
                         
             
         
-        self.forest.append(t.u)
-        self.filter_forest(root_nodes)
+        #self.forest.append(t.u)
+        #self.filter_forest(root_nodes)
 
 
         return new_relaxs
 
     
-    def filter_forest(self, not_nodes):
-        #print(len(not_nodes), len(self.forest))
+    # def filter_forest(self, not_nodes):
+    #     #print(len(not_nodes), len(self.forest))
 
-        self.forest = list(filter(lambda x: x not in not_nodes, self.forest))
+    #     self.forest = list(filter(lambda x: x not in not_nodes, self.forest))
 
 
     def uncompress_core(self, compressed_core, uncompressed_core):
@@ -1233,6 +1157,101 @@ class RC2(object):
         return uncompressed_core
 
 
+    # def set_bound(self, tobj, rhs):
+    #     """
+    #         Given a totalizer sum and its right-hand side to be
+    #         enforced, the method creates a new sum assumption literal,
+    #         which will be used in the following SAT oracle calls.
+
+    #         :param tobj: totalizer sum
+    #         :param rhs: right-hand side
+
+    #         :type tobj: :class:`.ITotalizer`
+    #         :type rhs: int
+    #     """
+
+    #     # saving the sum and its weight in a mapping
+    #     self.tobj[-tobj.rhs[rhs]] = tobj
+    #     self.bnds[-tobj.rhs[rhs]] = rhs
+    #     self.wght[-tobj.rhs[rhs]] = self.minw
+
+    #     # adding a new assumption to force the sum to be at most rhs
+    #     #self.sums.append(-tobj.rhs[rhs])
+    #     return -tobj.rhs[rhs]
+
+    def create_sum(self, lits, bound=0):
+        """
+            Create a totalizer object encoding a cardinality
+            constraint on the new list of relaxation literals obtained
+            in :func:`process_sels` and :func:`process_sums`. The
+            clauses encoding the sum of the relaxation literals are
+            added to the SAT oracle. The sum of the totalizer object
+            is encoded up to the value of the input parameter
+            ``bound``, which is set to ``1`` by default.
+
+            :param bound: right-hand side for the sum to be created
+            :type bound: int
+
+            :rtype: :class:`.ITotalizer`
+
+            Note that if Minicard is used as a SAT oracle, native
+            cardinality constraints are used instead of
+            :class:`.ITotalizer`.
+        """
+
+        # new totalizer sum
+        tobj = ITotalizer(lits=lits, ubound=bound, top_id=self.pool.top)
+
+        children = []
+        for neg_u in lits:
+            u = -neg_u
+            node = forest_find_node(u, self.asm2nodes)
+            children.append(node)
+            assert(node.status == STATUS_ACTIVE)
+            print(node)
+            self.deactivate_sel(u)
+        
+        # updating top variable id
+        self.pool.top = tobj.top_id    
+        
+        
+        u =  -tobj.rhs[bound]
+        node = self.create_node(name = f"{-u}", u = u,  v = DUMMY_U,  weight = self.minw,  tobj = tobj, tobj_bound = bound,  children = children, type = SUM, status = STATUS_ACTIVE)
+        #self.forest.append(u)
+
+        for cl in tobj.cnf.clauses:            
+            self.add_new_clause(cl, node.u_clauses, self.oracle)
+
+
+        return tobj
+
+    def update_sum(self, u):
+       
+        # getting a totalizer object corresponding to assumption
+        node = forest_find_node(u, self.asm2nodes)
+        # increment the current bound
+        
+        # if len(node.children) == node.tobj_bound:
+        #     return
+
+
+        # increasing its bound
+        node.tobj.increase(ubound=node.tobj_bound+1, top_id=self.pool.top)
+
+        # updating top variable id
+        self.pool.top = node.tobj.top_id
+        #print(node.tobj.rhs, node.tobj_bound, node.children)        
+        
+        u = -node.tobj.rhs[node.tobj_bound]        
+        bound = node.tobj_bound + 1
+        update_node = self.create_node(name = f"{-node.u}", u = node.u,  v = DUMMY_U,  weight = self.minw,  tobj = node.tobj, tobj_bound = bound, children = node.children, type = SUM, status = STATUS_ACTIVE)
+
+        # adding its clauses to oracle
+        if update_node.tobj.nof_new:
+            for cl in update_node.tobj.cnf.clauses[-update_node.tobj.nof_new:]:
+                self.add_new_clause(cl, update_node.u_clauses, self.oracle)
+
+
     def process_core(self, sat_round  = 0):
         """
             The method deals with a core found previously in
@@ -1253,7 +1272,7 @@ class RC2(object):
 
         # assumptions to remove
         self.garbage = set()
-
+        #print(self.sels, self.sums)
         if  len(self.core_sels + self.core_sums) > 1:
             rels = self.process_assumptions()
             self.core = [-l for l in rels]
@@ -1261,23 +1280,40 @@ class RC2(object):
             #print(self.core, self.core_sums, self.core_sels)
             #self.add_new_clause(self.core , self.formula.hard, self.oracle)
             if self.circuitinject == CIRCUITINJECT_DELAYED:
-
                 if (len(self.core) <= 4):
                     self.circuitinject = CIRCUITINJECT_FULL
                     self.resolution(self.core)
                     self.circuitinject = CIRCUITINJECT_DELAYED
                 else:
                     self.delayed_resolution(self.core)
+
             elif self.circuitinject == CIRCUIT_COMPRESSED:
+
                 compressed_core = copy.deepcopy(self.core)
                 print(f"compressed_core {len(compressed_core)}")
                 self.minimize_core(unfolding = True)      
                 uncompressed_core = self.uncompress_core(compressed_core, self.core)                    
-                print(uncompressed_core)
+                #print(uncompressed_core)
                 new_relaxs = self.resolution(uncompressed_core, status_def = STATUS_COMPRESSED)
                 cu = self.add_upperlevel(new_relaxs)
+            
+            elif self.circuitinject == CIRCUIT_PARTIAL_SOFT:
+                core = copy.deepcopy(self.core)
+                new_relaxs = self.resolution(self.core)
+                counted_zeros  = [-u for u in new_relaxs]
+                bound = 0
+                self.create_sum(counted_zeros, bound=bound)
+                for u in new_relaxs:
+                    self.update_sum(u)
 
-                #self.resolution_compressed(compressed_core)
+                # for u in core:
+                #     node = forest_find_node(u, self.asm2nodes)
+                #     if node.type == SUM:
+                #         self.update_sum(u)
+                #print(new_relaxs)
+                
+
+                
             else:
                 self.resolution(self.core)
                 
@@ -1290,7 +1326,7 @@ class RC2(object):
             # (their negation is added to the hard part)
             self.deactivate_unit(u = self.core[0])
             #assert(self.core[0] in self.forest)
-            self.filter_forest([self.core[0]])
+            #self.filter_forest([self.core[0]])
 
 
         # print("*************************")
@@ -1460,7 +1496,7 @@ class RC2(object):
 
             t = self.create_node(name = f"{-selv}", u = selv,  v = selv,  weight = self.minw,  type = INITIAL_SELECTOR, status = STATUS_ACTIVE)
 
-            self.forest.append(t.u)
+            #self.forest.append(t.u)
             for u in self.garbage:
                 #print(u)
                 node = forest_find_node(u = u, mapping = self.asm2nodes)
@@ -1468,7 +1504,7 @@ class RC2(object):
 
 
         # removing unnecessary assumptions
-        self.filter_forest(self.garbage)
+        #self.filter_forest(self.garbage)
 
         self.garbage = set()
 

@@ -16,6 +16,7 @@ from graphviz import Digraph
 INITIAL_SELECTOR    = "i-sel"
 SELECTOR            = "sel"
 COMPRESSSOR         = "com"
+SUM                  = "sum"
 
 
 STATUS_ACTIVE       = "A"
@@ -126,7 +127,7 @@ def is_inactive(root):
     return True
 
 class Circuit(object):
-    def __init__(self, data, children=None, parent=None, u = None, v = None, cu = DUMMY_U, cu_cover = DUMMY_U_COVER, weight = None, type = None, status = None, level = DUMMY_LEVEL, into_phase = 0):
+    def __init__(self, data, children=None, parent=None, u = None, v = None, cu = DUMMY_U, cu_cover = DUMMY_U_COVER,  tobj =None, tobj_bound = 0, weight = None, type = None, status = None, level = DUMMY_LEVEL, into_phase = 0):
         self.data = data
         self.children = children or []
         for child in self.children:
@@ -138,6 +139,9 @@ class Circuit(object):
         self.cu_cover = cu_cover
         self.u = u
         self.v = v
+        self.tobj = tobj 
+        self.tobj_bound = tobj_bound
+
         self.weight = weight
         self.oweight = weight
         self.type = type

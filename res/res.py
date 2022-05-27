@@ -131,6 +131,7 @@ from gc import garbage
 import getopt
 import itertools
 from math import copysign
+import math
 import sys,os
 from tkinter import S
 
@@ -376,7 +377,6 @@ class RC2(object):
                             
         for i, cl in enumerate(softs):
             self.oracle.add_clause(cl)
-        upper_bound  = 19
 
         #print(prep_sels)
         disjoint_cores = []
@@ -476,7 +476,7 @@ class RC2(object):
         
         #exit()
         #self.preprocessor(formula)
-
+        self.or_obj = None
         if self.ilp > 0:
             if self.verbose > 1:
                 print('c init formula: {0} vars, {1} hard, {2} soft'.format(formula.nv,
@@ -489,8 +489,11 @@ class RC2(object):
             #self.oracle = Solver(name=self.solver)
             #return
             gurobi_status = -1
+            gurobi_obj = -1
+            gurobi_sol = -1
+            gurobi_lb_obj = 0
             try:
-                gurobi_obj, gurobi_solution, gurobi_status, gurobi_time = self.solve_gurobi(formula, solve=True)
+                gurobi_obj, gurobi_lb_obj, gurobi_solution, gurobi_status, gurobi_time, gurobi_sol = self.solve_gurobi(formula, solve=True)
             except:
                 pass
 
@@ -508,24 +511,33 @@ class RC2(object):
                 base = "temp/" + os.path.basename(self.input_file)
                 result_file  = base + ".wcnf"
                 os.system(f" gunzip -c {self.input_file} > {result_file}") 
-                if (gurobi_status == GRB.SUBOPTIMAL):
-                    s = f"./or-tools/bin/sat_runner --input={result_file}  --output={result_file}.out.txt --output_cnf_solution --upper_bound={gurobi_obj-1} --lower_bound=0"
+                print(f"gurobi_status {gurobi_status} {gurobi_obj} {gurobi_sol}")
+                if (gurobi_status == GRB.TIME_LIMIT)  and (gurobi_sol > 0):
+                    s = f"./or-tools_local/bin/sat_runner --input={result_file}  --output={result_file}.out.txt --output_cnf_solution --upper_bound={gurobi_obj-1} --lower_bound={gurobi_lb_obj}"
+                    print(s)
                     os.system(s) 
                 else:
-                    s = f"./or-tools/bin/sat_runner --input={result_file}  --output={result_file}.out.txt --output_cnf_solution  --lower_bound=0"
+                    ln_s = len(formula.soft)
+                    w_s = 0
+                    for i, cl in enumerate(formula.soft):
+                         w_s +=formula.wght[i]   
+                    s = f"./or-tools_local/bin/sat_runner --input={result_file}  --output={result_file}.out.txt --output_cnf_solution  --upper_bound={w_s-1} --lower_bound={gurobi_lb_obj}"
+                    print(s)
                     os.system(s) 
-                print(s)
-                self.or_obj, self.or_parial_solution, self.or_solution, or_status = self.read_ortools(formula, result_file)
-                os.remove(result_file)
-                if (or_status == 4): # optimal
-                    self.force_model(self.or_solution)
-                    self.cost = self.or_obj
-                    self.time = 360
-                if (or_status == 3): # infeasible
-                    self.force_model(gurobi_solution)
-                    self.cost = gurobi_obj
-                    self.time = gurobi_time + 360
-                
+                try:
+                    self.or_obj, self.or_parial_solution, self.or_solution, or_status = self.read_ortools(formula, result_file)
+                    #exit()
+                    os.remove(result_file)
+                    if (or_status == 4): # optimal
+                        self.force_model(self.or_solution)
+                        self.cost = self.or_obj
+                        self.time = 360
+                    if (or_status == 3): # infeasible
+                        self.force_model(gurobi_solution)
+                        self.cost = gurobi_obj
+                        self.time = gurobi_time + 360
+                except:
+                    pass
 
 
             # #exit()            
@@ -573,6 +585,7 @@ class RC2(object):
 
         # adding soft clauses to oracle
         softs = CNF()
+        rels_zero_level = []
         for i, cl in enumerate(formula.soft):
             
             selv = cl[0]  # if clause is unit, selector variable is its literal
@@ -591,8 +604,19 @@ class RC2(object):
             else:
                 # selector is not new; increment its weight
                 self.wght[selv] += formula.wght[i]
+            rels_zero_level.append(selv)
 
-       
+        if not(self.or_obj is None):
+            if (len(rels_zero_level)*self.or_obj  < 10000):
+                t = ITotalizer(lits=rels_zero_level, ubound=self.or_obj, top_id=self.pool.top)
+
+                # updating top variable id
+                self.pool.top = t.top_id
+
+                # adding its clauses to oracle
+                for cl in t.cnf.clauses:
+                    formula.hard.append(cl)
+            
 
 
         self.oracle = Solver(name=self.solver, bootstrap_with=formula.hard,
@@ -908,10 +932,7 @@ class RC2(object):
 
 
 
-        # trying to adapt (simplify) the formula
-        # by detecting and using atmost1 constraints
-        if self.adapt:
-            self.adapt_am1()
+
 
         # main solving loop
         solve_res = self.oracle.solve(assumptions=self.sels + self.sums)
@@ -1353,17 +1374,21 @@ class RC2(object):
                 obj = None
                 sols = []
                 t = self.gurobi_model.Runtime
-                if self.gurobi_model.status in {GRB.OPTIMAL, GRB.SUBOPTIMAL}:
-                    solution_vars = {}
-                    obj = self.gurobi_model.objVal 
-                    best_obj = int(obj)             
-                    for c in range(max_id):                
-                        b = self.gurobi_vars[c]
-                        solution_vars[c] = int(b.x)
-
+                if self.gurobi_model.status in {GRB.OPTIMAL, GRB.TIME_LIMIT}:
+                    try:
+                        solution_vars = {}
+                        obj =  math.ceil(self.gurobi_model.objVal)
+                        lb_obj =  math.ceil(self.gurobi_model.objbound)
+                        best_obj = int(obj)             
+                        for c in range(max_id):                
+                            b = self.gurobi_vars[c]
+                            solution_vars[c] = int(b.x)
+                    except:
+                        pass
                 else:
                     obj = -1
-                    best_obj = self.gurobi_model.objVal      
+                    best_obj =  math.ceil(self.gurobi_model.objVal)
+                    lb_obj = math.ceil(self.gurobi_model.objbound)
                     solution_vars = None
 
 
@@ -1383,7 +1408,7 @@ class RC2(object):
             #         exit()
 
 
-            return best_obj, solution_vars, self.gurobi_model.status, t#formula_new
+            return best_obj, lb_obj, solution_vars, self.gurobi_model.status, t, self.gurobi_model.SolCount#formula_new
     
     def add_upperlevel(self, lits, tag = 'base'):
         debug = False
