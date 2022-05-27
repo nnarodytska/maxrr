@@ -22,6 +22,7 @@ class SolverOR(object):
 
     def add_hards(self, formula):    
         for j, cl in enumerate(formula.hard):                   
+            #print(cl)
             self.create_clauses_con(cl)
 
     def create_clauses_con(self,  cl):
@@ -84,6 +85,8 @@ class SolverOR(object):
         #solver.parameters.
         status = solver.Solve(self.model)
         print('Solve status: %s' % solver.StatusName(status))
+        self.model.ClearHints()
+
         if status == cp_model.OPTIMAL or status ==  cp_model.FEASIBLE:
             print('Optimal objective value: %i' % solver.ObjectiveValue())
             print('Statistics')
@@ -111,7 +114,86 @@ class SolverOR(object):
             return {}, None, None
 
         return {}, None, None
+
+    def feasibility(self,  assumptions, mapping, hints = None, lb = None, ub = None, to = 600):        
         
+        ortools_soft_vars = {}   
+        ops = []
+
+        for j, u in enumerate(assumptions):           
+            b = self.get_var(u)
+            ortools_soft_vars[abs(u)] = b
+            if (u > 0):
+                ops.append(b)
+                
+            else:
+                ops.append(b.Not())
+            assert(self.ortools_vars[abs(u)] == b)
+        self.model.ClearAssumptions()
+        self.model.AddAssumptions(ops)
+            
+        #print(ops, wops, ub)
+    
+        # #ortools_model.Add(cp_model.LinearExpr.WeightedSum(ops, wops) ==0)
+        # if not (lb is None):
+        #     self.model.Add(cp_model.LinearExpr.WeightedSum(ops, wops) >= ceil(lb))
+        # if not (ub is None):
+        #     self.model.Add(cp_model.LinearExpr.WeightedSum(ops, wops) <= floor(ub))
+
+        # self.model.Minimize(cp_model.LinearExpr.WeightedSum(ops, wops))
+    
+        #self.model.ClearHints()
+        # if not(hints is None):
+        #     for c, v in hints.items():
+        #         b = get_var(self.model, self.ortools_vars, c)
+        #         self.model.AddHint(b,v)
+        #         #print(b,v)
+
+        solver = cp_model.CpSolver()
+        solver.parameters.log_search_progress = True
+        solver.parameters.num_search_workers = 16
+        #solver.parameters.min_num_lns_workers = 1
+        #solver.parameters.interleave_search = True
+        solver.parameters.max_time_in_seconds = to
+        #solver.parameters.cp_model_presolve = False
+        # #solver.parameters.search_branching = cp_model.sat_parameters_pb2.SatParameters.AUTOMATIC_SEARCH
+        # #solver.parameters.
+        status = solver.Solve(self.model)
+        print('Solve status: %s' % solver.StatusName(status))
+        self.model.ClearAssumptions()
+
+        if status == cp_model.OPTIMAL or status ==  cp_model.FEASIBLE:
+            print('Optimal objective value: %i' % solver.ObjectiveValue())
+            print('Statistics')
+            print('  - conflicts : %i' % solver.NumConflicts())
+            print('  - branches  : %i' % solver.NumBranches())
+            print('  - wall time : %f s' % solver.WallTime())
+            print(solver.ResponseStats)
+            solution = {}
+            #print(ops)
+
+            ub = solver.ObjectiveValue()
+            for c, b in sorted(self.ortools_vars.items()):
+                #print(c, b)            
+                b = self.ortools_vars[c]
+                solution[c] = solver.BooleanValue(b)
+            #     if abs(c) in ortools_soft_vars:
+            #         if abs(c) in extra_nodes_abs_u:
+            #             print("---->", b, c, solver.BooleanValue(b))
+            #         else:
+            #             print(b, c, solver.BooleanValue(b))
+            # #assert(False)
+            #exit()
+            return solution, solver.ObjectiveValue(), solver.BestObjectiveBound()
+        elif  status ==  cp_model.INFEASIBLE:
+
+            print("UNSAT")
+            print('SufficientAssumptionsForInfeasibility = 'f'{solver.SufficientAssumptionsForInfeasibility()}')
+
+            return {}, None, None
+
+        return {}, None, None
+
     def get_var(self, c):
         c = abs(c)
         if (c in self.ortools_vars):

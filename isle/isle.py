@@ -245,7 +245,7 @@ class RC2(object):
         self.upperlevel = {}
 
         self.asm2nodes = {}
-        self.ortools_on = False
+        self.ortools_on = True
         self.or_model =  None
         self.hints, self.or_ub, self.or_lb = None, None, -100
         if (self.ortools_on):
@@ -430,7 +430,8 @@ class RC2(object):
             if (init):
                 self.oracle = Solver(name=self.solver, bootstrap_with=self.formula.hard, use_timer=True)
                 if (self.or_model is not None): self.or_model.add_hards(self.formula)
-                
+
+
             self.time = self.oracle.time_accum()
         else:    
             tm = time.time()
@@ -700,6 +701,7 @@ class RC2(object):
         # main solving loop
         
         if debug: print(self.sels + self.sums)
+        #self.or_model.feasibility(assumptions=self.sels + self.sums, mapping=self.asm2nodes)
         unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
         #assert(self.oracle.solve(assumptions=self.sol))
         print(f"start  unsat {unsat}")
@@ -720,7 +722,7 @@ class RC2(object):
             self.rebuild()
             #if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
 
-            
+            #self.or_model.feasibility(assumptions=self.sels + self.sums, mapping=self.asm2nodes)
             unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
             delayed_selectors_nodes = []
             if (not unsat): delayed_selectors_nodes = list(forest_filter(self.asm2nodes, status = STATUS_WAITING)) +  list(forest_filter(self.asm2nodes, status = STATUS_FOLDED))
@@ -890,119 +892,92 @@ class RC2(object):
 
   
   
-    def resolution_compressed(self, compressed_core, uncompressed_core = []):
-        #print(f"compressed_core  {compressed_core} uncompressed_core {uncompressed_core}")
+    # def resolution_compressed(self, uncompressed_core = []):
+    #     #print(f"compressed_core  {compressed_core} uncompressed_core {uncompressed_core}")
 
 
-        new_relaxs = []
-        # if(self.round > 0):
-        #     print("--->", core, self.round )
-        #     forest_build_graph(self.forest, fname= f"graph-{self.round}")
-        circuits = []
-        root_nodes = set()
+    #     new_relaxs = []
+    #     # if(self.round > 0):
+    #     #     print("--->", core, self.round )
+    #     #     forest_build_graph(self.forest, fname= f"graph-{self.round}")
+    #     circuits = []
+    #     root_nodes = set()
 
-        #random.shuffle(core)
-        debug =  False
-        if debug:
-            for u in uncompressed_core:
-                node = forest_find_node(u, self.asm2nodes)
-                if (node.type == COMPRESSSOR):
-                    print(node)                
-                assert(node.type != COMPRESSSOR)
-
-
-        if len(uncompressed_core) == 0:
-            uncompressed_core = []            
-            for cu in compressed_core:
-                if cu in self.upperlevel:
-                    node = forest_find_node(cu, self.asm2nodes)
-                    uncompressed_core = uncompressed_core + node.cu_cover
-                    self.deactivate_compressor(cu)
-                    self.upperlevel.pop(cu)
-                else:
-                    uncompressed_core = uncompressed_core + [cu]
-
-        else:
-            for cu in compressed_core:
-                if cu in self.upperlevel:
-                    node = forest_find_node(cu, self.asm2nodes)
-                    left_over = list(set(node.cu_cover) - set(uncompressed_core))
-                    if debug: print(f"left_over {left_over}")
-                    if (len(left_over) > 0):
-                        if (len(left_over) <= 2):
-                            for a in left_over:
-                                node = forest_find_node(a, self.asm2nodes)
-                                node.status = STATUS_ACTIVE
-                        else:
-                            new_cu = self.add_upperlevel(left_over)
-                            
-                    self.deactivate_compressor(cu)
-                    self.upperlevel.pop(cu)
-        if debug: print(f"uncompressed_core {uncompressed_core}")            
+    #     #random.shuffle(core)
+    #     debug =  False
+    #     if debug:
+    #         for u in uncompressed_core:
+    #             node = forest_find_node(u, self.asm2nodes)
+    #             if (node.type == COMPRESSSOR):
+    #                 print(node)                
+    #             assert(node.type != COMPRESSSOR)
 
 
-        for c in uncompressed_core:
-            node  = forest_find_node(u = c, mapping = self.asm2nodes)
-            if (node.u != c):
-                print(node)
-            circuits.append(node.u)
-            assert(node.u == c)
-            if node.is_root():
-                root_nodes.add(node.u)
+       
+    #     if debug: print(f"uncompressed_core {uncompressed_core}")            
 
-        len_uncompressed_core = len(uncompressed_core)
-        upper = []
-        pointer = 0
-        clean_thresh = 5000
-        while pointer+1 < len(uncompressed_core):
-            u = self.pool.id()    
-            v = self.pool.id()    
+
+    #     for c in uncompressed_core:
+    #         node  = forest_find_node(u = c, mapping = self.asm2nodes)
+    #         if (node.u != c):
+    #             print(node)
+    #         circuits.append(node.u)
+    #         assert(node.u == c)
+    #         if node.is_root():
+    #             root_nodes.add(node.u)
+
+    #     len_uncompressed_core = len(uncompressed_core)
+    #     upper = []
+    #     pointer = 0
+    #     clean_thresh = 5000
+    #     while pointer+1 < len(uncompressed_core):
+    #         u = self.pool.id()    
+    #         v = self.pool.id()    
             
-            if (len(uncompressed_core)%5000 ==0):
-                print(len(uncompressed_core))
+    #         if (len(uncompressed_core)%5000 ==0):
+    #             print(len(uncompressed_core))
                 
-            node0  = forest_find_node(u = circuits[pointer],     mapping = self.asm2nodes) 
-            node1  = forest_find_node(u = circuits[pointer + 1], mapping = self.asm2nodes) 
+    #         node0  = forest_find_node(u = circuits[pointer],     mapping = self.asm2nodes) 
+    #         node1  = forest_find_node(u = circuits[pointer + 1], mapping = self.asm2nodes) 
             
-            if (len_uncompressed_core < 100):
-                self.sanity_build_up(node0, uncompressed_core[pointer], upper)
-                self.sanity_build_up(node1, uncompressed_core[pointer + 1], upper) 
+    #         if (len_uncompressed_core < 100):
+    #             self.sanity_build_up(node0, uncompressed_core[pointer], upper)
+    #             self.sanity_build_up(node1, uncompressed_core[pointer + 1], upper) 
 
-            status = STATUS_COMPRESSED            
-            t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = status, children = [node0, node1], into_phase = self.round)
-            #print(t.u)
-            #print(core[0], core[1], node0.u, node1.u)
-            new_relaxs.append(u)
+    #         status = STATUS_COMPRESSED            
+    #         t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = status, children = [node0, node1], into_phase = self.round)
+    #         #print(t.u)
+    #         #print(core[0], core[1], node0.u, node1.u)
+    #         new_relaxs.append(u)
 
-            ######################################################3
-            self.added_gate(t, uncompressed_core[pointer], uncompressed_core[pointer + 1])
-            ######################################################
+    #         ######################################################3
+    #         self.added_gate(t, uncompressed_core[pointer], uncompressed_core[pointer + 1])
+    #         ######################################################
             
-            uncompressed_core = uncompressed_core + [ v ]    
-            circuits = circuits +[ t.u]    
-            pointer = pointer + 2
-            if (pointer > clean_thresh) and len(uncompressed_core) > clean_thresh + 2:
-                uncompressed_core = uncompressed_core[clean_thresh:]   
-                circuits = circuits[clean_thresh:]   
-                pointer = 0
+    #         uncompressed_core = uncompressed_core + [ v ]    
+    #         circuits = circuits +[ t.u]    
+    #         pointer = pointer + 2
+    #         if (pointer > clean_thresh) and len(uncompressed_core) > clean_thresh + 2:
+    #             uncompressed_core = uncompressed_core[clean_thresh:]   
+    #             circuits = circuits[clean_thresh:]   
+    #             pointer = 0
 
 
-            if (len_uncompressed_core < 100): upper.append(v)
+    #         if (len_uncompressed_core < 100): upper.append(v)
            
     
-        set_topdown_levels(t, level = 0)
+    #     set_topdown_levels(t, level = 0)
     
-        cu = self.add_upperlevel(new_relaxs)
-        self.forest.append(t.u)
-        self.filter_forest(root_nodes)
+    #     self.forest.append(t.u)
+    #     self.filter_forest(root_nodes)
         
-        return [cu]  
+    #     return [cu]  
 
     def add_upperlevel(self, lits):
         debug = False
         
         cu = self.pool.id()    
-        node = self.create_node(name = f"{-cu}", u = DUMMY_U,  v = DUMMY_U, cu = cu,  cu_cover = copy.deepcopy(lits), weight = self.minw, level = -self.round, type = COMPRESSSOR, status = STATUS_ACTIVE, into_phase = self.round)        
+        node = self.create_node(name = f"{-cu}", u = DUMMY_U,  v = DUMMY_U, cu = cu,  cu_cover = copy.deepcopy(lits), weight = self.minw, level = self.round, type = COMPRESSSOR, status = STATUS_ACTIVE, into_phase = self.round)        
         self.wght[cu] = self.minw
     
         if debug: print(f"new {cu} base {len(lits)}")
@@ -1010,7 +985,7 @@ class RC2(object):
             self.add_new_clause([-cu, u], node.v_clauses, self.oracle)
         self.upperlevel[cu] = cu
 
-    def resolution(self, core):
+    def resolution(self, core, status_def = STATUS_ACTIVE):
         new_relaxs = []
         # if(self.round > 0):
         #     print("--->", core, self.round )
@@ -1044,14 +1019,14 @@ class RC2(object):
                 self.sanity_build_up(node0, core[pointer], upper)
                 self.sanity_build_up(node1, core[pointer + 1], upper) 
 
-            status = STATUS_ACTIVE
+            status = status_def
             if (self.circuitinject == CIRCUITINJECT_TOP) and (len(core) > 2):
                 status = STATUS_WAITING
             
             t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = status, children = [node0, node1], into_phase = self.round)
             #print(t.u)
             #print(core[0], core[1], node0.u, node1.u)
-            if (t.status == STATUS_ACTIVE):
+            if (t.status == status_def):
                 new_relaxs.append(u)
 
             ######################################################3
@@ -1223,6 +1198,40 @@ class RC2(object):
         self.forest = list(filter(lambda x: x not in not_nodes, self.forest))
 
 
+    def uncompress_core(self, compressed_core, uncompressed_core):
+        debug = True
+        if len(uncompressed_core) == 0:
+            uncompressed_core = []            
+            for cu in compressed_core:
+                if cu in self.upperlevel:
+                    node = forest_find_node(cu, self.asm2nodes)
+                    uncompressed_core = uncompressed_core + node.cu_cover
+                    self.deactivate_compressor(cu)
+                    self.upperlevel.pop(cu)
+                else:
+                    uncompressed_core = uncompressed_core + [cu]
+
+        else:
+            left_over = []
+            for cu in compressed_core:
+                if cu in self.upperlevel:
+                    node = forest_find_node(cu, self.asm2nodes)
+                    left_over += list(set(node.cu_cover) - set(uncompressed_core))
+                    if debug: print(f"left_over {left_over}")
+                    # if (len(left_over) > 0):
+                    #     if (len(left_over) <= 2):
+                    #         for a in left_over:
+                    #             node = forest_find_node(a, self.asm2nodes)
+                    #             node.status = STATUS_ACTIVE
+                    #     else:
+                    #         self.add_upperlevel(left_over)
+                                    
+                    self.deactivate_compressor(cu)
+                    self.upperlevel.pop(cu)       
+            if (len(left_over) > 0):                     
+                self.add_upperlevel(left_over)
+        return uncompressed_core
+
 
     def process_core(self, sat_round  = 0):
         """
@@ -1263,23 +1272,19 @@ class RC2(object):
                 compressed_core = copy.deepcopy(self.core)
                 print(f"compressed_core {len(compressed_core)}")
                 self.minimize_core(unfolding = True)      
-                recheck_core = []
-                for u in self.core:
-                    node = forest_find_node(u, self.asm2nodes)
-                    if (node.type == COMPRESSSOR):
-                        recheck_core  = recheck_core + node.cu_cover
-                    else:
-                        recheck_core = recheck_core + [u]
-                self.core = recheck_core
-                    
+                uncompressed_core = self.uncompress_core(compressed_core, self.core)                    
+                print(uncompressed_core)
+                new_relaxs = self.resolution(uncompressed_core, status_def = STATUS_COMPRESSED)
+                cu = self.add_upperlevel(new_relaxs)
 
-                self.resolution_compressed(compressed_core, self.core)
                 #self.resolution_compressed(compressed_core)
             else:
                 self.resolution(self.core)
                 
         elif (self.core[0] in self.upperlevel):
-            self.resolution_compressed(self.core)
+            uncompressed_core = self.uncompress_core([self.core[0]], [])                    
+            new_relaxs = self.resolution(uncompressed_core, status_def = STATUS_COMPRESSED)
+            cu = self.add_upperlevel(new_relaxs)
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)
