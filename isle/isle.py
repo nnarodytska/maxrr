@@ -1216,7 +1216,7 @@ class RC2(object):
         
         
         u =  -tobj.rhs[bound]
-        node = self.create_node(name = f"{-u}", u = u,  v = DUMMY_U,  weight = self.minw,  tobj = tobj, tobj_bound = bound,  children = children, type = SUM, status = STATUS_ACTIVE)
+        node = self.create_node(name = f"{-u}", u = u,  v = DUMMY_U,  weight = self.minw,  level = self.round,  tobj = tobj, tobj_bound = bound,  children = children, type = SUM, status = STATUS_ACTIVE)
         #self.forest.append(u)
 
         for cl in tobj.cnf.clauses:            
@@ -1245,7 +1245,7 @@ class RC2(object):
         #print(len(node.tobj.rhs))
         u = -node.tobj.rhs[node.tobj_bound+1]        
         bound = node.tobj_bound + 1
-        update_node = self.create_node(name = f"{-u}", u =u,  v = DUMMY_U,  weight = self.minw,  tobj = node.tobj, tobj_bound = bound, children = node.children, type = SUM, status = STATUS_ACTIVE)
+        update_node = self.create_node(name = f"{-u}", u =u,  v = DUMMY_U,  weight = self.minw,  tobj = node.tobj, level = -self.round, tobj_bound = bound, children = node.children, type = SUM, status = STATUS_ACTIVE)
 
         # adding its clauses to oracle
         if update_node.tobj.nof_new:
@@ -1301,11 +1301,13 @@ class RC2(object):
             elif self.circuitinject == CIRCUIT_PARTIAL_SOFT:
                 core = copy.deepcopy(self.core)
 
+
                 new_relaxs = self.resolution(self.core)
                 thresh_top_pyramid = 16 #len(new_relaxs)
                 
                 test = False
-                if len(new_relaxs) >= thresh_top_pyramid:
+                if len(self.core)-1 >= thresh_top_pyramid:
+
                     top_relaxs = new_relaxs#[-thresh_top_pyramid:]                    
                     counted_zeros  = [-u for u in top_relaxs]
                     bound = 0
@@ -1316,6 +1318,8 @@ class RC2(object):
                             bound =  bound + 1
                             update_node = self.update_sum(update_node.u)
                             #print(ou, bound, update_node)
+
+                    
                 if not test:
                     for u in core:
                         node = forest_find_node(u, self.asm2nodes)
@@ -1604,7 +1608,7 @@ class RC2(object):
             def_prop = 100000
             #if (lnc < 250):
 
-            start_prop = 5000000
+            start_prop = 500000
             misses_in_a_row = 50
             miss = 0
             time_total = 0
@@ -1680,8 +1684,8 @@ class RC2(object):
                 #self.oracle.clear_interrupt()
                 
                 if (time_total > 30):
-                    start_prop = def_prop
-                #    time_per_call = 1
+                   start_prop = def_prop
+                   time_per_call = 1
                 
                 ##############################################
 

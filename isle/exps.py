@@ -107,7 +107,8 @@ root_dir = "/home/nina/workspace/data/mse21_complete_unwt/"
 results =  "/home/nina/workspace/data/mse21_unwt_results/"
 
 #unsolved = []
-unsolved =solved_gurobi + unsolved
+#solved_gurobi +
+unsolved = unsolved
 
 focus =[]
 # focus = ["kbtree9_7_3_5_90_2.wcsp.wcnf.gz", 
@@ -124,14 +125,14 @@ focus =[]
 # "kbtree9_7_3_5_30_5.wcsp.wcnf.gz"]
 
 rc2 = [False, "rc2"]
-rc2comp = [False, "rc2comp"]
+rc2comp = [True, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0 = [False, "maxres","--circuitinject=0", "v0"]
-res_v1 = [False, "maxres", "--circuitinject=1", "v1"]
-res_v2 = [False, "maxres", "--circuitinject=2",  "v2"]
-res_v3 = [True, "maxres", "--circuitinject=4",  "v3"] # with closure
-res_v4 = [False, "maxres", "--circuitinject=3",  "v4"] # 
+res_v0 = [True, "maxres","--circuitinject=0", "v0"]
+res_v1 = [True, "maxres", "--circuitinject=1", "v1"]
+res_v2 = [True, "maxres", "--circuitinject=2",  "v2"]
+res_v3 = [True, "maxres", "--circuitinject=3",  "v3"] # with closure
+res_v4 = [True, "maxres", "--circuitinject=4",  "v4"] # 
 res_v5 = [False, "maxres", "-r mr1b -y -u",  "v5"] 
 res_v6 = [False, "maxres", "-r mr2a -y ",  "v6"] 
 res_v7 = [False, "ortools", "",  "ortools"] 
@@ -144,9 +145,9 @@ if (or_tools):
 resrg  = [False, "resrg",  "", "v0"]
 
 # 3600*3]
-to = [3600*3]
+to = [3600] #[3600*3]
 
-maxhs = [False, "maxhs"]
+maxhs = [True, "maxhs"]
 eva = [False, "eva"]
 
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
@@ -334,7 +335,7 @@ if (process_run):
 
 
     #to = [3600]#, 3600]#, 3600*3]
-    to = [3*3600]
+    to = [3600] #[3*3600]
     for tm in to:
 
         results_rc2comp = {}
