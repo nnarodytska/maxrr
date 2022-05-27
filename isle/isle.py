@@ -1306,7 +1306,6 @@ class RC2(object):
                 
                 test = False
                 if len(new_relaxs) >= thresh_top_pyramid:
-
                     top_relaxs = new_relaxs#[-thresh_top_pyramid:]                    
                     counted_zeros  = [-u for u in top_relaxs]
                     bound = 0
