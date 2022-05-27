@@ -15,12 +15,18 @@ from graphviz import Digraph
 
 INITIAL_SELECTOR    = "i-sel"
 SELECTOR            = "sel"
+COMPRESSSOR         = "com"
+
 
 STATUS_ACTIVE       = "A"
 STATUS_INACTIVE     = "I"
 STATUS_WAITING      = "W"
 STATUS_FOLDED       = "F"
+STATUS_COMPRESSED   = "C"
+
 DUMMY_LEVEL         = -1
+DUMMY_U             = -1
+DUMMY_U_COVER       = []
 
 GRAPH_PRINT_DEF     = 'graph.dot'
 def node_label(node):
@@ -120,7 +126,7 @@ def is_inactive(root):
     return True
 
 class Circuit(object):
-    def __init__(self, data, children=None, parent=None, u = None, v = None, weight = None, type = None, status = None, into_phase = 0):
+    def __init__(self, data, children=None, parent=None, u = None, v = None, cu = DUMMY_U, cu_cover = DUMMY_U_COVER, weight = None, type = None, status = None, level = DUMMY_LEVEL, into_phase = 0):
         self.data = data
         self.children = children or []
         for child in self.children:
@@ -128,6 +134,8 @@ class Circuit(object):
         self.parents = []
         if not (parent is None):
             self.parents.append(parent)        
+        self.cu = cu
+        self.cu_cover = cu_cover
         self.u = u
         self.v = v
         self.weight = weight
@@ -137,13 +145,15 @@ class Circuit(object):
         self.v_clauses = [] 
         self.u_clauses = [] 
         self.into_phase = into_phase
-        self.level = DUMMY_LEVEL
+        self.level = level
         
         if (self.type == INITIAL_SELECTOR):
             assert(self.u == self.v)
             self.level = 0
         
-
+        if (self.type == COMPRESSSOR):
+            assert(self.u == self.v)
+            self.level = 0
 
 
 
@@ -160,7 +170,10 @@ class Circuit(object):
         return not self.children
 
     def __str__(self):
-        s = f"({self.u}/{self.level}:p{self.into_phase}: {self.type}, {self.status})"
+        if (self.u == DUMMY_U):
+            s = f"({self.cu}/{self.level}:p{self.into_phase}: {self.type}, {self.status})"
+        else:
+            s = f"({self.u}/{self.level}:p{self.into_phase}: {self.type}, {self.status})"
         if self.is_leaf():
             return "*" + s 
         return  s 

@@ -154,7 +154,7 @@ from threading import Timer
 CIRCUITINJECT_FULL = 0
 CIRCUITINJECT_TOP = 1
 CIRCUITINJECT_DELAYED = 2 
-
+CIRCUIT_COMPRESSED = 3
 \
 # names of BLO strategies
 #==============================================================================
@@ -242,6 +242,7 @@ class RC2(object):
         self.build_time = 0
         self.sat_time = 0
         self.garbage = set()
+        self.upperlevel = {}
 
         self.asm2nodes = {}
         self.ortools_on = False
@@ -397,11 +398,14 @@ class RC2(object):
         print(self.minz)
         #exit()
 
-    def create_node(self, name, u, v, weight, type, status, children = None, into_phase = 0):
+    def create_node(self, name, u, v, weight, type, status, level = DUMMY_LEVEL, cu = DUMMY_U,  cu_cover = DUMMY_U_COVER, children = None, into_phase = 0):
 
         node = Circuit(name,        
                         u = u,
                         v = v, 
+                        cu = cu,
+                        cu_cover = cu_cover,
+                        level = level,
                         weight = weight, 
                         type = type, 
                         status = status,
@@ -410,8 +414,10 @@ class RC2(object):
                         )        
         if (type == INITIAL_SELECTOR):
             self.orig_sels.append(u)
-
-        self.asm2nodes[u] = node
+        if node.type == COMPRESSSOR:
+            self.asm2nodes[cu] = node
+        else:
+            self.asm2nodes[u] = node
         return node
 
     def rebuild(self, reactivate = False, init = False, debug = False):
@@ -436,16 +442,21 @@ class RC2(object):
             self.build_time  += time.time() - tm
 
 
-        prev_asm_len = len(self.sums + self.sels)
-        if (prev_asm_len == 0):
-            prev_asm_len = len(self.forest)
-        else:
-            prev_asm_len = prev_asm_len - 1
+        # prev_asm_len = len(self.sums + self.sels)
+        # if (prev_asm_len == 0):
+        #     prev_asm_len = len(self.forest)
+        # else:
+        #     prev_asm_len = prev_asm_len - 1
         self.sels, self.sums, self.sneg = [], [], set([])
 
         
         self.wght = {}  # weights of soft clauses
         active_u2l =  u_and_level_active(self.asm2nodes)
+
+        
+        # for a,b in self.asm2nodes.items():
+        #     print("-->", a,b)
+
 
         sorted_active_u2l = {k: v for k, v in sorted(active_u2l.items(), key=lambda item: item[1])}
 
@@ -453,12 +464,16 @@ class RC2(object):
             #print(f"--------------{u}------------")
             node= forest_find_node(u, self.asm2nodes)
             #print(node)
+            node_id = node.u
             if node.type == INITIAL_SELECTOR:
-                self.sels.append(node.u)
+                self.sels.append(node_id)
+            elif node.type == COMPRESSSOR:
+                node_id = node.cu
+                self.sums.append(node_id)                
             else:
-                self.sums.append(node.u)
+                self.sums.append(node_id)
             assert(node.status  == STATUS_ACTIVE)
-            self.wght[node.u] =  node.weight
+            self.wght[node_id] =  node.weight
 
         if not (self.use_accum_oracle):
             u_nodes = forest_filter(self.asm2nodes, status = None)
@@ -653,6 +668,18 @@ class RC2(object):
             else:
                 self.model.append(k-1)        
 
+    def or_call(self):
+        if (self.or_model is None): 
+            return False
+        hints, or_ub, or_lb = self.or_model.minimize(self.orig_sels, self.asm2nodes, hints = self.hints, lb = max(self.cost, self.or_lb),  ub = self.or_ub, to = 60)
+        if (len(hints.items()) > 0 ): 
+            self.hints, self.or_ub, self.or_lb  = hints, or_ub, or_lb 
+            if (or_ub == or_lb):
+                self.force_model(hints)
+                self.cost = or_ub
+        return True
+
+  
     def compute_(self):
         """
             Main core-guided loop, which iteratively calls a SAT
@@ -668,14 +695,11 @@ class RC2(object):
         if self.adapt:
             self.adapt_am1()
             self.rebuild(reactivate = True, init = True)
-            
-            #exit()
-
-            #or_model, or_model_ub = solve_ortools(self.formula, self.forest)
 
         debug = False
         # main solving loop
-        #if debug: print(self.sels + self.sums)
+        
+        if debug: print(self.sels + self.sums)
         unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
         #assert(self.oracle.solve(assumptions=self.sol))
         print(f"start  unsat {unsat}")
@@ -688,37 +712,19 @@ class RC2(object):
                 # core is empty, i.e. hard part is unsatisfiable
                 return False
             self.process_core()
-            #print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ core {self.core} round {self.round}")
+            #if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ core {self.core} round {self.round}")
 
             if self.verbose > 1:
                 print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
 
             self.rebuild()
+            #if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
+
             
-            if (self.or_model is not None): 
-                hints, or_ub, or_lb = self.or_model.minimize(self.orig_sels, self.asm2nodes, hints = self.hints, lb = max(self.cost, self.or_lb),  ub = self.or_ub, to = 60)
-                if (len(hints.items()) > 0 ): 
-                    self.hints, self.or_ub, self.or_lb  = hints, or_ub, or_lb 
-                    if (or_ub == or_lb):
-                        self.force_model(hints)
-                        self.cost = or_ub
-                        return True
-
-            # assert(self.oracle.solve(assumptions=self.sol))
-            # model = self.oracle.get_model()
-            # for s in self.sums+self.sels + [193, 197, 209, 187, 207, 205, 201, 214, 216]:
-            #     try:
-            #         print(s, model[s-1])
-            #     except:
-            #         pass
-
-            # forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}-start")
-
-
             unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
             delayed_selectors_nodes = []
-            if (not unsat):
-                delayed_selectors_nodes = list(forest_filter(self.asm2nodes, status = STATUS_WAITING)) +  list(forest_filter(self.asm2nodes, status = STATUS_FOLDED))
+            if (not unsat): delayed_selectors_nodes = list(forest_filter(self.asm2nodes, status = STATUS_WAITING)) +  list(forest_filter(self.asm2nodes, status = STATUS_FOLDED))
+            
             rebuild = 0
             while (not unsat) and len(delayed_selectors_nodes) > 0:
                 tm = time.time()                     
@@ -807,6 +813,11 @@ class RC2(object):
         node.weight = 0
         self.garbage.add(u)
 
+    def deactivate_compressor(self, u):
+        node  = forest_find_node(u, mapping = self.asm2nodes)
+        node.status = STATUS_INACTIVE
+        node.weight = 0
+
     def deactivate_unit(self, u):        
         node  = forest_find_node(u, mapping = self.asm2nodes)
         node.status = STATUS_INACTIVE        
@@ -819,6 +830,8 @@ class RC2(object):
 
     
     def add_new_clause(self, cl, vec= None, oracle = None, label = "",  debug = False):
+        #print(cl)
+        assert((vec is not None) or (oracle is not None))
         if (vec is not None):
             vec.append(cl)  
         if (oracle is not None):
@@ -874,6 +887,128 @@ class RC2(object):
         else:
             assert(node.u == c)
 
+  
+  
+    def resolution_compressed(self, compressed_core, uncompressed_core = []):
+        #print(f"compressed_core  {compressed_core} uncompressed_core {uncompressed_core}")
+
+
+        new_relaxs = []
+        # if(self.round > 0):
+        #     print("--->", core, self.round )
+        #     forest_build_graph(self.forest, fname= f"graph-{self.round}")
+        circuits = []
+        root_nodes = set()
+
+        #random.shuffle(core)
+        debug =  False
+        if debug:
+            for u in uncompressed_core:
+                node = forest_find_node(u, self.asm2nodes)
+                if (node.type == COMPRESSSOR):
+                    print(node)                
+                assert(node.type != COMPRESSSOR)
+
+
+        if len(uncompressed_core) == 0:
+            uncompressed_core = []            
+            for cu in compressed_core:
+                if cu in self.upperlevel:
+                    node = forest_find_node(cu, self.asm2nodes)
+                    uncompressed_core = uncompressed_core + node.cu_cover
+                    self.deactivate_compressor(cu)
+                    self.upperlevel.pop(cu)
+                else:
+                    uncompressed_core = uncompressed_core + [cu]
+
+        else:
+            for cu in compressed_core:
+                if cu in self.upperlevel:
+                    node = forest_find_node(cu, self.asm2nodes)
+                    left_over = list(set(node.cu_cover) - set(uncompressed_core))
+                    if debug: print(f"left_over {left_over}")
+                    if (len(left_over) > 0):
+                        if (len(left_over) <= 2):
+                            for a in left_over:
+                                node = forest_find_node(a, self.asm2nodes)
+                                node.status = STATUS_ACTIVE
+                        else:
+                            new_cu = self.add_upperlevel(left_over)
+                            
+                    self.deactivate_compressor(cu)
+                    self.upperlevel.pop(cu)
+        if debug: print(f"uncompressed_core {uncompressed_core}")            
+
+
+        for c in uncompressed_core:
+            node  = forest_find_node(u = c, mapping = self.asm2nodes)
+            if (node.u != c):
+                print(node)
+            circuits.append(node.u)
+            assert(node.u == c)
+            if node.is_root():
+                root_nodes.add(node.u)
+
+        len_uncompressed_core = len(uncompressed_core)
+        upper = []
+        pointer = 0
+        clean_thresh = 5000
+        while pointer+1 < len(uncompressed_core):
+            u = self.pool.id()    
+            v = self.pool.id()    
+            
+            if (len(uncompressed_core)%5000 ==0):
+                print(len(uncompressed_core))
+                
+            node0  = forest_find_node(u = circuits[pointer],     mapping = self.asm2nodes) 
+            node1  = forest_find_node(u = circuits[pointer + 1], mapping = self.asm2nodes) 
+            
+            if (len_uncompressed_core < 100):
+                self.sanity_build_up(node0, uncompressed_core[pointer], upper)
+                self.sanity_build_up(node1, uncompressed_core[pointer + 1], upper) 
+
+            status = STATUS_COMPRESSED            
+            t = self.create_node(name = f"{-u}", u = u,  v = v,  weight = self.minw,  type = SELECTOR, status = status, children = [node0, node1], into_phase = self.round)
+            #print(t.u)
+            #print(core[0], core[1], node0.u, node1.u)
+            new_relaxs.append(u)
+
+            ######################################################3
+            self.added_gate(t, uncompressed_core[pointer], uncompressed_core[pointer + 1])
+            ######################################################
+            
+            uncompressed_core = uncompressed_core + [ v ]    
+            circuits = circuits +[ t.u]    
+            pointer = pointer + 2
+            if (pointer > clean_thresh) and len(uncompressed_core) > clean_thresh + 2:
+                uncompressed_core = uncompressed_core[clean_thresh:]   
+                circuits = circuits[clean_thresh:]   
+                pointer = 0
+
+
+            if (len_uncompressed_core < 100): upper.append(v)
+           
+    
+        set_topdown_levels(t, level = 0)
+    
+        cu = self.add_upperlevel(new_relaxs)
+        self.forest.append(t.u)
+        self.filter_forest(root_nodes)
+        
+        return [cu]  
+
+    def add_upperlevel(self, lits):
+        debug = False
+        
+        cu = self.pool.id()    
+        node = self.create_node(name = f"{-cu}", u = DUMMY_U,  v = DUMMY_U, cu = cu,  cu_cover = copy.deepcopy(lits), weight = self.minw, level = 1, type = COMPRESSSOR, status = STATUS_ACTIVE, into_phase = self.round)        
+        self.wght[cu] = self.minw
+    
+        if debug: print(f"new {cu} base {len(lits)}")
+        for u in lits:
+            self.add_new_clause([-cu, u], node.v_clauses, self.oracle)
+        self.upperlevel[cu] = cu
+
     def resolution(self, core):
         new_relaxs = []
         # if(self.round > 0):
@@ -924,14 +1059,16 @@ class RC2(object):
             
             core = core + [ v ]    
             circuits = circuits +[ t.u]    
-            if (len_core < 100): upper.append(v)
             pointer = pointer + 2
-           
             if (pointer > clean_thresh) and len(core) > clean_thresh + 2:
                 core = core[clean_thresh:]   
                 circuits = circuits[clean_thresh:]   
                 pointer = 0
 
+
+            if (len_core < 100): upper.append(v)
+           
+    
         set_topdown_levels(t, level = 0)
         self.forest.append(t.u)
         self.filter_forest(root_nodes)
@@ -1121,16 +1258,23 @@ class RC2(object):
                     self.circuitinject = CIRCUITINJECT_DELAYED
                 else:
                     self.delayed_resolution(self.core)
+            elif self.circuitinject == CIRCUIT_COMPRESSED:
+                compressed_core = copy.deepcopy(self.core)
+                self.minimize_core(unfolding = True)      
+                self.resolution_compressed(compressed_core, self.core)
+                #self.resolution_compressed(compressed_core)
             else:
-
                 self.resolution(self.core)
                 
+        elif (self.core[0] in self.upperlevel):
+            self.resolution_compressed(self.core)
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)
             self.deactivate_unit(u = self.core[0])
             #assert(self.core[0] in self.forest)
             self.filter_forest([self.core[0]])
+
 
         # print("*************************")
         # for t in self.forest:
@@ -1341,7 +1485,7 @@ class RC2(object):
    
 
 
-    def minimize_core(self):
+    def minimize_core(self, core = None,  unfolding = False):
         """
             Reduce a previously extracted core and compute an
             over-approximation of an MUS. This is done using the
@@ -1358,11 +1502,28 @@ class RC2(object):
             During this core minimization procedure, all SAT calls are
             dropped after obtaining 1000 conflicts.
         """
- 
+        if (core is not None):
+            self.core = core
         debug = False
+        if debug: print(f"input core {len(self.core)} unfolding {unfolding}")
         #print(self.minz)
         lnc = len(self.core)
-        if self.minz and len(self.core) > 1 and (len(self.core) < 1000) :
+        core_size_thesh = 1000
+        
+        if (len(self.core) >= core_size_thesh) and unfolding:
+            new_core = []
+            for u in self.core:
+                if u in self.upperlevel:
+                    node = forest_find_node(u, self.asm2nodes)                
+                    new_core  = new_core+ node.cu_cover
+                else:
+                    new_core = new_core + [u]
+            self.core = new_core
+            return
+
+
+        if self.minz and len(self.core) > 1 and (len(self.core) < core_size_thesh) :
+            #if debug: print(self.core, self.wght)
             self.core = sorted(self.core, key=lambda l: self.wght[l])
             u2l = u_and_level(self.core, self.asm2nodes)
             self.core = list({k: v for k, v in sorted(u2l.items(), key=lambda item: item[1], reverse=True)})
@@ -1374,26 +1535,48 @@ class RC2(object):
             core = self.core
             proj = keep + core 
             def_prop = 100000
-            if (lnc < 250):
-                start_prop = 5000000
+            #if (lnc < 250):
+            if not (unfolding):
+                start_prop = 10000000
             else:
-                start_prop = def_prop
+                start_prop = 5000000
             misses_in_a_row = 50
             miss = 0
             time_total = 0
             core = self.core
-            time_per_call = 2
-         
+            unfolded = set()
                 
 
             while len(core) > 0:
                 if (miss == misses_in_a_row):
                     keep = keep + to_test
                     break
+
+                if unfolding:
+                    if core[0] in self.upperlevel:
+                        cu = core[0]                     
+                        node = forest_find_node(cu, self.asm2nodes)                
+                        #print(f" unfolding {core[0]} --> {node.cu_cover}" )
+                        u2l = u_and_level(node.cu_cover, self.asm2nodes)
+                        cu_cover = list({k: v for k, v in sorted(u2l.items(), key=lambda item: item[1], reverse=True)})
+                        core  =  cu_cover + core[1:]
+                        proj  = node.cu_cover + proj
+                        for a in node.cu_cover:
+                            unfolded.add(a)
+                    elif core[0] in unfolded:
+                        pass
+                    else:
+                        keep.append(core[0])
+                        to_test =  core[1:]
+                        core = core[1:]
+                        #print("continue")
+                        continue
+
+                
                 to_test =  core[1:]
                 #node = forest_find_node(core[0], self.asm2nodes)
                 #print(node)
-                #print(f"core {core} keep {keep} proj {proj}")
+               # print(f"core {core} keep {keep} proj {proj}")
 
                 if not (core[0] in proj):
                     #i = i+ 1
@@ -1411,6 +1594,7 @@ class RC2(object):
                 #timer = Timer(time_per_call, interrupt, [self.oracle])            
                 start =time.time()
                 #timer.start()
+                #if debug: print(f"core {keep + to_test}")
 
                 status = self.oracle.solve_limited(assumptions= keep + to_test)        
                 
@@ -1419,7 +1603,7 @@ class RC2(object):
                 time_total = time_total + (time.time() - start)
                 #self.oracle.clear_interrupt()
                 
-                if (time_total > 30):
+                if (time_total > 100):
                     start_prop = def_prop
                 #    time_per_call = 1
                 
@@ -1452,6 +1636,10 @@ class RC2(object):
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
             if debug: print(f"min end {len(self.core)}")           
             #self.oracle.clear_interrupt()
+            if (unfolding) and debug:
+                for u in self.core:
+                    node = forest_find_node(u, self.asm2nodes)
+                    assert(node.type != COMPRESSSOR)
  
             
     def process_assumptions(self):

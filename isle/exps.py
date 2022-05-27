@@ -122,14 +122,14 @@ focus =[]
 # "kbtree9_7_3_5_30_5.wcsp.wcnf.gz"]
 
 rc2 = [False, "rc2"]
-rc2comp = [True, "rc2comp"]
+rc2comp = [False, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0 = [True, "maxres","--circuitinject=0", "v0"]
-res_v1 = [True, "maxres", "--circuitinject=1", "v1"]
-res_v2 = [True, "maxres", "--circuitinject=2",  "v2"]
-res_v3 = [False, "maxres", "--circuitinject=1",  "v3"] # with closure
-res_v4 = [False, "maxres", "--circuitinject=2",  "v4"] # 
+res_v0 = [False, "maxres","--circuitinject=0", "v0"]
+res_v1 = [False, "maxres", "--circuitinject=1", "v1"]
+res_v2 = [False, "maxres", "--circuitinject=2",  "v2"]
+res_v3 = [True, "maxres", "--circuitinject=1",  "v3"] # with closure
+res_v4 = [True, "maxres", "--circuitinject=2",  "v4"] # 
 res_v5 = [False, "maxres", "-r mr1b -y -u",  "v5"] 
 res_v6 = [False, "maxres", "-r mr2a -y ",  "v6"] 
 res_v7 = [False, "ortools", "",  "ortools"] 
@@ -144,7 +144,7 @@ resrg  = [False, "resrg",  "", "v0"]
 # 3600*3]
 to = [3600*3]
 
-maxhs = [True, "maxhs"]
+maxhs = [False, "maxhs"]
 eva = [False, "eva"]
 
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
@@ -181,7 +181,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = False
+gen_run = True
 process_run = True
 if (gen_run):
     with open(run_file, 'w') as the_file:
@@ -698,17 +698,17 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_res_v2[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_res_v0[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v2[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_res_v0[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = pref + "~~"
                 else:
                     pref = pref+  "  "
 
 
-                if (results_res_v2[f][0] > -1) and results_maxsatcomp[f][0] == -1:
+                if (results_res_v3[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v2[f][0] == -1) and results_maxsatcomp[f][0] > -1:
+                elif (results_res_v3[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = pref + "++"
                 else:
                     pref = pref+  "  "
