@@ -101,6 +101,8 @@ import copy
 from solved_guropy import solved_gurobi, unsolved
 from os import path
 from posixpath import split
+import sys
+
 root_dir = "/home/nina/workspace/data/mse21_complete_unwt/"
 results =  "/home/nina/workspace/data/mse21_unwt_results/"
 
@@ -181,7 +183,10 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = True
+gen_run = False
+if (len(sys.argv) > 1):
+    gen_run = sys.argv[1]
+
 process_run = True
 if (gen_run):
     with open(run_file, 'w') as the_file:
