@@ -902,7 +902,7 @@ class RC2(object):
 
         #random.shuffle(core)
         debug =  False
-        if debug:
+        if debug or True:
             for u in uncompressed_core:
                 node = forest_find_node(u, self.asm2nodes)
                 if (node.type == COMPRESSSOR):
@@ -1549,7 +1549,18 @@ class RC2(object):
 
             while len(core) > 0:
                 if (miss == misses_in_a_row):
-                    keep = keep + to_test
+                    if (unfolding):
+                        new_core = keep
+                        for u in self.core:
+                            if u in self.upperlevel:
+                                node = forest_find_node(u, self.asm2nodes)                
+                                new_core  = new_core+ node.cu_cover
+                            else:
+                                new_core = new_core + [u]
+                        keep = new_core                    
+                    else:
+                        keep = keep + to_test
+
                     break
 
                 if unfolding:
@@ -1559,12 +1570,12 @@ class RC2(object):
                         #print(f" unfolding {core[0]} --> {node.cu_cover}" )
                         u2l = u_and_level(node.cu_cover, self.asm2nodes)
                         cu_cover = list({k: v for k, v in sorted(u2l.items(), key=lambda item: item[1], reverse=True)})
-                        core  =  cu_cover + core[1:]
+                        core  =  cu_cover+ core[1:]
                         proj  = node.cu_cover + proj
                         for a in node.cu_cover:
                             unfolded.add(a)
                     elif core[0] in unfolded:
-                        pass
+                        proj  = [core[0]] + proj
                     else:
                         keep.append(core[0])
                         to_test =  core[1:]
@@ -1636,7 +1647,7 @@ class RC2(object):
             #assert(self.oracle.solve_limited(assumptions=self.core) == False)
             if debug: print(f"min end {len(self.core)}")           
             #self.oracle.clear_interrupt()
-            if (unfolding) and debug:
+            if (unfolding) and (debug or True):
                 for u in self.core:
                     node = forest_find_node(u, self.asm2nodes)
                     assert(node.type != COMPRESSSOR)
