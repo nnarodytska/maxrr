@@ -1551,7 +1551,7 @@ class RC2(object):
                 if (miss == misses_in_a_row):
                     if (unfolding):
                         new_core = keep
-                        for u in self.core:
+                        for u in to_test:
                             if u in self.upperlevel:
                                 node = forest_find_node(u, self.asm2nodes)                
                                 new_core  = new_core+ node.cu_cover
