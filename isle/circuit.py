@@ -177,7 +177,10 @@ class Circuit(object):
         if (self.u == DUMMY_U):
             s = f"({self.cu}/{self.level}:p{self.into_phase}: {self.type}, {self.status})"
         else:
-            s = f"({self.u}/{self.level}:p{self.into_phase}: {self.type}, {self.status})"
+            if (self.type == SUM):
+                s = f"({self.u}/b{self.tobj_bound}:c{len(self.children)}: {self.type}, {self.status})"
+            else:
+                s = f"({self.u}/{self.level}:p{self.into_phase}: {self.type}, {self.status})"
         if self.is_leaf():
             return "*" + s 
         return  s 

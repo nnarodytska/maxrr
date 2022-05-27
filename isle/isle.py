@@ -1208,7 +1208,7 @@ class RC2(object):
             node = forest_find_node(u, self.asm2nodes)
             children.append(node)
             assert(node.status == STATUS_ACTIVE)
-            print(node)
+            #print(node)
             self.deactivate_sel(u)
         
         # updating top variable id
@@ -1223,7 +1223,7 @@ class RC2(object):
             self.add_new_clause(cl, node.u_clauses, self.oracle)
 
 
-        return tobj
+        return node
 
     def update_sum(self, u):
        
@@ -1231,8 +1231,8 @@ class RC2(object):
         node = forest_find_node(u, self.asm2nodes)
         # increment the current bound
         
-        # if len(node.children) == node.tobj_bound:
-        #     return
+        if len(node.children) - 1 <= node.tobj_bound:
+            return
 
 
         # increasing its bound
@@ -1242,15 +1242,16 @@ class RC2(object):
         self.pool.top = node.tobj.top_id
         #print(node.tobj.rhs, node.tobj_bound, node.children)        
         
-        u = -node.tobj.rhs[node.tobj_bound]        
+        #print(len(node.tobj.rhs))
+        u = -node.tobj.rhs[node.tobj_bound+1]        
         bound = node.tobj_bound + 1
-        update_node = self.create_node(name = f"{-node.u}", u = node.u,  v = DUMMY_U,  weight = self.minw,  tobj = node.tobj, tobj_bound = bound, children = node.children, type = SUM, status = STATUS_ACTIVE)
+        update_node = self.create_node(name = f"{-u}", u =u,  v = DUMMY_U,  weight = self.minw,  tobj = node.tobj, tobj_bound = bound, children = node.children, type = SUM, status = STATUS_ACTIVE)
 
         # adding its clauses to oracle
         if update_node.tobj.nof_new:
             for cl in update_node.tobj.cnf.clauses[-update_node.tobj.nof_new:]:
                 self.add_new_clause(cl, update_node.u_clauses, self.oracle)
-
+        return update_node
 
     def process_core(self, sat_round  = 0):
         """
@@ -1272,7 +1273,7 @@ class RC2(object):
 
         # assumptions to remove
         self.garbage = set()
-        #print(self.sels, self.sums)
+       # print("-->", self.sels, self.sums)
         if  len(self.core_sels + self.core_sums) > 1:
             rels = self.process_assumptions()
             self.core = [-l for l in rels]
@@ -1299,18 +1300,32 @@ class RC2(object):
             
             elif self.circuitinject == CIRCUIT_PARTIAL_SOFT:
                 core = copy.deepcopy(self.core)
-                new_relaxs = self.resolution(self.core)
-                counted_zeros  = [-u for u in new_relaxs]
-                bound = 0
-                self.create_sum(counted_zeros, bound=bound)
-                for u in new_relaxs:
-                    self.update_sum(u)
 
-                # for u in core:
-                #     node = forest_find_node(u, self.asm2nodes)
-                #     if node.type == SUM:
-                #         self.update_sum(u)
-                #print(new_relaxs)
+                new_relaxs = self.resolution(self.core)
+                thresh_top_pyramid = 16 #len(new_relaxs)
+                
+                test = False
+                if len(new_relaxs) >= thresh_top_pyramid:
+
+                    top_relaxs = new_relaxs#[-thresh_top_pyramid:]                    
+                    counted_zeros  = [-u for u in top_relaxs]
+                    bound = 0
+                    update_node = self.create_sum(counted_zeros, bound=bound)
+                    ou = update_node.u
+                    if test:
+                        for u in range(len(counted_zeros)-1):
+                            bound =  bound + 1
+                            update_node = self.update_sum(update_node.u)
+                            #print(ou, bound, update_node)
+                if not test:
+                    for u in core:
+                        node = forest_find_node(u, self.asm2nodes)
+                        if node.type == SUM:
+                            #print(node)
+                            update_node = self.update_sum(u)
+                            #print(update_node)
+
+                    #print(new_relaxs)
                 
 
                 
