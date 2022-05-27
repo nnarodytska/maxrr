@@ -108,7 +108,8 @@ results =  "/home/nina/workspace/data/mse21_unwt_results/"
 
 #unsolved = []
 #
-unsolved =solved_gurobi +  unsolved
+#solved_gurobi +
+unsolved =  unsolved
 
 focus =[]
 # focus = ["kbtree9_7_3_5_90_2.wcsp.wcnf.gz", 
