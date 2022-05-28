@@ -133,7 +133,7 @@ res_v0 = [False, "maxres","--circuitinject=0", "v0"]
 res_v1 = [True, "maxres", "--circuitinject=4 --minw=8 --maxw=32 ", "v1"]
 res_v2 = [True, "maxres", "--circuitinject=4 --minw=8 --maxw=64 ",  "v2"]
 res_v3 = [True, "maxres", "--circuitinject=4 --minw=8 --maxw=128 ",  "v3"] # with closure
-res_v4 = [True, "maxres", "--circuitinject=4", "v4"] # 
+res_v4 = [False, "maxres", "--circuitinject=4", "v4"] # 
 res_v5 = [True, "maxres", "--circuitinject=4 --minw=4 ",  "v5"] 
 res_v6 = [True, "maxres", "--circuitinject=4 --minw=4 --maxw=32 ",  "v6"] 
 res_v7 = [True, "maxres", "--circuitinject=4 --minw=4 --maxw=64 ",  "v7"] 
@@ -713,9 +713,9 @@ if (process_run):
                     pref = pref+  "  "
 
 
-                if (results_res_v3[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_res_v4[f][0] > -1) and results_rc2comp[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v3[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_res_v4[f][0] == -1) and results_rc2comp[f][0] > -1:
                     pref = pref + "++"
                 else:
                     pref = pref+  "  "
