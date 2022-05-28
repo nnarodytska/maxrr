@@ -726,7 +726,7 @@ class RC2(object):
                 print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
 
             self.rebuild()
-            #if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
+            if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
 
             #self.or_model.feasibility(assumptions=self.sels + self.sums, mapping=self.asm2nodes)
             unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
@@ -1253,6 +1253,15 @@ class RC2(object):
                 self.add_new_clause(cl, update_node.u_clauses, self.oracle)
         return update_node
 
+
+    def update_sums(self, sums):
+        for u in sums:
+            node = forest_find_node(u, self.asm2nodes)
+            if node.type == SUM:
+                print(node)
+                update_node = self.update_sum(u)
+                print(update_node)
+
     def process_core(self, sat_round  = 0):
         """
             The method deals with a core found previously in
@@ -1273,7 +1282,7 @@ class RC2(object):
 
         # assumptions to remove
         self.garbage = set()
-       # print("-->", self.sels, self.sums)
+        #print("-->", self.sels, self.sums)
         if  len(self.core_sels + self.core_sums) > 1:
             rels = self.process_assumptions()
             self.core = [-l for l in rels]
@@ -1321,17 +1330,7 @@ class RC2(object):
 
                     
                 if not test:
-                    for u in core:
-                        node = forest_find_node(u, self.asm2nodes)
-                        if node.type == SUM:
-                            #print(node)
-                            update_node = self.update_sum(u)
-                            #print(update_node)
-
-                    #print(new_relaxs)
-                
-
-                
+                    self.update_sums(core)
             else:
                 self.resolution(self.core)
                 
@@ -1339,12 +1338,16 @@ class RC2(object):
             uncompressed_core = self.uncompress_core([self.core[0]], [])                    
             new_relaxs = self.resolution(uncompressed_core, status_def = STATUS_COMPRESSED)
             cu = self.add_upperlevel(new_relaxs)
+
+
         else:
             # unit cores are treated differently
             # (their negation is added to the hard part)
             self.deactivate_unit(u = self.core[0])
             #assert(self.core[0] in self.forest)
             #self.filter_forest([self.core[0]])
+            if self.circuitinject == CIRCUIT_PARTIAL_SOFT:
+                self.update_sums(self.core)
 
 
         # print("*************************")
