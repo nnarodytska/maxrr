@@ -703,7 +703,7 @@ class RC2(object):
             self.adapt_am1()
             self.rebuild(reactivate = True, init = True)
 
-        debug = False
+        debug = True
         # main solving loop
         
         if debug: print(self.sels + self.sums)
@@ -720,7 +720,7 @@ class RC2(object):
                 # core is empty, i.e. hard part is unsatisfiable
                 return False
             self.process_core()
-            #if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ core {self.core} round {self.round}")
+            if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ core {self.core} round {self.round}")
 
             if self.verbose > 1:
                 print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
@@ -1216,7 +1216,7 @@ class RC2(object):
         
         
         u =  -tobj.rhs[bound]
-        node = self.create_node(name = f"{-u}", u = u,  v = DUMMY_U,  weight = self.minw,  level = self.round,  tobj = tobj, tobj_bound = bound,  children = children, type = SUM, status = STATUS_ACTIVE)
+        node = self.create_node(name = f"{-u}", u = u,  v = DUMMY_U,  weight = self.minw,  level = -self.round,  tobj = tobj, tobj_bound = bound,  children = children, type = SUM, status = STATUS_ACTIVE)
         #self.forest.append(u)
 
         for cl in tobj.cnf.clauses:            
