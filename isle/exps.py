@@ -286,7 +286,7 @@ if (gen_run):
 
 
                     if (res_v7[0]):
-                        os.system("gunzip -c {filename} > {res_filename_1}.wcnf")
+                        #os.system("gunzip -c {filename} > {res_filename_1}.wcnf")
                         s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v7[2]} -vv {filename} > {res_filename}.{res_v7[3]}.{res_v7[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
