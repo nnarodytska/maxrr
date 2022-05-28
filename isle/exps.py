@@ -185,7 +185,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
     return results_res_v
 
 
-gen_run = True
+gen_run = False
 # if (len(sys.argv) > 1):
 #     gen_run = sys.argv[1]
 
