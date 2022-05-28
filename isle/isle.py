@@ -156,7 +156,9 @@ CIRCUITINJECT_TOP = 1
 CIRCUITINJECT_DELAYED = 2 
 CIRCUIT_COMPRESSED = 3
 CIRCUIT_PARTIAL_SOFT = 4
-\
+
+DEFAULT_MIN_WINDOW = 8
+DEFAULT_MAX_WINDOW = 10000000
 # names of BLO strategies
 #==============================================================================
 blomap = {'none': 0, 'basic': 1, 'div': 3, 'cluster': 5, 'full': 7}
@@ -214,7 +216,7 @@ class RC2(object):
     """
 
     def __init__(self, formula, solver='g3', adapt=False, exhaust=False,
-            incr=False, minz=False, trim=0, verbose=0, circuitinject = CIRCUITINJECT_FULL):
+            incr=False, minz=False, trim=0, verbose=0, circuitinject = CIRCUITINJECT_FULL, minw = None, maxw = None):
         """
             Constructor.
         """
@@ -227,6 +229,14 @@ class RC2(object):
         self.minz = minz
         self.trim = trim
         self.circuitinject = circuitinject
+        self.minw = minw
+        if self.minw is None:
+            self.minw = DEFAULT_MIN_WINDOW
+
+        self.maxw = maxw
+        if self.maxw is None:
+            self.maxw = DEFAULT_MAX_WINDOW
+
         self.use_accum_oracle = True
 
         # clause selectors and mapping from selectors to clause ids
@@ -675,15 +685,21 @@ class RC2(object):
             else:
                 self.model.append(k-1)        
 
-    def or_call(self):
+    def or_call(self, cost_vars, lb=None, ub=None, to = 60):
         if (self.or_model is None): 
             return False
-        hints, or_ub, or_lb = self.or_model.minimize(self.orig_sels, self.asm2nodes, hints = self.hints, lb = max(self.cost, self.or_lb),  ub = self.or_ub, to = 60)
+        hints, or_ub, or_lb = self.or_model.minimize(cost_vars, self.asm2nodes, hints = self.hints, lb = lb,  ub = ub, to = to)
         if (len(hints.items()) > 0 ): 
             self.hints, self.or_ub, self.or_lb  = hints, or_ub, or_lb 
-            if (or_ub == or_lb):
-                self.force_model(hints)
-                self.cost = or_ub
+            for u in cost_vars:
+                val = hints[abs(u)]
+                if ((val == False) and (u > 0)) or ((val == True) and (u < 0)):
+                    print(u,val)
+                    node= forest_find_node(u, self.asm2nodes)
+                    print(node)
+            #if (or_ub == or_lb):
+            #    self.force_model(hints)
+            #    self.cost = or_ub
         return True
 
   
@@ -703,11 +719,13 @@ class RC2(object):
             self.adapt_am1()
             self.rebuild(reactivate = True, init = True)
 
-        debug = True
+        debug = False
         # main solving loop
         
         if debug: print(self.sels + self.sums)
         #self.or_model.feasibility(assumptions=self.sels + self.sums, mapping=self.asm2nodes)
+
+        self.or_call(cost_vars=self.sels + self.sums, to = 30)
         unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
         #assert(self.oracle.solve(assumptions=self.sol))
         print(f"start  unsat {unsat}")
@@ -728,7 +746,10 @@ class RC2(object):
             self.rebuild()
             if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
 
-            #self.or_model.feasibility(assumptions=self.sels + self.sums, mapping=self.asm2nodes)
+            sums = forest_filter(self.asm2nodes, type= SUM)
+            if (len(sums) > 0):
+                self.or_call(cost_vars=self.sels + self.sums, to = 30)
+            
             unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
             delayed_selectors_nodes = []
             if (not unsat): delayed_selectors_nodes = list(forest_filter(self.asm2nodes, status = STATUS_WAITING)) +  list(forest_filter(self.asm2nodes, status = STATUS_FOLDED))
@@ -959,6 +980,9 @@ class RC2(object):
             
             core = core + [ v ]    
             circuits = circuits +[ t.u]    
+            # core =  [ v ] + core[2:]
+            # circuits =  [ t.u]   + circuits[2:]
+
             pointer = pointer + 2
             if (pointer > clean_thresh) and len(core) > clean_thresh + 2:
                 core = core[clean_thresh:]   
@@ -1262,6 +1286,24 @@ class RC2(object):
                 update_node = self.update_sum(u)
                 #print(update_node)
 
+    def create_partial_sum(self, sum, test = False):
+        bound = 0
+        update_node = self.create_sum(sum, bound=bound)
+        ou = update_node.u
+        if test:
+            for _ in range(len(sum)-1):
+                bound =  bound + 1
+                update_node = self.update_sum(update_node.u)
+                #print(ou, bound, update_node)        
+    def create_partial_sums(self, sums, minw, maxw, test = False):
+        if len(sums) >= minw:                    
+            while(len(sums) > 0):
+                top_relaxs = sums[:maxw]                    
+                counted_zeros  = [-u for u in top_relaxs]
+                self.create_partial_sum(counted_zeros, test = test)
+                sums = sums[maxw:]
+
+
     def process_core(self, sat_round  = 0):
         """
             The method deals with a core found previously in
@@ -1309,28 +1351,10 @@ class RC2(object):
             
             elif self.circuitinject == CIRCUIT_PARTIAL_SOFT:
                 core = copy.deepcopy(self.core)
-
-
                 new_relaxs = self.resolution(self.core)
-                thresh_top_pyramid = 16 #len(new_relaxs)
-                
                 test = False
-                if len(self.core)-1 >= thresh_top_pyramid:
-
-                    top_relaxs = new_relaxs#[-thresh_top_pyramid:]                    
-                    counted_zeros  = [-u for u in top_relaxs]
-                    bound = 0
-                    update_node = self.create_sum(counted_zeros, bound=bound)
-                    ou = update_node.u
-                    if test:
-                        for u in range(len(counted_zeros)-1):
-                            bound =  bound + 1
-                            update_node = self.update_sum(update_node.u)
-                            #print(ou, bound, update_node)
-
-                    
-                if not test:
-                    self.update_sums(core)
+                self.create_partial_sums(new_relaxs, minw = self.minw, maxw = self.maxw, test = test)
+                if not test: self.update_sums(core)
             else:
                 self.resolution(self.core)
                 
@@ -1813,9 +1837,9 @@ def parse_options():
     """
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:ms:rt:vx',
+        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:ms:pqrt:vx',
                 ['adapt', 'block=', 'comp=', 'enum=', 'exhaust', 'help',
-                    'incr', 'blo=', 'minimize', 'solver=', 'trim=',  'circuitinject=','verbose',
+                    'incr', 'blo=', 'minimize', 'solver=', 'trim=',  'circuitinject=','verbose','minw=','maxw=',
                     'vnew'])
     except getopt.GetoptError as err:
         sys.stderr.write(str(err).capitalize())
@@ -1835,6 +1859,8 @@ def parse_options():
     verbose = 1
     vnew = False
     circuitinject = 0
+    minw= None
+    maxw = None
 
     for opt, arg in opts:
         if opt in ('-a', '--adapt'):
@@ -1862,6 +1888,10 @@ def parse_options():
             solver = str(arg)
         elif opt in ('-t', '--trim'):
             trim = int(arg)
+        elif opt in ('-p', '--maxw'):
+            trim = int(arg)            
+        elif opt in ('-q', '--minw'):
+            trim = int(arg)            
         elif opt in ('-r', '--circuitinject'):
             circuitinject = int(arg)            
         elif opt in ('-v', '--verbose'):
@@ -1879,7 +1909,7 @@ def parse_options():
     block = bmap[block]
 
     return adapt, blo, block, cmode, to_enum, exhaust, incr, minz, \
-            solver, trim, circuitinject, verbose, vnew, args
+            solver, trim, circuitinject, minw, maxw, verbose, vnew, args
 
 
 #
@@ -1916,7 +1946,7 @@ def usage():
 #==============================================================================
 if __name__ == '__main__':
     adapt, blo, block, cmode, to_enum, exhaust, incr, minz, solver, trim, \
-            circuitinject, verbose, vnew, files = parse_options()
+            circuitinject,  minw, maxw, verbose, vnew, files = parse_options()
 
     if files:
         # parsing the input formula
@@ -1948,7 +1978,7 @@ if __name__ == '__main__':
 
         # starting the solver
         with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust,
-                incr=incr, minz=minz, trim=trim, circuitinject=circuitinject, verbose=verbose) as rc2:
+                incr=incr, minz=minz, trim=trim, circuitinject=circuitinject,  minw =minw, maxw =maxw, verbose=verbose) as rc2:
 
             
             # if isinstance(rc2, RC2Stratified):

@@ -75,12 +75,12 @@ class SolverOR(object):
                 #print(b,v)
 
         solver = cp_model.CpSolver()
-        solver.parameters.log_search_progress = True
-        solver.parameters.num_search_workers = 8
+        solver.parameters.log_search_progress = False
+        solver.parameters.num_search_workers = 1
         solver.parameters.min_num_lns_workers = 1
         #solver.parameters.interleave_search = True
         solver.parameters.max_time_in_seconds = to
-        solver.parameters.cp_model_presolve = False
+        solver.parameters.cp_model_presolve = True
         #solver.parameters.search_branching = cp_model.sat_parameters_pb2.SatParameters.AUTOMATIC_SEARCH
         #solver.parameters.
         status = solver.Solve(self.model)

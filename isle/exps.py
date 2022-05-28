@@ -126,17 +126,17 @@ focus =[]
 # "kbtree9_7_3_5_30_5.wcsp.wcnf.gz"]
 
 rc2 = [False, "rc2"]
-rc2comp = [True, "rc2comp"]
+rc2comp = [False, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0 = [True, "maxres","--circuitinject=0", "v0"]
-res_v1 = [True, "maxres", "--circuitinject=1", "v1"]
-res_v2 = [True, "maxres", "--circuitinject=2",  "v2"]
-res_v3 = [True, "maxres", "--circuitinject=3",  "v3"] # with closure
-res_v4 = [True, "maxres", "--circuitinject=4",  "v4"] # 
-res_v5 = [False, "maxres", "-r mr1b -y -u",  "v5"] 
-res_v6 = [False, "maxres", "-r mr2a -y ",  "v6"] 
-res_v7 = [False, "ortools", "",  "ortools"] 
+res_v0 = [False, "maxres","--circuitinject=0", "v0"]
+res_v1 = [True, "maxres", "--circuitinject=4 --minw=8 --maxw=32 ", "v1"]
+res_v2 = [True, "maxres", "--circuitinject=4 --minw=8 --maxw=64 ",  "v2"]
+res_v3 = [True, "maxres", "--circuitinject=4 --minw=8 --maxw=128 ",  "v3"] # with closure
+res_v4 = [True, "maxres", "--circuitinject=4", "v4"] # 
+res_v5 = [True, "maxres", "--circuitinject=4 --minw=4 ",  "v5"] 
+res_v6 = [True, "maxres", "--circuitinject=4 --minw=4 --maxw=32 ",  "v6"] 
+res_v7 = [True, "maxres", "--circuitinject=4 --minw=4 --maxw=64 ",  "v7"] 
 
 # gurobi
 or_tools = False
@@ -148,7 +148,7 @@ resrg  = [False, "resrg",  "", "v0"]
 # 3600*3]
 to = [3600] #[3600*3]
 
-maxhs = [True, "maxhs"]
+maxhs = [False, "maxhs"]
 eva = [False, "eva"]
 
 def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res_v):
@@ -186,8 +186,8 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
 
 
 gen_run = False
-# if (len(sys.argv) > 1):
-#     gen_run = sys.argv[1]
+if (len(sys.argv) > 1):
+    gen_run = sys.argv[1]
 
 process_run = True
 if (gen_run):
@@ -669,7 +669,7 @@ if (process_run):
             h_res_v7 = f"{opt:<5}/{lb:<5}  {res_v7[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3} {h_res_v4}   "#{h_res_v5}  {h_res_v6}  {h_res_v7}"
+            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3} {h_res_v4}   {h_res_v5}  {h_res_v6}  {h_res_v7}"
             print(s)
             the_file.write(f'{s}\n')
 
@@ -800,7 +800,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0}{s_res_v1}  {s_res_v2}    {s_res_v3} {s_res_v4} " #  {s_res_v5}   {s_res_v6}  {s_res_v7}"
+                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs}  {s_res_v0}{s_res_v1}  {s_res_v2}    {s_res_v3} {s_res_v4}   {s_res_v5}   {s_res_v6}  {s_res_v7}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
