@@ -216,7 +216,7 @@ class RC2(object):
     """
 
     def __init__(self, formula, solver='g3', adapt=False, exhaust=False,
-            incr=False, minz=False, trim=0, verbose=0, circuitinject = CIRCUITINJECT_FULL, minw = None, maxw = None):
+            incr=False, minz=False, trim=0, verbose=0, circuitinject = CIRCUITINJECT_FULL, min_window = None, max_window = None):
         """
             Constructor.
         """
@@ -229,13 +229,13 @@ class RC2(object):
         self.minz = minz
         self.trim = trim
         self.circuitinject = circuitinject
-        self.minw = minw
-        if self.minw is None:
-            self.minw = DEFAULT_MIN_WINDOW
+        self.min_window = min_window
+        if self.min_window is None:
+            self.min_window = DEFAULT_MIN_WINDOW
 
-        self.maxw = maxw
-        if self.maxw is None:
-            self.maxw = DEFAULT_MAX_WINDOW
+        self.max_window = max_window
+        if self.max_window is None:
+            self.max_window = DEFAULT_MAX_WINDOW
 
         self.use_accum_oracle = True
 
@@ -1295,13 +1295,15 @@ class RC2(object):
                 bound =  bound + 1
                 update_node = self.update_sum(update_node.u)
                 #print(ou, bound, update_node)        
-    def create_partial_sums(self, sums, minw, maxw, test = False):
-        if len(sums) >= minw:                    
+    def create_partial_sums(self, sums, min_window, max_window, test = False):
+        if len(sums) >= min_window:                    
             while(len(sums) > 0):
-                top_relaxs = sums[:maxw]                    
+                #print(min_window, max_window)
+                top_relaxs = sums[:max_window]                    
                 counted_zeros  = [-u for u in top_relaxs]
                 self.create_partial_sum(counted_zeros, test = test)
-                sums = sums[maxw:]
+                sums = sums[max_window:]
+                #print(top_relaxs)
 
 
     def process_core(self, sat_round  = 0):
@@ -1353,7 +1355,7 @@ class RC2(object):
                 core = copy.deepcopy(self.core)
                 new_relaxs = self.resolution(self.core)
                 test = False
-                self.create_partial_sums(new_relaxs, minw = self.minw, maxw = self.maxw, test = test)
+                self.create_partial_sums(new_relaxs, min_window = self.min_window, max_window = self.max_window, test = test)
                 if not test: self.update_sums(core)
             else:
                 self.resolution(self.core)
@@ -1889,9 +1891,9 @@ def parse_options():
         elif opt in ('-t', '--trim'):
             trim = int(arg)
         elif opt in ('-p', '--maxw'):
-            trim = int(arg)            
+            maxw = int(arg)            
         elif opt in ('-q', '--minw'):
-            trim = int(arg)            
+            minw = int(arg)            
         elif opt in ('-r', '--circuitinject'):
             circuitinject = int(arg)            
         elif opt in ('-v', '--verbose'):
@@ -1946,7 +1948,8 @@ def usage():
 #==============================================================================
 if __name__ == '__main__':
     adapt, blo, block, cmode, to_enum, exhaust, incr, minz, solver, trim, \
-            circuitinject,  minw, maxw, verbose, vnew, files = parse_options()
+            circuitinject,  min_window, max_window, verbose, vnew, files = parse_options()
+    
 
     if files:
         # parsing the input formula
@@ -1977,8 +1980,9 @@ if __name__ == '__main__':
             MXS = RC2
 
         # starting the solver
+
         with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust,
-                incr=incr, minz=minz, trim=trim, circuitinject=circuitinject,  minw =minw, maxw =maxw, verbose=verbose) as rc2:
+                incr=incr, minz=minz, trim=trim, circuitinject=circuitinject,  min_window = min_window, max_window = max_window, verbose=verbose) as rc2:
 
             
             # if isinstance(rc2, RC2Stratified):
