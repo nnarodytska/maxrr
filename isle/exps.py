@@ -130,13 +130,13 @@ rc2comp = [False, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
 res_v0 = [False, "maxres","--circuitinject=0", "v0"]
-res_v1 = [True, "maxres", "--circuitinject=4 --minw=8 --maxw=32 ", "v1"]
-res_v2 = [True, "maxres", "--circuitinject=4 --minw=8 --maxw=64 ",  "v2"]
-res_v3 = [True, "maxres", "--circuitinject=4 --minw=8 --maxw=128 ",  "v3"] # with closure
+res_v1 = [True, "maxres", "--circuitinject=4 --minw=8", "v1"]
+res_v2 = [True, "maxres", "--circuitinject=4 --minw=16",  "v2"]
+res_v3 = [False, "maxres", "--circuitinject=4 --minw=16",  "v3"] # with closure
 res_v4 = [False, "maxres", "--circuitinject=4", "v4"] # 
-res_v5 = [True, "maxres", "--circuitinject=4 --minw=4 ",  "v5"] 
-res_v6 = [True, "maxres", "--circuitinject=4 --minw=4 --maxw=32 ",  "v6"] 
-res_v7 = [True, "maxres", "--circuitinject=4 --minw=4 --maxw=64 ",  "v7"] 
+res_v5 = [False, "maxres", "--circuitinject=4 --minw=16 ",  "v5"] 
+res_v6 = [False, "maxres", "--circuitinject=4 --minw=32 ",  "v6"] 
+res_v7 = [False, "maxres", "--circuitinject=4 --minw=64",  "v7"] 
 
 # gurobi
 or_tools = False
