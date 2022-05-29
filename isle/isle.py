@@ -1303,7 +1303,7 @@ class RC2(object):
                 counted_zeros  = [-u for u in top_relaxs]
                 self.create_partial_sum(counted_zeros, test = test)
                 sums = sums[max_window:]
-                #print(top_relaxs)
+                print(len(top_relaxs))
 
 
     def process_core(self, sat_round  = 0):
