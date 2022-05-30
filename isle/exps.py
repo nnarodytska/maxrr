@@ -165,7 +165,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
         file = open(s, "r")
         for line in file:
             if "o " ==  line[:2]:
-                opt = int(line[2:])
+                opt = int(float(line[2:]))
                 res[0] = opt
             f = "c oracle time:"
             if  f ==  line[:len(f)]:
