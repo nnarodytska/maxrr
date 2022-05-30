@@ -175,7 +175,7 @@ def process_instance(res_filename, res_v, timetag, dummy, file_name, results_res
             if  f ==  line[:len(f)]:
                 r  = (line[len(f):]).split(";")[0]
                 #print(r)
-                res[2] = int(r)
+                res[2] = int(float(r))
 
     if len(res) == 0:
         results_res_v[file_name] = copy.deepcopy(dummy)
