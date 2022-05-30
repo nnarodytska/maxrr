@@ -90,6 +90,7 @@ class SolverOR(object):
         self.status = solver.Solve(self.model)
         print('Solve status: %s' % solver.StatusName( self.status))
         self.model.ClearHints()
+        self.time = solver.WallTime()
 
         if  self.status == cp_model.OPTIMAL or  self.status ==  cp_model.FEASIBLE:
             print('Optimal objective value: %i' % solver.ObjectiveValue())
