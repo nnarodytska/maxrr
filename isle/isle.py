@@ -267,6 +267,7 @@ class RC2(object):
         self.asm2nodes = {}
         self.ortools_on = True
         self.or_model =  None
+        self.or_time = 0
         self.hints, self.or_ub, self.or_lb = None, None, -100
         if (self.ortools_on):
             self.or_model =  SolverOR(self.ilpcpu)
@@ -701,7 +702,7 @@ class RC2(object):
         #     ub = self.or_ub - self.cost - 1
 
         hints, or_ub, or_lb = self.or_model.minimize(cost_vars, self.asm2nodes, hints = self.hints, lb = lb,  ub = ub, to = to)
-        
+        self.or_time = self.or_time + self.or_model.time
         if (len(hints.items()) > 0 ): 
             if (init):
                 self.hints, self.or_ub, self.or_lb  = hints, or_ub + self.cost, or_lb + self.cost
@@ -758,12 +759,12 @@ class RC2(object):
 
             status = self.or_call(cost_vars=self.sels + self.sums, to = self.ilp, init = True)
             if (status == cp_model.OPTIMAL):
-                print(f"c cost: {self.cost};  soft sz: {len(self.sels) + len(self.sums)} {self.or_model.time:.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
+                print(f"c cost: {self.cost};  soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
                 return True,  cp_model.OPTIMAL
                 
             if (status == cp_model.FEASIBLE) and (self.cost + 1 == self.or_ub):
                 self.force_model(self.hints)
-                print(f"c cost: {self.cost};  soft sz: {len(self.sels) + len(self.sums)} {self.or_model.time :.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
+                print(f"c cost: {self.cost};  soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
                 return True,  cp_model.OPTIMAL
 
 
@@ -783,6 +784,15 @@ class RC2(object):
 
             if self.verbose > 1:
                 print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
+
+
+            print(self.cost + 1, self.or_ub)
+            if (self.cost + 1 == self.or_ub):
+                self.force_model(self.hints)
+                self.cost =  self.or_ub
+                print("---")
+                return True,  cp_model.OPTIMAL
+
 
             self.rebuild()
             if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
@@ -818,8 +828,8 @@ class RC2(object):
                 
                 rebuild +=1
                 
-                if (self.cost + 1 == self.or_ub):
-                     self.force_model(self.hints)
+
+
 
                 unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
                 self.sat_time  += time.time() - tm
@@ -1837,11 +1847,11 @@ class RC2(object):
             Report the total SAT solving time.
         """
         if (self.use_accum_oracle):
-            return  self.oracle.time_accum() 
+            return  self.oracle.time_accum() +self.or_time
 
         else:
             end = time.time()
-            return self.time + self.oracle.time_accum() #+  end - self.timer - self.build_time
+            return self.time +self.or_time + self.oracle.time_accum() #+  end - self.timer - self.build_time
 
     def _map_extlit(self, l):
         """
