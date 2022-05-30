@@ -42,7 +42,9 @@ def unique_nodes(nodes, unique):
 
 def forest_filter(mapping, status = None, type = None):
     nodes = set()
+    #print(status,type )
     for u, node in mapping.items():
+        #print(node)
         if ((node.status == status) or (status is None)) and  ((node.type == type) or (type is None)):
             nodes.add(u)
 

@@ -148,7 +148,7 @@ from ortools.sat.python import cp_model
 
 from circuit import *
 from forest import *
-from  or_tools import SolverOR, solve_ortools
+from  or_tools import DEFAULT_ILP, DEFAULT_ILPCPU, DEFAULT_ILPPREP, SolverOR, solve_ortools
 import operator
 from threading import Timer
 CIRCUITINJECT_FULL = 0
@@ -157,8 +157,9 @@ CIRCUITINJECT_DELAYED = 2
 CIRCUIT_COMPRESSED = 3
 CIRCUIT_PARTIAL_SOFT = 4
 
-DEFAULT_MIN_WINDOW = 8
+DEFAULT_MIN_WINDOW = 16
 DEFAULT_MAX_WINDOW = 10000000
+
 # names of BLO strategies
 #==============================================================================
 blomap = {'none': 0, 'basic': 1, 'div': 3, 'cluster': 5, 'full': 7}
@@ -216,7 +217,7 @@ class RC2(object):
     """
 
     def __init__(self, formula, solver='g3', adapt=False, exhaust=False,
-            incr=False, minz=False, trim=0, verbose=0, circuitinject = CIRCUITINJECT_FULL, min_window = None, max_window = None):
+            incr=False, minz=False, trim=0, verbose=0, circuitinject = CIRCUITINJECT_FULL, min_window = None, max_window = None, ilp = DEFAULT_ILP, ilpcpu = DEFAULT_ILPCPU, ilpprep = DEFAULT_ILPPREP):
         """
             Constructor.
         """
@@ -230,12 +231,17 @@ class RC2(object):
         self.trim = trim
         self.circuitinject = circuitinject
         self.min_window = min_window
+        self.init_cost = 0
         if self.min_window is None:
             self.min_window = DEFAULT_MIN_WINDOW
 
         self.max_window = max_window
         if self.max_window is None:
             self.max_window = DEFAULT_MAX_WINDOW
+        
+        self.ilp = ilp
+        self.ilpcpu = ilpcpu
+        self.ilpprep = ilpprep
 
         self.use_accum_oracle = True
 
@@ -259,11 +265,12 @@ class RC2(object):
         self.tobj = {}  # a mapping from sum assumptions to totalizer objects
 
         self.asm2nodes = {}
-        self.ortools_on = False
+        self.ortools_on = True
         self.or_model =  None
         self.hints, self.or_ub, self.or_lb = None, None, -100
         if (self.ortools_on):
-            self.or_model =  SolverOR()
+            self.or_model =  SolverOR(self.ilpcpu)
+            
         
         
 
@@ -574,12 +581,14 @@ class RC2(object):
 
         # simply apply MaxSAT only once
         debug = False
-        res = self.compute_()
+        res, or_status  = self.compute_()
         if debug: print(res)
 
         # or_model, or_model_ub = solve_ortools(self.formula, self.forest, to = 600)
         # print(self.)
         # exit()
+        if res and or_status  == cp_model.OPTIMAL:
+            return self.model
 
         if res:
             # extracting a model
@@ -685,22 +694,41 @@ class RC2(object):
             else:
                 self.model.append(k-1)        
 
-    def or_call(self, cost_vars, lb=None, ub=None, to = 60):
+    def or_call(self, cost_vars, lb=None, ub=None, to = 60, init = False):
         if (self.or_model is None): 
             return False
+        # if not init:
+        #     ub = self.or_ub - self.cost - 1
+
         hints, or_ub, or_lb = self.or_model.minimize(cost_vars, self.asm2nodes, hints = self.hints, lb = lb,  ub = ub, to = to)
+        
         if (len(hints.items()) > 0 ): 
-            self.hints, self.or_ub, self.or_lb  = hints, or_ub, or_lb 
+            if (init):
+                self.hints, self.or_ub, self.or_lb  = hints, or_ub + self.cost, or_lb + self.cost
+                print(f"self.or_ub {self.or_ub} self.or_lb {self.or_lb} ")
+            else:
+                assert(False)
+                # self.or_ub = min(or_ub + self.cost, self.or_ub) 
+                # if (self.or_model.status == cp_model.INFEASIBLE):
+                #     exit()           
+
+            if (self.or_model.status == cp_model.OPTIMAL):
+                self.force_model(hints)
+                self.cost =self.or_ub
+                assert(self.or_ub ==  self.or_lb)
+
             for u in cost_vars:
                 val = hints[abs(u)]
-                if ((val == False) and (u > 0)) or ((val == True) and (u < 0)):
-                    print(u,val)
+                if ((val == False) and (u > 0)) or ((val == True) and (u < 0)):                
+                    
                     node= forest_find_node(u, self.asm2nodes)
-                    print(node)
+                    if node.type == SUM:
+                        print(u,val)
+                    #print(node)
             #if (or_ub == or_lb):
             #    self.force_model(hints)
             #    self.cost = or_ub
-        return True
+        return self.or_model.status
 
   
     def compute_(self):
@@ -724,8 +752,19 @@ class RC2(object):
         
         if debug: print(self.sels + self.sums)
         #self.or_model.feasibility(assumptions=self.sels + self.sums, mapping=self.asm2nodes)
+        #print(self.ilp)
+        if (self.ilp > 0):
+            print(self.init_cost)
 
-        self.or_call(cost_vars=self.sels + self.sums, to = 30)
+            status = self.or_call(cost_vars=self.sels + self.sums, to = self.ilp, init = True)
+            if (status == cp_model.OPTIMAL):
+                return True,  cp_model.OPTIMAL
+                
+            if (status == cp_model.OPTIMAL) and (self.cost + 1 == self.or_ub):
+                self.force_model(self.hints)
+                return True,  cp_model.OPTIMAL
+
+
         unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
         #assert(self.oracle.solve(assumptions=self.sol))
         print(f"start  unsat {unsat}")
@@ -747,8 +786,9 @@ class RC2(object):
             if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
 
             sums = forest_filter(self.asm2nodes, type= SUM)
-            if (len(sums) > 0):
-                self.or_call(cost_vars=self.sels + self.sums, to = 30)
+            #print(sums)
+            # if (len(sums) > 0) and self.ilp:
+            #     self.or_call(cost_vars=self.sels + self.sums, to = 30)
             
             unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
             delayed_selectors_nodes = []
@@ -775,6 +815,9 @@ class RC2(object):
                 #forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}-rebuild-{rebuild}")
                 
                 rebuild +=1
+                
+                if (self.cost + 1 == self.or_ub):
+                     self.force_model(self.hints)
 
                 unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
                 self.sat_time  += time.time() - tm
@@ -792,7 +835,7 @@ class RC2(object):
 
 
             
-        return True
+        return True, None
 
     def get_core(self):
         """
@@ -1479,6 +1522,7 @@ class RC2(object):
 
         # updating the set of selectors
         #self.sels_set = set(self.sels)
+        self.init_cost = self.cost
 
         if self.verbose > 1 and nof_am1:
             print('c am1s found: {0}; avgsz: {1:.1f}; cost: {2}'.format(nof_am1,
@@ -1839,9 +1883,9 @@ def parse_options():
     """
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:ms:pqrt:vx',
+        opts, args = getopt.getopt(sys.argv[1:], 'ab:c:e:hil:ms:pqrt:vxyz',
                 ['adapt', 'block=', 'comp=', 'enum=', 'exhaust', 'help',
-                    'incr', 'blo=', 'minimize', 'solver=', 'trim=',  'circuitinject=','verbose','minw=','maxw=',
+                    'incr', 'blo=', 'minimize', 'solver=', 'trim=',  'circuitinject=','verbose','minw=','maxw=','ilp=', 'ilpcpu=', 'ilpprep=',
                     'vnew'])
     except getopt.GetoptError as err:
         sys.stderr.write(str(err).capitalize())
@@ -1861,8 +1905,11 @@ def parse_options():
     verbose = 1
     vnew = False
     circuitinject = 0
-    minw= None
-    maxw = None
+    min_window= None
+    max_window = None
+    ilp = DEFAULT_ILP
+    ilpprep = DEFAULT_ILPPREP
+    ilpcpu = DEFAULT_ILPCPU
 
     for opt, arg in opts:
         if opt in ('-a', '--adapt'):
@@ -1891,9 +1938,15 @@ def parse_options():
         elif opt in ('-t', '--trim'):
             trim = int(arg)
         elif opt in ('-p', '--maxw'):
-            maxw = int(arg)            
+            max_window = int(arg)            
         elif opt in ('-q', '--minw'):
-            minw = int(arg)            
+            min_window = int(arg)   
+        elif opt in ('-y', '--ilp'):
+            ilp = int(arg)      
+        elif opt in ('-z', '--ilpcpu'):
+            ilpcpu = int(arg)       
+        elif opt in ('-z', '--ilpprep'):
+            ilpprep = int(arg)                                                
         elif opt in ('-r', '--circuitinject'):
             circuitinject = int(arg)            
         elif opt in ('-v', '--verbose'):
@@ -1910,8 +1963,8 @@ def parse_options():
     assert block in bmap, 'Unknown solution blocking'
     block = bmap[block]
 
-    return adapt, blo, block, cmode, to_enum, exhaust, incr, minz, \
-            solver, trim, circuitinject, minw, maxw, verbose, vnew, args
+    return adapt, blo, block, cmode, to_enum, exhaust, incr, minz,\
+            solver, trim, circuitinject, min_window, max_window,  ilp, ilpcpu, ilpprep, verbose, vnew, args
 
 
 #
@@ -1948,7 +2001,7 @@ def usage():
 #==============================================================================
 if __name__ == '__main__':
     adapt, blo, block, cmode, to_enum, exhaust, incr, minz, solver, trim, \
-            circuitinject,  min_window, max_window, verbose, vnew, files = parse_options()
+            circuitinject,  min_window, max_window, ilp, ilpcpu, ilpprep, verbose, vnew, files = parse_options()
     
 
     if files:
@@ -1982,7 +2035,7 @@ if __name__ == '__main__':
         # starting the solver
 
         with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust,
-                incr=incr, minz=minz, trim=trim, circuitinject=circuitinject,  min_window = min_window, max_window = max_window, verbose=verbose) as rc2:
+                incr=incr, minz=minz, trim=trim, circuitinject=circuitinject,  min_window = min_window, max_window = max_window, ilp = ilp, ilpcpu = ilpcpu, ilpprep = ilpprep, verbose=verbose) as rc2:
 
             
             # if isinstance(rc2, RC2Stratified):

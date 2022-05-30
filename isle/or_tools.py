@@ -15,10 +15,14 @@ from ortools.sat.python import cp_model
 from forest import forest_filter, forest_find_node
 from circuit import INITIAL_SELECTOR, STATUS_ACTIVE, STATUS_INACTIVE
 
+DEFAULT_ILP = -1
+DEFAULT_ILPCPU = 1
+DEFAULT_ILPPREP = 0
 class SolverOR(object):
-    def __init__(self):
+    def __init__(self, ilpcpu = DEFAULT_ILPCPU):
         self.model = cp_model.CpModel()
         self.ortools_vars = {}
+        self.ilpcpu = ilpcpu
 
     def add_hards(self, formula):    
         for j, cl in enumerate(formula.hard):                   
@@ -75,19 +79,19 @@ class SolverOR(object):
                 #print(b,v)
 
         solver = cp_model.CpSolver()
-        solver.parameters.log_search_progress = False
-        solver.parameters.num_search_workers = 1
+        solver.parameters.log_search_progress = True
+        solver.parameters.num_search_workers = self.ilpcpu
         solver.parameters.min_num_lns_workers = 1
         #solver.parameters.interleave_search = True
         solver.parameters.max_time_in_seconds = to
-        solver.parameters.cp_model_presolve = True
+        solver.parameters.cp_model_presolve = DEFAULT_ILPPREP
         #solver.parameters.search_branching = cp_model.sat_parameters_pb2.SatParameters.AUTOMATIC_SEARCH
         #solver.parameters.
-        status = solver.Solve(self.model)
-        print('Solve status: %s' % solver.StatusName(status))
+        self.status = solver.Solve(self.model)
+        print('Solve status: %s' % solver.StatusName( self.status))
         self.model.ClearHints()
 
-        if status == cp_model.OPTIMAL or status ==  cp_model.FEASIBLE:
+        if  self.status == cp_model.OPTIMAL or  self.status ==  cp_model.FEASIBLE:
             print('Optimal objective value: %i' % solver.ObjectiveValue())
             print('Statistics')
             print('  - conflicts : %i' % solver.NumConflicts())
@@ -110,7 +114,7 @@ class SolverOR(object):
             # #assert(False)
             #exit()
             return solution, solver.ObjectiveValue(), solver.BestObjectiveBound()
-        elif  status ==  cp_model.INFEASIBLE:
+        elif   self.status ==  cp_model.INFEASIBLE:
             return {}, None, None
 
         return {}, None, None
@@ -158,11 +162,11 @@ class SolverOR(object):
         #solver.parameters.cp_model_presolve = False
         # #solver.parameters.search_branching = cp_model.sat_parameters_pb2.SatParameters.AUTOMATIC_SEARCH
         # #solver.parameters.
-        status = solver.Solve(self.model)
-        print('Solve status: %s' % solver.StatusName(status))
+        self.status = solver.Solve(self.model)
+        print('Solve status: %s' % solver.StatusName(self.status))
         self.model.ClearAssumptions()
 
-        if status == cp_model.OPTIMAL or status ==  cp_model.FEASIBLE:
+        if self.status == cp_model.OPTIMAL or self.status ==  cp_model.FEASIBLE:
             print('Optimal objective value: %i' % solver.ObjectiveValue())
             print('Statistics')
             print('  - conflicts : %i' % solver.NumConflicts())
@@ -185,7 +189,7 @@ class SolverOR(object):
             # #assert(False)
             #exit()
             return solution, solver.ObjectiveValue(), solver.BestObjectiveBound()
-        elif  status ==  cp_model.INFEASIBLE:
+        elif  self.status ==  cp_model.INFEASIBLE:
 
             print("UNSAT")
             print('SufficientAssumptionsForInfeasibility = 'f'{solver.SufficientAssumptionsForInfeasibility()}')
