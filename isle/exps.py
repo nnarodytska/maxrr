@@ -146,7 +146,7 @@ if (or_tools):
 resrg  = [False, "resrg",  "", "v0"]
 
 # 3600*3]
-to = [3600+600] #[3600*3]
+to = [3600] #[3600*3]
 
 maxhs = [False, "maxhs"]
 eva = [False, "eva"]
@@ -234,6 +234,7 @@ if (gen_run):
                     timetag = ""
                     if (tm > 3601):
                         timetag = str(tm) + "."
+                    tm = tm+600
                     if (rc2[0]):
                         s = f"timeout -t {tm}s python3.8 -u ../examples/rc2.py -vv {filename} > {res_filename}.{rc2[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
