@@ -714,7 +714,7 @@ class RC2(object):
 
             if (self.or_model.status == cp_model.OPTIMAL):
                 self.force_model(hints)
-                self.cost =self.or_ub
+                self.cost = self.or_ub - 1
                 assert(self.or_ub ==  self.or_lb)
 
             for u in cost_vars:
@@ -758,10 +758,12 @@ class RC2(object):
 
             status = self.or_call(cost_vars=self.sels + self.sums, to = self.ilp, init = True)
             if (status == cp_model.OPTIMAL):
+                print(f"c cost: {self.cost-1}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
                 return True,  cp_model.OPTIMAL
                 
             if (status == cp_model.OPTIMAL) and (self.cost + 1 == self.or_ub):
                 self.force_model(self.hints)
+                print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
                 return True,  cp_model.OPTIMAL
 
 
