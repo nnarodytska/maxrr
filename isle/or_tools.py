@@ -100,7 +100,7 @@ class SolverOR(object):
             print('  - wall time : %f s' % solver.WallTime())
             print(solver.ResponseStats)
             solution = {}
-            print(cost_vars)
+            #print(cost_vars)
 
             ub = solver.ObjectiveValue()
             for c, b in sorted(self.ortools_vars.items()):
