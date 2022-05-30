@@ -278,23 +278,23 @@ if (gen_run):
                         the_file.write(f'{s}\n')
 
                     if (res_v5[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v5[2]} -vv {filename} > {res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res "
+                        s = f"timeout {tm+extra}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v5[2]} -vv {filename} > {res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
                     if (res_v6[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v6[2]} -vv {filename} > {res_filename}.{res_v6[3]}.{res_v6[1]}.{timetag}res "
+                        s = f"timeout {tm+extra}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v6[2]} -vv {filename} > {res_filename}.{res_v6[3]}.{res_v6[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
                     if (res_v7[0]):
                         #os.system("gunzip -c {filename} > {res_filename_1}.wcnf")
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v7[2]} -vv {filename} > {res_filename}.{res_v7[3]}.{res_v7[1]}.{timetag}res "
+                        s = f"timeout {tm+extra}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b {res_v7[2]} -vv {filename} > {res_filename}.{res_v7[3]}.{res_v7[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
                     if (resrg[0]):
-                        s = f"timeout {tm}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b  {resrg[2]}  -vv {filename} > {res_filename}.{resrg[3]}.{resrg[1]}.{timetag}res "
+                        s = f"timeout {tm+extra}s python3.8 -u /home/nina/workspace/{desktop}/isle/isle.py -c b  {resrg[2]}  -vv {filename} > {res_filename}.{resrg[3]}.{resrg[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
 
 
