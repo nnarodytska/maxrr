@@ -104,12 +104,12 @@ from posixpath import split
 import sys
 
 root_dir = "/home/nina/workspace/data/mse21_complete_unwt/"
-results =  "/home/nina/workspace/data/mse21_unwt_results/"
+#results =  "/home/nina/workspace/data/mse21_unwt_results/"
 
 #unsolved = []
 #
-#solved_gurobi +
-unsolved =  unsolved
+#
+unsolved =  solved_gurobi + unsolved
 
 focus =[]
 # focus = ["kbtree9_7_3_5_90_2.wcsp.wcnf.gz", 
@@ -134,9 +134,9 @@ res_v1 = [False, "maxres", "--circuitinject=4 --minw=8", "v1"]
 res_v2 = [False, "maxres", "--circuitinject=4 --minw=16",  "v2"]
 res_v3 = [False, "maxres", "--circuitinject=4 --minw=16",  "v3"] # with closure
 res_v4 = [False, "maxres", "--circuitinject=4", "v4"] # 
-res_v5 = [True, "maxres", "--circuitinject=4 --minw=16 --ilp=600 --ilpprep=1 --ilpcpu=8",  "v5"] 
-res_v6 = [False, "maxres", "--circuitinject=4 --minw=16 --ilp=600 --ilpprep=1",  "v6"] 
-res_v7 = [False, "maxres", "--circuitinject=4 --minw=16 --ilp=600 --ilpprep=1 --ilpcpu=8",  "v7"] 
+res_v5 = [True, "maxres", "--circuitinject=4 --minw=12",  "v5"] 
+res_v6 = [True, "maxres", "--circuitinject=4 --minw=16",  "v6"] 
+res_v7 = [False, "maxres", "--circuitinject=4 --minw=16 --maxw=32",  "v7"] 
 
 # gurobi
 or_tools = False
@@ -146,7 +146,7 @@ if (or_tools):
 resrg  = [False, "resrg",  "", "v0"]
 
 # 3600*3]
-to = [3600] #[3600*3]
+to = [3600*3] #[3600*3]
 
 maxhs = [False, "maxhs"]
 eva = [False, "eva"]
@@ -194,6 +194,10 @@ if (gen_run):
     with open(run_file, 'w') as the_file:
         for tm in to:
             known = []
+            dirtag = ""
+            if (tm > 3601):
+                dirtag = "_"+str(tm)
+
 
             for filename in glob.iglob(root_dir + '**/**', recursive=True):
                 if(os.path.isfile(filename)):
@@ -216,7 +220,8 @@ if (gen_run):
 
                     known.append(filename)
                     
-                    res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
+
+                    res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results"+dirtag)
                     if (or_tools):
                         res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_ortools")
                         try:
@@ -235,7 +240,7 @@ if (gen_run):
                     if (tm > 3601):
                         timetag = str(tm) + "."
                     #tm = 4200
-                    extra = 1400
+                    extra = 0
                     if (rc2[0]):
                         s = f"timeout -t {tm+extra}s python3.8 -u ../examples/rc2.py -vv {filename} > {res_filename}.{rc2[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
@@ -302,7 +307,7 @@ if (gen_run):
                     #the_file.write(f'{s}\n')
 
                 else:
-                    filename1 = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
+                    filename1 = filename.replace("mse21_complete_unwt", "mse21_unwt_results"+dirtag)
                     if (or_tools):
                         filename1 = filename.replace("mse21_complete_unwt", "mse21_unwt_ortools")
                         try:
@@ -338,7 +343,7 @@ if (process_run):
 
 
     #to = [3600]#, 3600]#, 3600*3]
-    to = [3600] #[3*3600]
+    to = [3600*3] #[3*3600]
     for tm in to:
 
         results_rc2comp = {}
@@ -359,8 +364,10 @@ if (process_run):
         
         dummy_init =  [-1, tm, -1, -1]
         timetag = ""
+        dirtag = ""
         if (tm > 3601):
             timetag = str(tm) + "."
+            dirtag = "_"+str(tm)
         all_files = [] 
         for filename in glob.iglob(root_dir + '**/**', recursive=True):
                     dummy = copy.deepcopy(dummy_init)
@@ -383,7 +390,7 @@ if (process_run):
 
                         known.append(filename)
 
-                        res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results")
+                        res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_results"+dirtag)
                         #res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
                         file_name_clean = (res_filename.split("/"))[-1]
                         file_name = res_filename[-80:]
