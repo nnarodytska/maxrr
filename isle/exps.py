@@ -135,8 +135,8 @@ res_v2 = [False, "maxres", "--circuitinject=4 --minw=16",  "v2"]
 res_v3 = [False, "maxres", "--circuitinject=4 --minw=16",  "v3"] # with closure
 res_v4 = [False, "maxres", "--circuitinject=4", "v4"] # 
 res_v5 = [True, "maxres", "--circuitinject=4 --minw=16 --ilp=600 --ilpprep=0",  "v5"] 
-res_v6 = [True, "maxres", "--circuitinject=4 --minw=16 --ilp=600 --ilpprep=1",  "v6"] 
-res_v7 = [False, "maxres", "--circuitinject=4 --minw=16 --ilp=1000 --ilpprep=1 ",  "v7"] 
+res_v6 = [False, "maxres", "--circuitinject=4 --minw=16 --ilp=600 --ilpprep=1",  "v6"] 
+res_v7 = [False, "maxres", "--circuitinject=4 --minw=16 --ilp=600 --ilpprep=1 --ilpcpu=8",  "v7"] 
 
 # gurobi
 or_tools = False
@@ -235,7 +235,7 @@ if (gen_run):
                     if (tm > 3601):
                         timetag = str(tm) + "."
                     #tm = 4200
-                    extra = 600
+                    extra = 1400
                     if (rc2[0]):
                         s = f"timeout -t {tm+extra}s python3.8 -u ../examples/rc2.py -vv {filename} > {res_filename}.{rc2[1]}.{timetag}res "
                         the_file.write(f'{s}\n')
