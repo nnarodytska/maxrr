@@ -135,7 +135,7 @@ res_v2 = [False, "maxres", "--circuitinject=4 --minw=16",  "v2"]
 res_v3 = [False, "maxres", "--circuitinject=4 --minw=16",  "v3"] # with closure
 res_v4 = [False, "maxres", "--circuitinject=4 --minw=16", "v4"] # 
 res_v5 = [True, "maxres", "--circuitinject=4  --minw=12",  "v5"] 
-res_v6 = [True, "maxres", "--circuitinject=4  --minw=8",  "v6"] 
+res_v6 = [False, "maxres", "--circuitinject=4  --minw=8",  "v6"] 
 res_v7 = [False, "maxres", "--circuitinject=4 --minw=16 --maxw=32",  "v7"] 
 
 # gurobi
