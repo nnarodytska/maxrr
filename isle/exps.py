@@ -108,8 +108,8 @@ root_dir = "/home/nina/workspace/data/mse21_complete_unwt/"
 
 #unsolved = []
 #
-#solved_gurobi + 
-unsolved =  unsolved
+#
+unsolved =  solved_gurobi + unsolved
 
 focus =[]
 # focus = ["kbtree9_7_3_5_90_2.wcsp.wcnf.gz", 
@@ -133,9 +133,9 @@ res_v0 = [False, "maxres","--circuitinject=0", "v0"]
 res_v1 = [False, "maxres", "--circuitinject=4 --minw=8", "v1"]
 res_v2 = [False, "maxres", "--circuitinject=4 --minw=16",  "v2"]
 res_v3 = [False, "maxres", "--circuitinject=4 --minw=16",  "v3"] # with closure
-res_v4 = [False, "maxres", "--circuitinject=4 --minw=16", "v4"] # 
+res_v4 = [True, "maxres", "--circuitinject=4 --minw=16", "v4"] # 
 res_v5 = [True, "maxres", "--circuitinject=4  --minw=12",  "v5"] 
-res_v6 = [False, "maxres", "--circuitinject=4  --minw=8",  "v6"] 
+res_v6 = [True, "maxres", "--circuitinject=4  --minw=8",  "v6"] 
 res_v7 = [False, "maxres", "--circuitinject=4 --minw=16 --maxw=32",  "v7"] 
 
 # gurobi
@@ -146,7 +146,7 @@ if (or_tools):
 resrg  = [False, "resrg",  "", "v0"]
 
 # 3600*3]
-mult = 1
+mult = 3
 to = [3600*mult] #[3600*3]
 
 maxhs = [False, "maxhs"]
