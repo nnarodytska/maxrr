@@ -146,7 +146,8 @@ if (or_tools):
 resrg  = [False, "resrg",  "", "v0"]
 
 # 3600*3]
-to = [3600*3] #[3600*3]
+mult = 1
+to = [3600*mult] #[3600*3]
 
 maxhs = [False, "maxhs"]
 eva = [False, "eva"]
@@ -343,7 +344,7 @@ if (process_run):
 
 
     #to = [3600]#, 3600]#, 3600*3]
-    to = [3600*3] #[3*3600]
+    to = [3600*mult] #[3*3600]
     for tm in to:
 
         results_rc2comp = {}
