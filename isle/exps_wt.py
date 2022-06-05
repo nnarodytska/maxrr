@@ -106,10 +106,10 @@ import sys
 root_dir = "/home/nina/workspace/data/mse21_complete_wt/"
 #results =  "/home/nina/workspace/data/mse21_unwt_results/"
 
-#unsolved = []
+unsolved = []
 #
 #
-#unsolved =  solved_gurobi + unsolved
+unsolved =  solved_gurobi + unsolved
 
 focus =[]
 # focus = ["kbtree9_7_3_5_90_2.wcsp.wcnf.gz", 
@@ -197,6 +197,7 @@ if (len(sys.argv) > 1):
     gen_run = sys.argv[1]
 
 process_run = True
+cnt =0 
 if (gen_run):
     with open(run_file, 'w') as the_file:
         for tm in to:
@@ -212,11 +213,13 @@ if (gen_run):
                         continue
                     # 
                     flag = False
+  
                     for gs in unsolved:
                         #print(gs, filename)
                         if (filename.find(gs) != -1):
-                            # print ("---", filename)
-                            # exit()       
+                            #print ("---", cnt,  filename, gs)
+                            cnt +=1
+                            #exit()       
                             flag = True
                     if (flag):
                         continue
@@ -350,7 +353,7 @@ if (gen_run):
                         os.mkdir(filename2)
                     except:
                         pass
-
+#exit()
 
 if (process_run):
     # rc2comp = [True, "rc2comp"]
