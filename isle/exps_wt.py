@@ -623,19 +623,19 @@ if (process_run):
         lb = "lb"
         ub = "ub"
         with open(f'results_wt.{timetag}txt', 'w') as the_file:
-            h_eva = f" {opt:<5}/{lb:<5} {eva[1]:<10} "
-            h_rc2comp = f"{opt:<5}/{lb:<5}   {rc2comp[1]:<10}"
-            h_maxhs = f"{opt:<5}/{lb:<5}/{ub:<5}   {maxhs[1]:<10}"
+            h_eva = f" {opt:<10}/{lb:<10} {eva[1]:<10} "
+            h_rc2comp = f"{opt:<10}/{lb:<10}   {rc2comp[1]:<10}"
+            h_maxhs = f"{opt:<10}/{lb:<10}/{ub:<10}   {maxhs[1]:<10}"
             h_cashwmaxsat = f"{opt:<10}   {cashwmaxsat[1]:<12}"
-            h_resrg = f"{opt:<5}/{lb:<5}  {resrg[1]:<10} "
-            h_res_v0 = f"{opt:<5}/{lb:<5}  {res_v0[1]:<10} "
-            h_res_v1 = f"{opt:<5}/{lb:<5}  {res_v1[1]:<10} "
-            h_res_v2 = f"{opt:<5}/{lb:<5}  {res_v2[1]:<10} "
-            h_res_v3 = f"{opt:<5}/{lb:<5}  {res_v3[1]:<10} "
-            h_res_v4 = f"{opt:<5}/{lb:<5}  {res_v4[1]:<10} "
-            h_res_v5 = f"{opt:<5}/{lb:<5}  {res_v5[1]:<10} "
-            h_res_v6 = f"{opt:<5}/{lb:<5}  {res_v6[1]:<10} "
-            h_res_v7 = f"{opt:<5}/{lb:<5}  {res_v7[1]:<10} "
+            h_resrg = f"{opt:<10}/{lb:<10}  {resrg[1]:<10} "
+            h_res_v0 = f"{opt:<10}/{lb:<10}  {res_v0[1]:<10} "
+            h_res_v1 = f"{opt:<10}/{lb:<10}  {res_v1[1]:<10} "
+            h_res_v2 = f"{opt:<10}/{lb:<10}  {res_v2[1]:<10} "
+            h_res_v3 = f"{opt:<10}/{lb:<10}  {res_v3[1]:<10} "
+            h_res_v4 = f"{opt:<10}/{lb:<10}  {res_v4[1]:<10} "
+            h_res_v5 = f"{opt:<10}/{lb:<10}  {res_v5[1]:<10} "
+            h_res_v6 = f"{opt:<10}/{lb:<10}  {res_v6[1]:<10} "
+            h_res_v7 = f"{opt:<10}/{lb:<10}  {res_v7[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
             s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_cashwmaxsat} "#{h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3} {h_res_v4}   {h_res_v5}  {h_res_v6}  {h_res_v7}"
@@ -700,73 +700,73 @@ if (process_run):
 
 
                 try:
-                    s_resrg = f"{results_resrg[f][0]:<5}/{results_resrg[f][2]:<5} {results_resrg[f][1]:<10}"
+                    s_resrg = f"{results_resrg[f][0]:<10}/{results_resrg[f][2]:<10} {results_resrg[f][1]:<10}"
                 except:
                     pass
                                 
                 try:
-                    s_res_v0 = f"{results_res_v0[f][0]:<5}/{results_res_v0[f][2]:<5} {results_res_v0[f][1]:<10}"
+                    s_res_v0 = f"{results_res_v0[f][0]:<10}/{results_res_v0[f][2]:<10} {results_res_v0[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_res_v1 = f"{results_res_v1[f][0]:<5}/{results_res_v1[f][2]:<5} {results_res_v1[f][1]:<10}"
+                    s_res_v1 = f"{results_res_v1[f][0]:<10}/{results_res_v1[f][2]:<10} {results_res_v1[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_res_v2 = f"{results_res_v2[f][0]:<5}/{results_res_v2[f][2]:<5} {results_res_v2[f][1]:<10}"
+                    s_res_v2 = f"{results_res_v2[f][0]:<10}/{results_res_v2[f][2]:<10} {results_res_v2[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_res_v3 = f"{results_res_v3[f][0]:<5}/{results_res_v3[f][2]:<5} {results_res_v3[f][1]:<10}"
+                    s_res_v3 = f"{results_res_v3[f][0]:<10}/{results_res_v3[f][2]:<10} {results_res_v3[f][1]:<10}"
                 except:
-                    s_res_v3 = f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v3 = f"{0:<10}/{0:<10} {0:<10}"
                     pass
 
                 try:
-                    s_res_v4 = f"{results_res_v4[f][0]:<5}/{results_res_v4[f][2]:<5} {results_res_v4[f][1]:<10}"
+                    s_res_v4 = f"{results_res_v4[f][0]:<10}/{results_res_v4[f][2]:<10} {results_res_v4[f][1]:<10}"
                 except:
-                    s_res_v4= f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v4= f"{0:<10}/{0:<10} {0:<10}"
                     pass
 
                 try:
-                    s_res_v5 = f"{results_res_v5[f][0]:<5}/{results_res_v5[f][2]:<5} {results_res_v5[f][1]:<10}"
+                    s_res_v5 = f"{results_res_v5[f][0]:<10}/{results_res_v5[f][2]:<10} {results_res_v5[f][1]:<10}"
                 except:
-                    s_res_v5= f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v5= f"{0:<10}/{0:<10} {0:<10}"
                     pass
 
                 try:
-                    s_res_v6 = f"{results_res_v6[f][0]:<5}/{results_res_v6[f][2]:<5} {results_res_v6[f][1]:<10}"
+                    s_res_v6 = f"{results_res_v6[f][0]:<10}/{results_res_v6[f][2]:<10} {results_res_v6[f][1]:<10}"
                 except:
-                    s_res_v6= f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v6= f"{0:<10}/{0:<10} {0:<10}"
                     pass
 
                 try:
-                    s_res_v7 = f"{results_res_v7[f][0]:<5}/{results_res_v7[f][2]:<5} {results_res_v7[f][1]:<10}"
+                    s_res_v7 = f"{results_res_v7[f][0]:<10}/{results_res_v7[f][2]:<10} {results_res_v7[f][1]:<10}"
                 except:
-                    s_res_v7= f"{0:<5}/{0:<5} {0:<10}"
+                    s_res_v7= f"{0:<10}/{0:<10} {0:<10}"
                     pass
 
 
                 try:
-                    s_eva = f"{results_eva[f][0]:<5}/{results_eva[f][2]:<5} {results_eva[f][1]:<10}"
-                except:
-                    pass
-
-                try:
-                    s_rc2comp = f"{results_rc2comp[f][0]:<5}/{results_rc2comp[f][2]:<5} {results_rc2comp[f][1]:<10}"
+                    s_eva = f"{results_eva[f][0]:<10}/{results_eva[f][2]:<10} {results_eva[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_maxhs  = f"{results_maxsatcomp[f][0]:<5}/{results_maxsatcomp[f][2]:<5}/{results_maxsatcomp[f][3]:<5} {results_maxsatcomp[f][1]:<10} "
+                    s_rc2comp = f"{results_rc2comp[f][0]:<10}/{results_rc2comp[f][2]:<10} {results_rc2comp[f][1]:<10}"
                 except:
                     pass
 
                 try:
-                    s_cashwmaxsat  = f"{results_cashwmaxsat[f][0]:<5}/{results_cashwmaxsat[f][2]:<5}/{results_cashwmaxsat[f][3]:<5} {results_cashwmaxsat[f][1]:<10} "
+                    s_maxhs  = f"{results_maxsatcomp[f][0]:<10}/{results_maxsatcomp[f][2]:<10}/{results_maxsatcomp[f][3]:<10} {results_maxsatcomp[f][1]:<10} "
+                except:
+                    pass
+
+                try:
+                    s_cashwmaxsat  = f"{results_cashwmaxsat[f][0]:<10}/{results_cashwmaxsat[f][2]:<10}/{results_cashwmaxsat[f][3]:<10} {results_cashwmaxsat[f][1]:<10} "
                 except:
                     pass
 
