@@ -360,6 +360,8 @@ if (process_run):
 
     maxhs = [True, "maxhs"]
     rc2comp = [True, "rc2comp"]
+    cashwmaxsat = [True, "cashwmaxsat"]
+
     res_v0  = [False, "maxres", "--circuitinject=0", "v0"]
     res_v1 = [False, "maxres", "--circuitinject=1", "v1"]
     res_v2 = [False, "maxres", "--circuitinject=0", "v2"]
@@ -616,75 +618,6 @@ if (process_run):
                         if (res_v7[0]):
                             results_res_v7 = process_instance(res_filename, res_v7, timetag, dummy, file_name, results_res_v7)
 
-
-                        # if (res_v4[0]):
-                        #     s = f"{res_filename}.{res_v4[3]}.{res_v4[1]}.{timetag}res"
-                        #     #s = f"{res_filename}.{res[1]}.res"
-                        #     res = copy.deepcopy(dummy)
-                        #     results_res_v4[file_name] = res
-                            
-                        #     #s = f"{res_filename}.{res[1]}.res"
-                        #     if not (path.isfile(s)):
-                        #         results_res_v4[file_name] = copy.deepcopy(dummy)
-                        #     else:
-                        #         file = open(s, "r")
-                        #         for line in file:
-                        #             if "o " ==  line[:2]:
-                        #                 opt = int(line[2:])
-                        #                 res[0] = opt
-                        #             f = "c oracle time:"
-                        #             if  f ==  line[:len(f)]:
-                        #                 time = float(line[len(f):])
-                        #                 res[1] = time
-                        #             f = "c cost:"
-                        #             if  f ==  line[:len(f)]:
-                        #                 r  = (line[len(f):]).split(";")[0]
-                        #                 #print(r)
-                        #                 res[2] = int(r)
-
-                        #     if len(res) == 0:
-                        #         results_res_v4[file_name] = copy.deepcopy(dummy)
-                        #     else:
-                        #         results_res_v4[file_name] = res   
-
-
-                        # if (res_v5[0]):
-                        #     s = f"{res_filename}.{res_v5[3]}.{res_v5[1]}.{timetag}res"
-                        #     #s = f"{res_filename}.{res[1]}.res"
-                        #     res = copy.deepcopy(dummy)
-                        #     results_res_v5[file_name] = res
-                            
-                        #     #s = f"{res_filename}.{res[1]}.res"
-                        #     if not (path.isfile(s)):
-                        #         results_res_v5[file_name] = copy.deepcopy(dummy)
-                        #     else:
-                        #         file = open(s, "r")
-    
-                        #         for line in file:
-                        #             if "Exp" ==  line[:3]:
-                        #                 r = line.split()
-                        #                 r = r[-2].replace(",","") 
-                        #                 time = float(r)
-                        #                 res[1] = time
-                        #             f = "Best"
-                        #             #print(line)
-                        #             if  f ==  line[:4]:
-                        #                 r = line.split()
-                        #                 r = r[2].replace(",","")                                    
-                        #                 if r != "-":
-                        #                     opt = float(r)
-                        #                     res[0] = int(opt)
-                        #                     r = r[4].replace(",","")                                     
-                        #                     opt = float(r)                             
-                        #                     res[2] = int(opt)
-
-                        #     if len(res) == 0:
-                        #         results_res_v5[file_name] = copy.deepcopy(dummy)
-                        #     else:
-                        #         results_res_v5[file_name] = res   
-
-            #print(results_res_v4.items())
-
         #exit()
         opt = "opt"
         lb = "lb"
@@ -705,7 +638,7 @@ if (process_run):
             h_res_v7 = f"{opt:<5}/{lb:<5}  {res_v7[1]:<10} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  "#{h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3} {h_res_v4}   {h_res_v5}  {h_res_v6}  {h_res_v7}"
+            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_cashwmaxsat} "#{h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3} {h_res_v4}   {h_res_v5}  {h_res_v6}  {h_res_v7}"
             print(s)
             the_file.write(f'{s}\n')
 
@@ -726,8 +659,8 @@ if (process_run):
                 #print(results_eva[f])
                 
                 try:
-                    if (results_rc2comp[f][0] >  -1) and  (results_res_v1[f][0] > -1):
-                        assert(results_rc2comp[f][0] == results_res_v1[f][0])
+                    if (results_rc2comp[f][0] >  -1) and  (results_cashwmaxsat[f][0] > -1):
+                        assert(results_rc2comp[f][0] == results_cashwmaxsat[f][0])
                     # if (results_resrg[f][0] >  -1) and  (results_res_v4[f][0] > -1):
                     #     assert(results_resrg[f][0] == results_res_v4[f][0])
                                             
@@ -741,17 +674,17 @@ if (process_run):
                 except:
                     print("*********check results")
                 pref = gs_pref
-                if (results_res_v4[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_rc2comp[f][0] > -1) and results_cashwmaxsat[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v4[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_rc2comp[f][0] == -1) and results_cashwmaxsat[f][0] > -1:
                     pref = pref + "~~"
                 else:
                     pref = pref+  "  "
 
 
-                if (results_res_v5[f][0] > -1) and results_rc2comp[f][0] == -1:
+                if (results_maxsatcomp[f][0] > -1) and results_cashwmaxsat[f][0] == -1:
                     pref =pref + "**"
-                elif (results_res_v5[f][0] == -1) and results_rc2comp[f][0] > -1:
+                elif (results_maxsatcomp[f][0] == -1) and results_cashwmaxsat[f][0] > -1:
                     pref = pref + "++"
                 else:
                     pref = pref+  "  "
@@ -832,11 +765,14 @@ if (process_run):
                 except:
                     pass
 
-
+                try:
+                    s_cashwmaxsat  = f"{results_cashwmaxsat[f][0]:<5}/{results_cashwmaxsat[f][2]:<5}/{results_cashwmaxsat[f][3]:<5} {results_cashwmaxsat[f][1]:<10} "
+                except:
+                    pass
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs} "# {s_res_v0}{s_res_v1}  {s_res_v2}    {s_res_v3} {s_res_v4}   {s_res_v5}   {s_res_v6}  {s_res_v7}"
+                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs} {s_cashwmaxsat} "# {s_res_v0}{s_res_v1}  {s_res_v2}    {s_res_v3} {s_res_v4}   {s_res_v5}   {s_res_v6}  {s_res_v7}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)
