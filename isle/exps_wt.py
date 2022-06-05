@@ -522,8 +522,8 @@ if (process_run):
                                 file = open(s, "r")
                                 try:
                                     for line in file:
-                                        print(s)
-                                        print("--",line, "--")
+                                        #print(s)
+                                        #print("--",line, "--")
                                         if "o " ==  line[:2] and len(line) < 10:
                                             opt = int(line[2:])
                                             res[0] = opt
