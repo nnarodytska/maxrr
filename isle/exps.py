@@ -98,7 +98,7 @@ import glob
 import os
 import copy
 
-from solved_guropy import solved_gurobi, unsolved
+from solved_guropy_unwt import solved_gurobi, unsolved
 from os import path
 from posixpath import split
 import sys
@@ -109,7 +109,7 @@ root_dir = "/home/nina/workspace/data/mse21_complete_unwt/"
 #unsolved = []
 #
 #
-unsolved =  solved_gurobi + unsolved
+unsolved = []# solved_gurobi + unsolved
 
 focus =[]
 # focus = ["kbtree9_7_3_5_90_2.wcsp.wcnf.gz", 
@@ -129,24 +129,29 @@ rc2 = [False, "rc2"]
 rc2comp = [False, "rc2comp"]
 cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0 = [False, "maxres","--circuitinject=0", "v0"]
+res_v0 = [True, "gurobi","--circuitinject=0  --ilp=360", "v0"]# [False, "maxres","--circuitinject=0", "v0"]
 res_v1 = [False, "maxres", "--circuitinject=4 --minw=8", "v1"]
 res_v2 = [False, "maxres", "--circuitinject=4 --minw=16",  "v2"]
 res_v3 = [False, "maxres", "--circuitinject=4 --minw=16",  "v3"] # with closure
-res_v4 = [True, "maxres", "--circuitinject=4 --minw=16", "v4"] # 
-res_v5 = [True, "maxres", "--circuitinject=4  --minw=12",  "v5"] 
-res_v6 = [True, "maxres", "--circuitinject=4  --minw=8",  "v6"] 
+res_v4 = [False, "maxres", "--circuitinject=4 --minw=16", "v4"] # 
+res_v5 = [False, "maxres", "--circuitinject=4  --minw=12",  "v5"] 
+res_v6 = [False, "maxres", "--circuitinject=4  --minw=8",  "v6"] 
 res_v7 = [False, "maxres", "--circuitinject=4 --minw=16 --maxw=32",  "v7"] 
 
+resrg = [False, "maxres", "--circuitinject=4 --minw=16 --maxw=32",  "v7"] 
+
 # gurobi
+
+gurobi_tools = True
 or_tools = False
 run_file = './run.txt'
 if (or_tools):
     run_file = './or_run.txt'
-resrg  = [False, "resrg",  "", "v0"]
+if (gurobi_tools):
+    run_file = './gurobi_run.txt'
 
 # 3600*3]
-mult = 3
+mult = 0.15
 to = [3600*mult] #[3600*3]
 
 maxhs = [False, "maxhs"]
@@ -229,6 +234,15 @@ if (gen_run):
                             os.mkdir("/home/nina/workspace/data/mse21_unwt_ortools/")
                         except:
                             pass
+
+                    if (gurobi_tools):
+                        res_filename = filename.replace("mse21_complete_unwt", "mse21_unwt_gurobi")
+                        try:
+                            os.mkdir("/home/nina/workspace/data/mse21_unwt_gurobi/")
+                        except:
+                            pass
+
+
 
                     res_filename_1 =  filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
 
@@ -315,6 +329,14 @@ if (gen_run):
                             os.mkdir("/home/nina/workspace/data/mse21_unwt_ortools/")
                         except:
                             pass                    
+                    if (gurobi_tools):
+                        filename1 = filename.replace("mse21_complete_unwt", "mse21_unwt_gurobi")
+                        try:
+                            os.mkdir("/home/nina/workspace/data/mse21_unwt_gurobi/")
+                        except:
+                            pass                    
+
+
                     filename2 = filename.replace("mse21_complete_unwt", "mse21_complete_unwt_unzip")
                     #print(filename1)
                     #print(filename2)
