@@ -622,7 +622,7 @@ if (process_run):
         opt = "opt"
         lb = "lb"
         ub = "ub"
-        with open(f'results.{timetag}txt', 'w') as the_file:
+        with open(f'results_wt.{timetag}txt', 'w') as the_file:
             h_eva = f" {opt:<5}/{lb:<5} {eva[1]:<10} "
             h_rc2comp = f"{opt:<5}/{lb:<5}   {rc2comp[1]:<10}"
             h_maxhs = f"{opt:<5}/{lb:<5}/{ub:<5}   {maxhs[1]:<10}"
