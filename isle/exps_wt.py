@@ -520,18 +520,21 @@ if (process_run):
                                 results_cashwmaxsat[file_name] =  copy.deepcopy(dummy)
                             else:
                                 file = open(s, "r")
-                                for line in file:
-                                    print(s)
-                                    print("--",line, "--")
-                                    if "o " ==  line[:2] and len(line) < 10:
-                                        opt = int(line[2:])
-                                        res[0] = opt
-                                    f = "c CPU time               : "
-                                    if  f ==  line[:len(f)]:
-                                        r = line[len(f):]
-                                        r = (r.split(" "))[0]
-                                        time = float(r)
-                                        res[1] = time
+                                try:
+                                    for line in file:
+                                        print(s)
+                                        print("--",line, "--")
+                                        if "o " ==  line[:2] and len(line) < 10:
+                                            opt = int(line[2:])
+                                            res[0] = opt
+                                        f = "c CPU time               : "
+                                        if  f ==  line[:len(f)]:
+                                            r = line[len(f):]
+                                            r = (r.split(" "))[0]
+                                            time = float(r)
+                                            res[1] = time
+                                except:
+                                    pass
 
                             if len(res) == 0:
                                 results_cashwmaxsat[file_name] =  copy.deepcopy(dummy)
