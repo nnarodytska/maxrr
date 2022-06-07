@@ -999,8 +999,9 @@ class RC2(object):
                     return True, None
                 self.rebuild()       
                 self.adapt_am1()
-                self.rebuild(init = True)                 
+                self.rebuild()                
 
+                print(unsat,  self.level, self.max_level)
                 unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
                 self.sat_time  += time.time() - tm
 
@@ -1032,7 +1033,6 @@ class RC2(object):
             #     print("---")
             #     return True,  cp_model.OPTIMAL
 
-            print(unsat,  self.level, self.max_level)
 
             self.rebuild()
             #if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
@@ -1684,7 +1684,6 @@ class RC2(object):
             Each intrinsic AtMost1 constraint detected this way is
             handled by calling :func:`process_am1`.
         """
-
         # literal connections
         conns = collections.defaultdict(lambda: set([]))
         confl = []
