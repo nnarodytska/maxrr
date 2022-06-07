@@ -130,7 +130,7 @@ import collections
 import copy
 import getopt
 import itertools
-from math import copysign
+from math import ceil, copysign
 import math
 import os
 import random
@@ -159,6 +159,11 @@ CIRCUIT_PARTIAL_SOFT = 4
 
 DEFAULT_MIN_WINDOW = 16
 DEFAULT_MAX_WINDOW = 10000000
+try:
+    import gurobipy as gp
+    from gurobipy import GRB
+except:
+    pass
 
 # names of BLO strategies
 #==============================================================================
@@ -264,45 +269,40 @@ class RC2(object):
         self.bnds = {}  # a mapping from sum assumptions to totalizer bounds
         self.tobj = {}  # a mapping from sum assumptions to totalizer objects
 
+        self.org_oracle = None
+
         self.asm2nodes = {}
-        self.ortools_on = True
+        self.ortools_on = False
         self.or_model =  None
         self.or_time = 0
+        self.maxhs_on = True
+        self.or_card_model = None
+        self.org_oracle = None
         self.hints, self.or_ub, self.or_lb = None, None, -100
         if (self.ortools_on):
             self.or_model =  SolverOR(self.ilpcpu)
-            
-        
-        
 
-
+             
+  
         
 
         # mappings between internal and external variables
         VariableMap = collections.namedtuple('VariableMap', ['e2i', 'i2e'])
         self.vmap = VariableMap(e2i={}, i2e={})
 
+
+        self.blop = None
+        #print(max(formula.wght), min(formula.wght))
+        self.level = 0
+        self.max_level = 10
+
         # initialize SAT oracle with hard clauses only
         self.init(formula, incr=incr)
 
-        # core minimization is going to be extremely expensive
-        # for large plain formulas, and so we turn it off here
-        wght = self.wght.values()
 
-        self.test_cores = []
-        
-        if (False):
-            self.test_cores = [[180, 178, 177],
-            [174, 182, 172, 176],
-            [173, 184, 181],
-            [185, 175, 179],
-            [189, 199, 195],
-            [203, 191, 183],
-            [201, 187, 209, 207, 205, 197],]
-            #[193, 211]]        
-            self.sol = [-1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15, -16, -17, -18, -19, -20, -21, -22, -23, -24, -25, -26, -27, -28, -29, -30, -31, -32, -33, -34, -35, -36, -37, -38, -39, -40, -41, -42, -43, -44, -45, -46, -47, -48, -49, -50, -51, -52, -53, -54, -55, -56, -57, -58, -59, -60, -61, -62, -63, -64, -65, -66, -67, -68, -69, -70, -71, -72, -73, -74, -75, -76, -77, -78, -79, -80, -81, 82, -83, -84, -85, -86, -87, -88, -89, -90, -91, -92, -93, -94, -95, -96, -97, -98, -99, -100, 101, -102, -103, -104, -105, -106, -107, -108, -109, -110, -111, -112, 113, -114, -115, -116, -117, -118, -119, -120, -121, -122, 123, -124, -125, -126, -127, -128, -129, -130, -131, -132, -133, -134, -135, -136, -137, -138, -139, -140, -141, -142, -143, -144, -145, -146, -147, -148, -149, -150, -151, 152, -153, -154, -155, -156, -157, -158, -159, -160, -161, 162, -163, -164, -165, -166, -167, -168, -169, -170, -171, -172, -173, -174, 175, 176, -177, -178, 179, -180, 181, 182, 183,-184]
-        else:
-            self.sol = []
+        #wght = self.wght.values()
+
+
 
     def __del__(self):
         """
@@ -388,20 +388,39 @@ class RC2(object):
             self.formula.soft.pop(idx)
 
         #self.forest = []
-
+        self.wstr = set()
+            
+        
         for i, cl in enumerate(self.formula.soft):
             selv = cl[0]  # if clause is unit, selector variable is its literal
             if len(cl) > 1:
                 selv = self.pool.id()
                 cl.append(-selv)            
-                self.add_new_clause(cl, self.formula.hard, self.oracle)
+                self.add_new_clause(cl, self.formula.hard)
             
             t = self.create_node(name = "{-selv}", u = selv,  v = selv,  weight = self.formula.wght[i],  type = INITIAL_SELECTOR, status = STATUS_ACTIVE)
             #self.forest.append(t.u)
 
-            
-            if selv  in self.wght:         
-                assert False, "we should not have duplicates"
+            self.wstr.add(self.formula.wght[i])
+            # if selv  in self.wght:         
+            #     assert False, "we should not have duplicates"
+
+
+        if max(formula.wght) > min(formula.wght):
+            print(self.wstr)
+            # sorted list of distinct weight levels
+            self.blop = sorted([w for w in list(self.wstr)], reverse=True)
+            self.level = 0
+            sz = len(self.blop)
+            self.max_level =  10
+            self.max_level =  10 if sz > self.max_level else sz            
+            step = ceil(sz/10) if sz > self.max_level else 1
+            self.weight_bounds = []
+            for i in range(0,sz, step):
+                self.weight_bounds.append(self.blop[i])
+
+        if (self.maxhs_on):
+            self.or_card_model =  SolverOR(self.ilpcpu)
 
         self.rebuild(init = True)
 
@@ -418,6 +437,8 @@ class RC2(object):
         if (not self.formula.hard and len(self.sels) > 100000 and min(self.orig_formula.wght) == max(self.orig_formula.wght)) or ( len(self.sels) > 500000 ):
             self.minz = False  
         print(self.minz)
+
+
         #exit()
 
     def create_node(self, name, u, v, weight, type, status, level = DUMMY_LEVEL, cu = DUMMY_U,  cu_cover = DUMMY_U_COVER, tobj =None, tobj_bound = 0, children = None, into_phase = 0):
@@ -444,7 +465,141 @@ class RC2(object):
             self.asm2nodes[u] = node
         return node
 
-    def rebuild(self, reactivate = False, init = False, debug = False):
+   
+    def solve_gurobi(self, formula, solution = None, to = 60):
+        with gp.Env(empty=True) as env:
+            #env.setParam('OutputFlag', 0)
+            env.setParam('TimeLimit', to)
+            env.setParam('Threads', 1)            
+            #env.setParam('Presolve', 2)
+        
+      
+
+            
+
+            
+            
+            env.start()
+            ##########################################
+            self.gurobi_model = gp.Model("whole", env=env)
+            max_id = self.pool.top + 1
+
+            self.gurobi_vars = {}
+            for c in range(max_id):
+                b = self.gurobi_model.addVar(vtype=GRB.BINARY, name= f"{c}",)
+                self.gurobi_vars[c] = b
+                if not (solution is  None):
+                    try:
+                        #print(c,solution[c])
+                        b.setAttr('VarHintVal', solution[c])
+                        b.setAttr('Start', solution[c])
+
+                        #self.gurobi_model.addConstr(b == solution[c], f"clause_{c} = {solution[c]}")
+                    except:
+                        pass
+                        #print("-->", c)
+            
+            #print(gurobi_vars)
+            
+            for j, cl in enumerate(formula.hard):
+                con_vars = []
+                rhs =  1
+                
+                #print(cl, max_id)
+                for c in cl:
+                    if (c > 0):
+                        con_vars.append(self.gurobi_vars[abs(c)])
+                    else:
+                        con_vars.append(-self.gurobi_vars[abs(c)])
+                        rhs = rhs -1
+                        
+                self.gurobi_model.addConstr(gp.quicksum(con_vars) >= rhs, f"clause_{j}")       
+
+            self.gurobi_soft_vars = {}   
+            ops = []
+            wops = []
+            for j, cl in enumerate(formula.soft):
+                if (len(cl) == 1):                    
+                    c = cl[0]
+
+                    if (c > 0):
+                        self.gurobi_soft_vars[j] = 1-self.gurobi_vars[abs(c)]                    
+                    else:
+                        self.gurobi_soft_vars[j] = self.gurobi_vars[abs(c)]                    
+                else:
+                    con_vars = []
+                    rhs =  1
+                    v = max_id + j
+                    b = self.gurobi_model.addVar(vtype=GRB.BINARY, name= f"{v}")
+                    self.gurobi_vars[v] = b
+                    self.gurobi_soft_vars[j] = b
+                    
+                    con_vars.append(self.gurobi_vars[abs(v)])
+                    for c in cl:
+                        if (c > 0):
+                            con_vars.append(self.gurobi_vars[abs(c)])
+                        else:
+                            con_vars.append(-self.gurobi_vars[abs(c)])
+                            rhs = rhs -1
+                    self.gurobi_model.addConstr(gp.quicksum(con_vars) >= rhs, f"soft_clause_{j}")  
+                
+                ops.append(self.gurobi_soft_vars[j])
+                wops.append(formula.wght[j])  
+            # print(ops, wops)
+            # exit()
+
+            #self.gurobi_model.addConstr(gp.quicksum([ops[j]*wops[j] for j,_ in enumerate(ops)]) <= 18)  
+            # self.gurobi_model.params.Method=1q
+            # self.gurobi_model.params.TuneTimeLimit=60
+            #self.gurobi_model.tune()            
+            #print(ops)
+            self.gurobi_model.setObjective(gp.quicksum([ops[j]*wops[j] for j,_ in enumerate(ops)]), GRB.MINIMIZE)
+            formula_new = None
+            #self.gurobi_model.write("test.lp")
+
+
+            self.gurobi_model.optimize()                
+            obj = None
+            sols = []
+            t = self.gurobi_model.Runtime
+            if self.gurobi_model.status in {GRB.OPTIMAL, GRB.TIME_LIMIT}:
+                try:
+                    solution_vars = {}
+                    obj =  math.ceil(self.gurobi_model.objVal)
+                    lb_obj =  math.ceil(self.gurobi_model.objbound)
+                    best_obj = int(obj)             
+                    for c in range(max_id):                
+                        b = self.gurobi_vars[c]
+                        solution_vars[c] = int(b.x)
+                except:
+                    pass
+            else:
+                obj = -1
+                best_obj =  math.ceil(self.gurobi_model.objVal)
+                lb_obj = math.ceil(self.gurobi_model.objbound)
+                solution_vars = None
+
+
+
+                #print(best_obj)
+
+
+            # if (presolve):
+            #     try:
+            #         self.gurobi_model=self.gurobi_model.presolve()
+            #         self.gurobi_model.printStats() 
+            #         self.gurobi_model.write("pre-test.lp")
+            #         formula_new = WCNFPlus(from_gmodel=self.gurobi_model)                                                            
+            #         self.gmodel = self.gurobi_model
+            #     except Exception as e:
+            #         print("-----------", e)
+            #         exit()
+
+
+            return best_obj, lb_obj, solution_vars, self.gurobi_model.status, t, self.gurobi_model.SolCount#formula_new
+
+
+    def rebuild(self,  init = False, debug = False):
 
         print("------------->  rebuild  <-----------------")
         
@@ -453,8 +608,8 @@ class RC2(object):
         if self.use_accum_oracle:
             if (init):
                 self.oracle = Solver(name=self.solver, bootstrap_with=self.formula.hard, use_timer=True)
+                self.org_oracle = Solver(name=self.solver, bootstrap_with=self.formula.hard, use_timer=True)
                 if (self.or_model is not None): self.or_model.add_hards(self.formula)
-
 
             self.time = self.oracle.time_accum()
         else:    
@@ -490,6 +645,13 @@ class RC2(object):
             node= forest_find_node(u, self.asm2nodes)
             #print(node)
             node_id = node.u
+            if self.blop is not None:
+                #print(node.weight, self.weight_bounds)
+                if node.weight < self.weight_bounds[self.level]:
+                    #print(f"skip {node.weight}/{self.weight_bounds[self.level]}/{self.level} ")
+                    continue
+                    exit()
+
             if node.type == INITIAL_SELECTOR:
                 self.sels.append(node_id)
             elif node.type == COMPRESSSOR:
@@ -730,7 +892,54 @@ class RC2(object):
             #    self.force_model(hints)
             #    self.cost = or_ub
         return self.or_model.status
+    def call_maxhs(self):
+        or_lb = self.cost
+        while(True):
+            hints, or_ub, or_lb = self.or_card_model.circuit_maxhs(cost_vars=self.orig_sels, mapping=self.asm2nodes, lb = or_lb)        
+            if (or_ub < self.cost):
+                print(or_ub, self.cost)
+                # if (debug):
+                #     forest_build_graph(self.asm2nodes)                
+                exit()
+            else:
+                if (self.cost > 69):
+                    assm = []
+                    for u in self.orig_sels:
+                        val = hints[abs(u)]
+                        #print(u,val)
+                        if val and u > 0:
+                            assm.append(u)
+                        elif not val and u < 0:
+                            assm.append(u)
+                    #print(assm)
+                    #print(self.sels + self.sums)
 
+                    unsat  = not self.org_oracle.solve(assumptions=assm)
+                    assert(unsat)
+
+                    self.core = self.org_oracle.get_core()
+                    if self.core:
+                        # core = copy.deepcopy(self.core)
+
+                        # for i in range(10):
+                            #self.core = copy.deepcopy(core)
+                            print(self.core)
+
+                            random.shuffle(self.core)
+                
+                            # try to reduce the core by trimming
+                            self.trim_core(oracle = self.org_oracle)
+
+                            # and by heuristic minimization
+                            self.minimize_core(oracle = self.org_oracle, issort=False)     
+                            print(self.core)       
+                            print("--is UNSAT ", unsat)
+                            self.or_card_model.add_clause([-u for u in self.core])
+                    else:
+                        break
+                    #exit()
+                else:
+                    break
   
     def compute_(self):
         """
@@ -746,56 +955,84 @@ class RC2(object):
 
         if self.adapt:
             self.adapt_am1()
-            self.rebuild(reactivate = True, init = True)
+            self.rebuild(init = True)
 
         debug = False
         # main solving loop
         
         if debug: print(self.sels + self.sums)
+
+        
+
         #self.or_model.feasibility(assumptions=self.sels + self.sums, mapping=self.asm2nodes)
         #print(self.ilp)
-        if (self.ilp > 0):
-            print(self.init_cost)
+        # if (self.ilp > 0):
+        #     print(self.init_cost)
+        #     self.solve_gurobi(self.formula, to = self.ilp)
+        #     exit()
 
-            status = self.or_call(cost_vars=self.sels + self.sums, to = self.ilp, init = True)
-            if (status == cp_model.OPTIMAL):
-                print(f"c cost: {self.cost};  soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
-                return True,  cp_model.OPTIMAL
+
+        #     status = self.or_call(cost_vars=self.sels + self.sums, to = self.ilp, init = True)
+        #     if (status == cp_model.OPTIMAL):
+        #         print(f"c cost: {self.cost};  soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
+        #         return True,  cp_model.OPTIMAL
                 
-            if (status == cp_model.FEASIBLE) and (self.cost + 1 == self.or_ub):
-                self.force_model(self.hints)
-                print(f"c cost: {self.cost};  soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
-                return True,  cp_model.OPTIMAL
+        #     if (status == cp_model.FEASIBLE) and (self.cost + 1 == self.or_ub):
+        #         self.force_model(self.hints)
+        #         print(f"c cost: {self.cost};  soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
+        #         return True,  cp_model.OPTIMAL
 
 
         unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
         #assert(self.oracle.solve(assumptions=self.sol))
         print(f"start  unsat {unsat}")
 
-        while unsat:
+        while unsat or  self.level < self.max_level:
+
+            while (not unsat):
+                tm = time.time()                     
+                self.level +=1
+                if   (self.blop is not None) and (self.level == self.max_level):
+                    return True, None
+                self.rebuild()       
+                self.adapt_am1()
+                self.rebuild(init = True)                 
+
+                unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
+                self.sat_time  += time.time() - tm
+
+                print("---", unsat)#, self.sels, self.sums)
+            
+
 
             self.get_core()
 
             if not self.core:
                 # core is empty, i.e. hard part is unsatisfiable
-                return False
+                return False, None
             self.process_core()
             if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ core {self.core} round {self.round}")
+
+            self.add_new_clause([-u for u in self.core], vec = self.formula.hard, oracle= self.oracle)
+
+            #self.call_maxhs()
+
 
             if self.verbose > 1:
                 print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
 
 
-            print(self.cost + 1, self.or_ub)
-            if (self.cost + 1 == self.or_ub):
-                self.force_model(self.hints)
-                self.cost =  self.or_ub
-                print("---")
-                return True,  cp_model.OPTIMAL
+            # print(self.cost + 1, self.or_ub)
+            # if (self.cost + 1 == self.or_ub):
+            #     self.force_model(self.hints)
+            #     self.cost =  self.or_ub
+            #     print("---")
+            #     return True,  cp_model.OPTIMAL
 
+            print(unsat,  self.level, self.max_level)
 
             self.rebuild()
-            if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
+            #if debug: print(f"~~~~~~~~~~~~~~~~~~~~~~~~~ sels {self.sels } sums {self.sums}")
 
             sums = forest_filter(self.asm2nodes, type= SUM)
             #print(sums)
@@ -803,53 +1040,18 @@ class RC2(object):
             #     self.or_call(cost_vars=self.sels + self.sums, to = 30)
             
             unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
-            delayed_selectors_nodes = []
-            if (not unsat): delayed_selectors_nodes = list(forest_filter(self.asm2nodes, status = STATUS_WAITING)) +  list(forest_filter(self.asm2nodes, status = STATUS_FOLDED))
+            #delayed_selectors_nodes = []
+            #if (not unsat): delayed_selectors_nodes = list(forest_filter(self.asm2nodes, status = STATUS_WAITING)) +  list(forest_filter(self.asm2nodes, status = STATUS_FOLDED))
             
             rebuild = 0
-            while (not unsat) and len(delayed_selectors_nodes) > 0:
-                tm = time.time()                     
-                model = self.oracle.get_model()
-                #forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}")
-                nb_violated = self.reactivate(model, rebuild)
-                #forest_build_graph(self.forest, fname= "g_"+GRAPH_PRINT_DEF+f"-{self.round}")
-                print(f"any violated? {nb_violated}")
-
-                if (nb_violated == 0):
-                    break
-
-                self.rebuild(reactivate = True)
-                # assert(self.oracle.solve(assumptions=self.sol))
-                # model = self.oracle.get_model()
-                # for s in self.sums+self.sels:
-                #     print(s, model[s-1])
+            #if (not unsat): delayed_selectors_nodes = list(forest_filter(self.asm2nodes, status = STATUS_STATIFIED))
+            print(unsat,  self.level, self.max_level)
                 
-                #forest_build_graph(self.forest, fname= GRAPH_PRINT_DEF+f"-{self.round}-rebuild-{rebuild}")
-                
-                rebuild +=1
-                
-
-
-
-                unsat  = not self.oracle.solve(assumptions=self.sels + self.sums)
-                self.sat_time  += time.time() - tm
-
-                print("---", unsat)#, self.sels, self.sums)
-                # if (self.cost >= 7) and unsat:
-                #     for cl in self.formula.soft:
-                #         print(cl)
-                #     print(-172, -173, -174, 175, 176, -177, -178, 179, -180, 181, 182, 183,-184)
-                #     #exit()
-                
-                # if (debug):
-                #     forest_build_graph(self.forest, self.asm2nodes)
-                    #exit()
-
 
             
         return True, None
 
-    def get_core(self):
+    def get_core(self, oracle = None):
         """
             Extract unsatisfiable core. The result of the procedure is
             stored in variable ``self.core``. If necessary, core
@@ -862,20 +1064,19 @@ class RC2(object):
             2. sum assumptions (``self.core_sums``).
         """
 
+        if oracle is None:
+            oracle = self. oracle
+
         # extracting the core
-        if len(self.test_cores) > 0:                
-            self.core = self.test_cores[0]
-            self.test_cores = self.test_cores[1:]
-            assert(not self.oracle.solve(assumptions=self.core))
-        else:        
-            self.core = self.oracle.get_core()
+      
+        self.core = oracle.get_core()
 
         if self.core:
             # try to reduce the core by trimming
-            self.trim_core()
+            self.trim_core(oracle = oracle)
 
             # and by heuristic minimization
-            self.minimize_core()
+            self.minimize_core(oracle = oracle)
 
             # the core may be empty after core minimization
             if not self.core:
@@ -914,18 +1115,22 @@ class RC2(object):
         node.weight = new_weight
 
     
-    def add_new_clause(self, cl, vec= None, oracle = None, label = "",  debug = False):
+    def add_new_clause(self, cl, vec= None, oracle = None, label = "",  debug = False, special = False, special_solver = None):
         #print(cl)
+        if (special):
+            if (self.or_card_model is not None): special_solver.add_clause(cl)
+            return 
         assert((vec is not None) or (oracle is not None))
-        if (vec is not None):
-            vec.append(cl)  
-        if (oracle is not None):
-            oracle.add_clause(cl)
-        if (self.or_model is not None): self.or_model.create_clauses_con(cl)
+        if (vec is not None): vec.append(cl)  
+        if (oracle is not None): oracle.add_clause(cl)
+        if (self.or_model is not None): self.or_model.add_clause(cl)
+        if (self.or_card_model is not None): self.or_card_model.add_clause(cl)
+        #if (extra_sat_solver is not None): extra_sat_solver.add_clause(cl)
+
         if (debug): print(label,  cl)
 
 
-    def added_folded_gate(self, t, v, half, full_encoding = True, debug = False):
+    def added_folded_gate(self, t, v, half, full_encoding = False, debug = False):
         cl = [v]
         label =  "------> added_folded_gate"        
         for u in half:
@@ -944,9 +1149,17 @@ class RC2(object):
         label =  "------> added_gate_u"
         self.add_new_clause ([-t.u, core0, core1], t.u_clauses, self.oracle, label)
 
+
+
         if (full_encoding):
             self.add_new_clause ([t.u, -core0], t.u_clauses, self.oracle, label, debug)
             self.add_new_clause ([t.u, -core1], t.u_clauses, self.oracle, label, debug)
+
+        # for maxhs via ortools
+        self.add_new_clause([t.u, -core0], special = True, special_solver = self.or_card_model)
+        self.add_new_clause([t.u, -core1], special = True, special_solver = self.or_card_model)        
+
+        #print(cl)
 
     def added_gate_v(self, t,  core0, core1, full_encoding = False, debug = False):
         #v <-> core[0] /\ core[1]
@@ -960,6 +1173,9 @@ class RC2(object):
 
         if (full_encoding):
             self.add_new_clause( [t.v, -core0, -core1], t.u_clauses, self.oracle, label, debug)
+        
+        # for maxhs via ortools
+        self.add_new_clause([t.v, -core0, -core1], special = True, special_solver = self.or_card_model)        
 
     def added_gate(self, t,  core0, core1):
         self.added_gate_v(t,  core0, core1)
@@ -1385,7 +1601,6 @@ class RC2(object):
         if  len(self.core_sels + self.core_sums) > 1:
             rels = self.process_assumptions()
             self.core = [-l for l in rels]
-            self.add_new_clause(rels, vec = self.formula.hard, oracle= self.oracle)
             #print(self.core, self.core_sums, self.core_sels)
             #self.add_new_clause(self.core , self.formula.hard, self.oracle)
             if self.circuitinject == CIRCUITINJECT_DELAYED:
@@ -1510,7 +1725,9 @@ class RC2(object):
         len_am1 = []
         lits = set(conns.keys())
         while lits:
+           # print(lits)
             am1 = [min(lits, key=lambda l: len(conns[l]))]
+
 
             for l in sorted(conns[am1[0]], key=lambda l: len(conns[l])):
                 if l in lits:
@@ -1519,7 +1736,7 @@ class RC2(object):
                             break
                     else:
                         am1.append(l)
-
+            #print(am1)
             # updating remaining lits and connections
             lits.difference_update(set(am1))
             for l in conns:
@@ -1569,6 +1786,7 @@ class RC2(object):
         self.garbage = set()
 
         while len(am1) > 1:
+            print(am1)
             # computing am1's weight
             self.minw = min(map(lambda l: self.wght[l], am1))
 
@@ -1616,20 +1834,20 @@ class RC2(object):
         #print("return")
 
 
-    def trim_core(self):
+    def trim_core(self, oracle = None):
         """
             This method trims a previously extracted unsatisfiable
             core at most a given number of times. If a fixed point is
             reached before that, the method returns.
         """
-
+        if oracle is None: oracle = self.oracle
         for i in range(self.trim):
             # call solver with core assumption only
             # it must return 'unsatisfiable'
-            self.oracle.solve(assumptions=self.core)
+            oracle.solve(assumptions=self.core)
 
             # extract a new core
-            new_core = self.oracle.get_core()
+            new_core = oracle.get_core()
 
             if len(new_core) == len(self.core):
                 # stop if new core is not better than the previous one
@@ -1641,7 +1859,7 @@ class RC2(object):
    
 
 
-    def minimize_core(self, core = None,  unfolding = False):
+    def minimize_core(self, core = None,  unfolding = False, oracle = None,  issort = True):
         """
             Reduce a previously extracted core and compute an
             over-approximation of an MUS. This is done using the
@@ -1658,6 +1876,8 @@ class RC2(object):
             During this core minimization procedure, all SAT calls are
             dropped after obtaining 1000 conflicts.
         """
+        if oracle is None: oracle = self.oracle
+
         if (core is not None):
             self.core = core
         debug = False
@@ -1679,10 +1899,18 @@ class RC2(object):
 
 
         if self.minz and len(self.core) > 1 and (len(self.core) < core_size_thesh) :
-            #if debug: print(self.core, self.wght)
-            self.core = sorted(self.core, key=lambda l: self.wght[l])
-            u2l = u_and_level(self.core, self.asm2nodes)
-            self.core = list({k: v for k, v in sorted(u2l.items(), key=lambda item: item[1], reverse=True)})
+            #if debug: 
+            #print(self.core, self.wght)
+            if (issort):
+                try:
+                    self.core = sorted(self.core, key=lambda l: self.wght[l])
+                except:
+                    pass
+                # print(self.core)
+                # for v,k in  self.asm2nodes.items():
+                #     print(v,k)
+                u2l = u_and_level(self.core, self.asm2nodes)
+                self.core = list({k: v for k, v in sorted(u2l.items(), key=lambda item: item[1], reverse=True)})
 
 
             
@@ -1752,21 +1980,21 @@ class RC2(object):
 
                 keep = [c for c in keep if c in proj]
                 #################################################
-                #self.oracle.clear_interrupt()
-                self.oracle.prop_budget(start_prop)
+                #oracle.clear_interrupt()
+                oracle.prop_budget(start_prop)
                 #def interrupt(s):
                 #    s.interrupt()                
-                #timer = Timer(time_per_call, interrupt, [self.oracle])            
+                #timer = Timer(time_per_call, interrupt, [oracle])            
                 start =time.time()
                 #timer.start()
                 #if debug: print(f"core {keep + to_test}")
 
-                status = self.oracle.solve_limited(assumptions= keep + to_test)        
+                status = oracle.solve_limited(assumptions= keep + to_test)        
                 
                 #timer.cancel()
                 #print((time.time() - start))        
                 time_total = time_total + (time.time() - start)
-                #self.oracle.clear_interrupt()
+                #oracle.clear_interrupt()
                 
                 if (time_total > 30):
                    start_prop = def_prop
@@ -1777,11 +2005,11 @@ class RC2(object):
                 if debug:  print('c oracle time: {0:.4f}'.format(time_total))
                 #print(prop)
                 if status  == False:
-                    newcore = self.oracle.get_core()
+                    newcore = oracle.get_core()
                     if (newcore is None):
                         newcore = []                    
                     proj =  newcore                 
-                elif self.oracle.get_status() == True:
+                elif oracle.get_status() == True:
                     keep.append(core[0])
 
                 else:
@@ -1791,16 +2019,16 @@ class RC2(object):
 
             
 
-                if debug: print(f"{self.oracle.get_status()} {core[0]} {len(keep + to_test)}")
+                if debug: print(f"{oracle.get_status()} {core[0]} {len(keep + to_test)}")
                 core = core[1:]
                     #break
                 
 
             self.core =  keep
             #print(f"final {keep}")
-            #assert(self.oracle.solve_limited(assumptions=self.core) == False)
+            #assert(oracle.solve_limited(assumptions=self.core) == False)
             if debug: print(f"min end {len(self.core)}")           
-            #self.oracle.clear_interrupt()
+            #oracle.clear_interrupt()
             if (unfolding) and debug:
                 for u in self.core:
                     node = forest_find_node(u, self.asm2nodes)
@@ -1888,6 +2116,8 @@ class RC2(object):
 
 
 #
+
+
 #==============================================================================
 def parse_options():
     """
@@ -2039,15 +2269,15 @@ if __name__ == '__main__':
                 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 
         # deciding whether or not to stratify
-        if blo != 'none' and max(formula.wght) > min(formula.wght):
-            MXS = RC2Stratified
-        else:
-            MXS = RC2
+
+        MXS = RC2
 
         # starting the solver
 
         with MXS(formula, solver=solver, adapt=adapt, exhaust=exhaust,
-                incr=incr, minz=minz, trim=trim, circuitinject=circuitinject,  min_window = min_window, max_window = max_window, ilp = ilp, ilpcpu = ilpcpu, ilpprep = ilpprep, verbose=verbose) as rc2:
+                incr=incr, minz=minz, trim=trim, circuitinject=circuitinject,  
+                min_window = min_window, max_window = max_window, 
+                ilp = ilp, ilpcpu = ilpcpu, ilpprep = ilpprep, verbose=verbose) as rc2:
 
             
             # if isinstance(rc2, RC2Stratified):

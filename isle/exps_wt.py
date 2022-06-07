@@ -127,11 +127,11 @@ focus =[]
 
 rc2 = [False, "rc2"]
 rc2comp = [False, "rc2comp"]
-cashwmaxsat = [True, "cashwmaxsat"]
+cashwmaxsat = [False, "cashwmaxsat"]
 
-res_v0 = [False, "gurobi","--circuitinject=0  --ilp=360", "v0"]
-res_v1 = [False, "maxres", "--circuitinject=4 --minw=8", "v1"]
-res_v2 = [False, "maxres", "--circuitinject=4 --minw=16",  "v2"]
+res_v0 = [True, "maxres", "--circuitinject=0 ", "v0"]
+res_v1 = [True, "maxres", "--circuitinject=4 --minw=8", "v1"]
+res_v2 = [True, "maxres", "--circuitinject=4 --minw=16",  "v2"]
 res_v3 = [False, "maxres", "--circuitinject=4 --minw=16",  "v3"] # with closure
 res_v4 = [False, "maxres", "--circuitinject=4 --minw=16", "v4"] # 
 res_v5 = [False, "maxres", "--circuitinject=4  --minw=12",  "v5"] 
@@ -362,9 +362,9 @@ if (process_run):
     rc2comp = [True, "rc2comp"]
     cashwmaxsat = [True, "cashwmaxsat"]
 
-    res_v0  = [False, "maxres", "--circuitinject=0", "v0"]
-    res_v1 = [False, "maxres", "--circuitinject=1", "v1"]
-    res_v2 = [False, "maxres", "--circuitinject=0", "v2"]
+    res_v0  = [True, "maxres", "--circuitinject=0", "v0"]
+    res_v1 = [True, "maxres", "--circuitinject=1", "v1"]
+    res_v2 = [True, "maxres", "--circuitinject=0", "v2"]
     res_v3 = [False, "maxres", "--circuitinject=1", "v3"]
     res_v4 = [False, "maxres", "--circuitinject=2", "v4"]
 
@@ -642,7 +642,7 @@ if (process_run):
             h_res_v7 = f"{opt:<16}/{lb:<16}  {res_v7[1]:<16} "
             #s = f"     {f:<80}  {h_rc2comp} {h_maxhs} {h_res_v0} {h_res_v1}  {h_res_v2}   {h_res_v3}"
             #s = f"     {f:<80}  {h_rc2comp}  {h_res_v4}"
-            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_cashwmaxsat} "#{h_res_v0} {h_res_v1}  {h_res_v2}  {h_res_v3} {h_res_v4}   {h_res_v5}  {h_res_v6}  {h_res_v7}"
+            s = f"     {' ':<80}  {h_rc2comp} {h_maxhs}  {h_cashwmaxsat} {h_res_v0} {h_res_v1}  {h_res_v2}  "#{h_res_v3} {h_res_v4}   {h_res_v5}  {h_res_v6}  {h_res_v7}"
             print(s)
             the_file.write(f'{s}\n')
 
@@ -776,7 +776,7 @@ if (process_run):
 
 
                 #s = f"{pref} {f:<80}  {s_rc2comp} {s_maxhs} {s_res_v0} {s_res_v1}  {s_res_v2}  {s_res_v3}"
-                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs} {s_cashwmaxsat} "# {s_res_v0}{s_res_v1}  {s_res_v2}    {s_res_v3} {s_res_v4}   {s_res_v5}   {s_res_v6}  {s_res_v7}"
+                s = f"{pref} {file_name:<80} {s_rc2comp}  {s_maxhs} {s_cashwmaxsat} {s_res_v0}{s_res_v1}  {s_res_v2} "#    {s_res_v3} {s_res_v4}   {s_res_v5}   {s_res_v6}  {s_res_v7}"
                 #s = f"{pref} {f:<80}  {s_rc2comp}  {s_res_v4}"
 
                 print(s)

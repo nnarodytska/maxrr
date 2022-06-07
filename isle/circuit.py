@@ -24,6 +24,7 @@ STATUS_INACTIVE     = "I"
 STATUS_WAITING      = "W"
 STATUS_FOLDED       = "F"
 STATUS_COMPRESSED   = "C"
+STATUS_STATIFIED    = "S"
 
 DUMMY_LEVEL         = -1
 DUMMY_U             = -1

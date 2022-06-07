@@ -27,9 +27,9 @@ class SolverOR(object):
     def add_hards(self, formula):    
         for j, cl in enumerate(formula.hard):                   
             #print(cl)
-            self.create_clauses_con(cl)
+            self.add_clause(cl)
 
-    def create_clauses_con(self,  cl):
+    def add_clause(self,  cl):
         con_vars = []
         rhs =  1            
         #print(cl, max_id)
@@ -42,7 +42,7 @@ class SolverOR(object):
                 con_vars.append(b.Not())     
         
         self.model.AddBoolOr(con_vars)       
-        #print(cl, con_vars)
+        #print(cl)
 
     def minimize(self,  cost_vars, mapping, hints = None, lb = None, ub = None, to = 600):        
         ortools_soft_vars = {}   
@@ -196,6 +196,83 @@ class SolverOR(object):
             print('SufficientAssumptionsForInfeasibility = 'f'{solver.SufficientAssumptionsForInfeasibility()}')
 
             return {}, None, None
+
+        return {}, None, None
+    def circuit_maxhs(self,  cost_vars, mapping, hints = None, lb = None, ub = None, to = 30):        
+        ortools_soft_vars = {}   
+        ops = []
+        wops = []        
+        wght = []
+        for j, u in enumerate(cost_vars):           
+            b = self.get_var(u)
+            ortools_soft_vars[abs(u)] = b
+            if (u > 0):
+                ops.append(b.Not())
+                
+            else:
+                ops.append(b)
+            assert(self.ortools_vars[abs(u)] == b)
+            node = forest_find_node(u,mapping)
+            wops.append(node.oweight)  
+            
+        #print(ops, wops, ub)
+    
+        #ortools_model.Add(cp_model.LinearExpr.WeightedSum(ops, wops) ==0)
+        if not (lb is None):
+            self.model.Add(cp_model.LinearExpr.WeightedSum(ops, wops) >= ceil(lb))
+        if not (ub is None):
+            self.model.Add(cp_model.LinearExpr.WeightedSum(ops, wops) <= floor(ub))
+
+        self.model.Minimize(cp_model.LinearExpr.WeightedSum(ops, wops))
+    
+        self.model.ClearHints()
+        if not(hints is None):
+            for c, v in hints.items():
+                b = get_var(self.model, self.ortools_vars, c)
+                self.model.AddHint(b,v)
+                #print(b,v)
+
+        solver = cp_model.CpSolver()
+        solver.parameters.log_search_progress = False
+        solver.parameters.num_search_workers = self.ilpcpu
+        solver.parameters.min_num_lns_workers = 1
+        #solver.parameters.interleave_search = True
+        solver.parameters.max_time_in_seconds = to
+        solver.parameters.cp_model_presolve = DEFAULT_ILPPREP
+        #solver.parameters.search_branching = cp_model.sat_parameters_pb2.SatParameters.AUTOMATIC_SEARCH
+        #solver.parameters.
+        self.status = solver.Solve(self.model)
+        print('Solve status: %s' % solver.StatusName( self.status))
+        self.model.ClearHints()
+        self.time = solver.WallTime()
+
+        if  self.status == cp_model.OPTIMAL or  self.status ==  cp_model.FEASIBLE:
+            print('Optimal objective value: %i' % solver.ObjectiveValue())
+            print('Statistics')
+            print('  - conflicts : %i' % solver.NumConflicts())
+            print('  - branches  : %i' % solver.NumBranches())
+            print('  - wall time : %f s' % solver.WallTime())
+            print(solver.ResponseStats)
+            solution = {}
+            #print(cost_vars)
+
+            ub = solver.ObjectiveValue()
+            for c, b in sorted(self.ortools_vars.items()):
+                #print(c, b)            
+                b = self.ortools_vars[c]
+                solution[c] = solver.BooleanValue(b)
+                #if abs(c) in ortools_soft_vars:
+                    # if abs(c) in extra_nodes_abs_u:
+                    #     print("---->", b, c, solver.BooleanValue(b))
+                    # else:
+                    #    print(b, c, solver.BooleanValue(b))
+            # #assert(False)
+            #exit()
+            return solution, solver.ObjectiveValue(), solver.BestObjectiveBound()
+        elif   self.status ==  cp_model.INFEASIBLE:
+            return {}, None, None
+
+        return {}, None, None
 
         return {}, None, None
 

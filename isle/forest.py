@@ -18,13 +18,14 @@ def forest_find_node (u,  mapping):
     assert u in mapping, f"u={u} is missing"
     return mapping[u]
 
-def forest_build_graph(forest, mapping, fname ='graph.dot'):
+def forest_build_graph(mapping,  fname ='graph.dot'):
     graph = Digraph()
     edges = []
     nodes = []
-    for u in forest:
-        t = mapping[u]
-        build_graph(t, graph = graph, nodes = nodes,  edges = edges, is_top = True, fname = fname)    
+    for u, node in mapping.items():
+        #print(node)
+        if node.is_root():
+            build_graph(node, graph = graph, nodes = nodes,  edges = edges, is_top = True, fname = fname)    
 
 def unique_nodes(nodes, unique):
     if (unique):

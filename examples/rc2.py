@@ -1485,6 +1485,7 @@ class RC2Stratified(RC2, object):
 
         while len(am1) > 1:
             # computing am1's weight
+            print(am1)
             self.minw = min(map(lambda l: self.wght[l], am1))
 
             # pretending am1 to be a core, and the bound is its size - 1
