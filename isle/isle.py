@@ -412,12 +412,15 @@ class RC2(object):
             self.blop = sorted([w for w in list(self.wstr)], reverse=True)
             self.level = 0
             sz = len(self.blop)
-            self.max_level =  10
-            self.max_level =  10 if sz > self.max_level else sz            
-            step = ceil(sz/10) if sz > self.max_level else 1
+            self.max_level =  15
+            self.max_level =   self.max_level  if sz > self.max_level else sz            
+            step = ceil(sz/ self.max_level ) if sz > self.max_level else 1
             self.weight_bounds = []
             for i in range(0,sz, step):
                 self.weight_bounds.append(self.blop[i])
+            self.weight_bounds.pop(-1)
+            self.weight_bounds.append(0)
+            
 
         if (self.maxhs_on):
             self.or_card_model =  SolverOR(self.ilpcpu)
@@ -1019,7 +1022,7 @@ class RC2(object):
 
 
             if self.verbose > 1:
-                print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}")
+                print(f"c cost: {self.cost}; core sz: {len(self.core)}; soft sz: {len(self.sels) + len(self.sums)} {self.oracle_time():.4f}/{self.build_time:.4f}/{self.sat_time:.4f}/min_w {self.weight_bounds[self.level]}")
 
 
             # print(self.cost + 1, self.or_ub)
